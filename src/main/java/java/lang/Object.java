@@ -26,8 +26,20 @@
 package java.lang;
 
 import org.cprover.CProver;
+import java.lang.NullPointerException;
+import java.lang.IllegalMonitorStateException;
 
 public class Object {
+
+    // lock needed for synchronization in cbmc
+    // used by monitorenter, monitorexit, wait, and notify
+    // Not present in the original Object class
+    public int monitorCount;
+    
+    public Object() {
+      monitorCount = 0;
+    }
+    
     public final Class<?> getClass() {
       /*
        * MODELS LIBRARY {
@@ -57,11 +69,20 @@ public class Object {
         return getClass().getName() + "@" + Integer.toHexString(hashCode());
     }
 
-    public final void notify() {}
+    public final void notify()
+    {
+      // FIXME: the thread must own the lock when it calls notify
+    }
 
-    public final void notifyAll() {}
+    // See implementation of notify
+    public final void notifyAll()
+    {
+      // FIXME: the thread must own the lock when it calls notifyAll
+    }
 
     public final void wait(long timeout) throws InterruptedException {
+      // FIXME: the thread must own the lock when it calls wait
+      // FIXME: should only throw if the interrupted flag in Thread is enabled
       throw new InterruptedException();
     }
 
@@ -87,4 +108,51 @@ public class Object {
     }
 
     protected void finalize() throws Throwable { }
+
+    /**
+     * This method is not present in the original Objecct class.
+     * It will be called by JBMC when the monitor in this instance
+     * is being acquired as a result of either the execution of a
+     * monitorenter bytecode instruction or the call to a synchronized
+     * method. It uses a counter to enable reentrance and an atomic section
+     * to ensure multiple threads do not race in the access/modification of
+     * the counter.
+     */
+    public static void monitorenter(Object object)
+    {
+      //FIXME: we shoud remove the call to this method from the call
+      // stack appended to the thrown exception
+      if (object == null)
+        throw new NullPointerException();
+
+      CProver.atomicBegin();
+      // this assume blocks this execution path in JBMC and simulates
+      // the thread having to wait because the monitor is not available
+      CProver.assume(object.monitorCount == 0);
+      object.monitorCount++;
+      CProver.atomicEnd();
+    }
+
+    /**
+     * This method is not present in the original Objecct class.
+     * It will be called by JBMC when the monitor in this instance
+     * is being released as a result of either the execution of a
+     * monitorexit bytecode instruction or the return (normal or exceptional)
+     * of a synchronized method. It decrements the monitorCounter that had
+     * been incremented in monitorenter().
+     */
+    public static void monitorexit(Object object)
+    {
+      //FIXME: we shoud remove the call to this method from the call
+      // stack appended to the thrown exception
+      if (object == null)
+        throw new NullPointerException();
+
+      if (object.monitorCount == 0)
+        throw new IllegalMonitorStateException();
+      CProver.atomicBegin();
+      object.monitorCount--;
+      CProver.atomicEnd();
+    }
+
 }

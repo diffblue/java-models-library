@@ -7,6 +7,7 @@ public final class CProver
 {
   public static final boolean enableAssume=true;
   public static final boolean enableNondet=true;
+  public static final boolean enableConcurrency=true;
 
   public static boolean nondetBoolean()
   {
@@ -174,6 +175,62 @@ public final class CProver
     {
       throw new RuntimeException(
           "Cannot execute program with CProver.assume()");
+    }
+  }
+
+  /**
+   * This method is used by JBMC to detect the start of a new thread and
+   * create a multithreaded bmc equation.
+   * Refer to the method `start` in the model for the class `java.lang.Thread`
+   * in the JBMC sources to see an example of usage
+   */
+  public static void startThread(int id)
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.startThread()");
+    }
+  }
+
+  /**
+   * This method is used by JBMC to detect the end of a new thread to
+   * manage a multithreaded bmc equation
+   * Refer to the method `start` in the model for the class `java.lang.Thread`
+   * in the JBMC sources to see an example of usage
+   */
+  public static void endThread(int id)
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.endThread()");
+    }
+  }
+
+  /**
+   * This method is used by jbmc to indicate an atomic section which enforces
+   * the bmc equation to avoid interleavings of the code inside the section
+   */
+  public static void atomicBegin()
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.atomicBegin()");
+    }
+  }
+
+  /**
+   * This method is used by jbmc to indicate the end of an atomic section
+   * (see atomicBegin).
+   */
+  public static void atomicEnd()
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.atomicEnd()");
     }
   }
 
