@@ -1,0 +1,7 @@
+target
+
+*.txt
+*.d
+*.o
+*.a
+/.project
