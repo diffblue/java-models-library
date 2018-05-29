@@ -146,6 +146,19 @@ public final class CProver
     }
   }
 
+  /**
+   * This method is used by JBMC to return the ID of the executing thread.
+   */
+  public static int getCurrentThreadID()
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.getCurrentThreadID()");
+    }
+    return 0;
+  }
+
   public static void assume(boolean condition)
   {
     if(enableAssume && !condition)
@@ -179,7 +192,6 @@ public final class CProver
           "Cannot execute program with CProver.atomicEnd()");
     }
   }
-
 
   /**
    * If this method is found in the test-gen trace for a particular trace,
