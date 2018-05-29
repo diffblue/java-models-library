@@ -209,6 +209,19 @@ public final class CProver
   }
 
   /**
+   * This method is used by JBMC to return the ID of the executing thread.
+   */
+  public static int getCurrentThreadID()
+  {
+    if(enableConcurrency)
+    {
+      throw new RuntimeException(
+          "Cannot execute program with CProver.getCurrentThreadID()");
+    }
+    return 0;
+  }
+
+  /**
    * This method is used by jbmc to indicate an atomic section which enforces
    * the bmc equation to avoid interleavings of the code inside the section
    */
