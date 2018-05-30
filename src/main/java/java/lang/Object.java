@@ -35,11 +35,11 @@ public class Object {
     // used by monitorenter, monitorexit, wait, and notify
     // Not present in the original Object class
     public int monitorCount;
-    
+
     public Object() {
       monitorCount = 0;
     }
-    
+
     public final Class<?> getClass() {
       /*
        * MODELS LIBRARY {
@@ -124,8 +124,8 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
-      if (object == null)
-        throw new NullPointerException();
+      // if (object == null)
+      //   throw new NullPointerException();
 
       CProver.atomicBegin();
       // this assume blocks this execution path in JBMC and simulates
@@ -147,11 +147,11 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
-      if (object == null)
-        throw new NullPointerException();
+      // if (object == null)
+      //   throw new NullPointerException();
 
-      if (object.monitorCount == 0)
-        throw new IllegalMonitorStateException();
+      // if (object.monitorCount == 0)
+      //   throw new IllegalMonitorStateException();
       CProver.atomicBegin();
       object.monitorCount--;
       CProver.atomicEnd();
