@@ -34,10 +34,10 @@ public class Object {
     // lock needed for synchronization in cbmc
     // used by monitorenter, monitorexit, wait, and notify
     // Not present in the original Object class
-    public int monitorCount;
+    public int cproverMonitorCount;
 
     public Object() {
-      monitorCount = 0;
+      cproverMonitorCount = 0;
     }
 
     public final Class<?> getClass() {
@@ -128,8 +128,8 @@ public class Object {
       CProver.atomicBegin();
       // this assume blocks this execution path in JBMC and simulates
       // the thread having to wait because the monitor is not available
-      CProver.assume(object.monitorCount == 0);
-      object.monitorCount++;
+      CProver.assume(object.cproverMonitorCount == 0);
+      object.cproverMonitorCount++;
       CProver.atomicEnd();
     }
 
@@ -138,8 +138,8 @@ public class Object {
      * It will be called by JBMC when the monitor in this instance
      * is being released as a result of either the execution of a
      * monitorexit bytecode instruction or the return (normal or exceptional)
-     * of a synchronized method. It decrements the monitorCounter that had
-     * been incremented in monitorenter().
+     * of a synchronized method. It decrements the cproverMonitorCount that
+     * had been incremented in monitorenter().
      */
     public static void monitorexit(Object object)
     {
@@ -148,10 +148,10 @@ public class Object {
       // if (object == null)
       //   throw new NullPointerException();
 
-      // if (object.monitorCount == 0)
+      // if (object.cproverMonitorCount == 0)
       //   throw new IllegalMonitorStateException();
       CProver.atomicBegin();
-      object.monitorCount--;
+      object.cproverMonitorCount--;
       CProver.atomicEnd();
     }
 
