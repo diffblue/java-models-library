@@ -420,4 +420,29 @@ public final class Class<T> {
         // TODO does this need native handling, or is this acceptable?
         return true;
     }
+
+    // DIFFBLUE MODEL LIBRARY
+    // This method is called by CBMC to try to set class constants, which can
+    // avoid the time-consuming process of enumerating over the constant
+    // dictionary's internal array, when generating the Class object non-
+    // deterministically.
+    public void cproverInitializeClassLiteral(
+            String name,
+            boolean isAnnotation,
+            boolean isArray,
+            boolean isInterface,
+            boolean isSynthetic,
+            boolean isLocalClass,
+            boolean isMemberClass,
+            boolean isEnum) {
+        this.name = name;
+        this.isAnnotation = isAnnotation;
+        this.isArray = isArray;
+        this.isInterface = isInterface;
+        this.isSynthetic = isSynthetic;
+        this.isLocalClass = isLocalClass;
+        this.isMemberClass = isMemberClass;
+        this.isEnum = isEnum;
+    }
+
 }
