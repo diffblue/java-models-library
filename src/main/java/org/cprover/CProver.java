@@ -206,4 +206,12 @@ public final class CProver
   {
     assume(false);
   }
+
+  /**
+  *  Retrieves the current locking count for 'object'.
+  */
+  public static int getMonitorCount(Object object)
+  {
+    return object.cproverMonitorCount;
+  }
 }
