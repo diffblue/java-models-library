@@ -449,6 +449,7 @@ public final class Class<T> {
     // avoid the time-consuming process of enumerating over the constant
     // dictionary's internal array, when generating the Class object non-
     // deterministically.
+    @org.cprover.MustNotThrow
     public void cproverInitializeClassLiteral(
             String name,
             boolean isAnnotation,
