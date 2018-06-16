@@ -28,11 +28,11 @@ package java.lang;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cprover.CProverString;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
 
 import org.cprover.CProver;
+import org.cprover.CProverString;
 
 public final class Class<T> {
 
@@ -439,6 +439,7 @@ public final class Class<T> {
     // We generally want to make sure that all necessary invariants of the class
     // are satisfied, and potentially restrict some fields to speed up test
     // generation.
+    @org.cprover.MustNotThrow
     protected void cproverNondetInitialize() {
         CProver.assume(name != null);
         CProver.assume(enumConstantDirectory == null);
