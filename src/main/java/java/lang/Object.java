@@ -50,7 +50,7 @@ public class Object {
        * }
        */
       Class c = Class.forName("");
-      return CProver.nondetWithoutNull();
+      return CProver.nondetWithoutNullForNotModelled();
     }
 
     public int hashCode() {

@@ -27,9 +27,12 @@ package java.lang;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.cprover.CProver;
+
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
+
+import org.cprover.CProver;
+import org.cprover.CProverString;
 
 public final class Class<T> {
 
@@ -118,15 +121,21 @@ public final class Class<T> {
     public boolean isInterface() { return isInterface; }
     public boolean isArray() { return isArray; }
     public boolean isPrimitive() {
-        return "java.lang.Boolean".equals(name) ||
-            "java.lang.Character".equals(name) ||
-            "java.lang.Byte".equals(name) ||
-            "java.lang.Short".equals(name) ||
-            "java.lang.Integer".equals(name) ||
-            "java.lang.Long".equals(name) ||
-            "java.lang.Float".equals(name) ||
-            "java.lang.Double".equals(name) ||
-            "java.lang.Void".equals(name);}
+        // DIFFBLUE MODEL LIBRARY
+        // We use pointer equality instead of string equality because
+        // it is more efficient.
+        // This will only work if the name is defined through a constant literal,
+        // which should be the case for primitive classes.
+        return name == "boolean" ||
+                name == "char" ||
+                name == "byte" ||
+                name == "short" ||
+                name == "int" ||
+                name == "long" ||
+                name == "float" ||
+                name == "double"||
+                name == "void";
+    }
 
     public boolean isAnnotation() { return isAnnotation; }
     public boolean isSynthetic() { return isSynthetic; }
@@ -201,19 +210,20 @@ public final class Class<T> {
         String name = getName();
         int index = name.lastIndexOf('$');
         if(index == -1) { // top level class
-            return name.substring(name.lastIndexOf('.') + 1); // strip the package name
+            return CProverString.substring(name, name.lastIndexOf('.') + 1); // strip the package name
         }
         else {
             // DIFFBLUE MODEL LIBRARY: in the original JDK getSimpleBinary
             // looks for "$1", instead we looked for '$' and assume the next
             // character will be '1'
-            CProver.assume(name.charAt(index+1) == '1');
+            CProver.assume(CProverString.charAt(name, index + 1) == '1');
             // DIFFBLUE MODEL LIBRARY: $1 should be preceded by a class name
             CProver.assume(index >= 1);
             // DIFFBLUE MODEL LIBRARY: in the original JDK getSimpleName
             // removes the digits that follow
-            CProver.assume(!isAsciiDigit(name.charAt(index + 2)));
-            return name.substring(index + 2);
+            CProver.assume(name.length() > index + 2);
+            CProver.assume(!isAsciiDigit(CProverString.charAt(name, index + 2)));
+            return CProverString.substring(name, index + 2);
         }
     }
 
@@ -229,7 +239,7 @@ public final class Class<T> {
         }
         else
         {
-            String enclosing_name = name.substring(0, index);
+            String enclosing_name = CProverString.substring(name, 0, index);
             return Class.forName(enclosing_name);
         }
     }
@@ -265,7 +275,7 @@ public final class Class<T> {
             return null;
         // Otherwise, strip the enclosing class' name
         try {
-            return getName().substring(enclosingClass.getName().length());
+            return CProverString.substring(getName(), enclosingClass.getName().length());
         } catch (IndexOutOfBoundsException ex) {
             throw new InternalError("Malformed class name", ex);
         }
@@ -285,11 +295,11 @@ public final class Class<T> {
             String baseName = c.getName();
             int index = baseName.lastIndexOf('.');
             if (index != -1) {
-                name = baseName.substring(0, index).replace('.', '/')
+                name = CProverString.substring(baseName, 0, index).replace('.', '/')
                     +"/"+name;
             }
         } else {
-            name = name.substring(1);
+            name = CProverString.substring(name, 1);
         }
         return name;
     }
@@ -301,26 +311,26 @@ public final class Class<T> {
 
     public static Class getPrimitiveClass(String s){
         if("boolean".equals(s))
-            return Class.forName("java.lang.Boolean");
+            return Class.forName("boolean");
         if("char".equals(s))
-            return Class.forName("java.lang.Character");
+            return Class.forName("char");
         if("byte".equals(s))
-            return Class.forName("java.lang.Byte");
+            return Class.forName("byte");
         if("short".equals(s))
-            return Class.forName("java.lang.Short");
+            return Class.forName("short");
         if("int".equals(s))
-            return Class.forName("java.lang.Integer");
+            return Class.forName("int");
         if("long".equals(s))
-            return Class.forName("java.lang.Long");
+            return Class.forName("long");
         if("float".equals(s))
-            return Class.forName("java.lang.Float");
+            return Class.forName("float");
         if("double".equals(s))
-            return Class.forName("java.lang.Double");
+            return Class.forName("double");
         if("void".equals(s))
-            return Class.forName("java.lang.Void");
-    // TODO: we should throw an exception but this does not seem to work well
-    // at the moment, so we will assume it does not happen instead.
-    // throw new IllegalArgumentException("Not primitive type : " + s);
+            return Class.forName("void");
+        // TODO: we should throw an exception but this does not seem to work well
+        // at the moment, so we will assume it does not happen instead.
+        // throw new IllegalArgumentException("Not primitive type : " + s);
         CProver.assume(false);
         return Class.forName("");
     }
@@ -333,22 +343,22 @@ public final class Class<T> {
     // takes 8 seconds while the int version takes 3 seconds.
     static Class getPrimitiveClass(int i){
         if(i==0)
-            return Class.forName("java.lang.Boolean");
+            return Class.forName("boolean");
         if(i==1)
-            return Class.forName("java.lang.Character");
+            return Class.forName("char");
         if(i==2)
-            return Class.forName("java.lang.Byte");
+            return Class.forName("byte");
         if(i==3)
-            return Class.forName("java.lang.Short");
+            return Class.forName("short");
         if(i==4)
-            return Class.forName("java.lang.Integer");
+            return Class.forName("int");
         if(i==5)
-            return Class.forName("java.lang.Long");
+            return Class.forName("long");
         if(i==6)
-            return Class.forName("java.lang.Float");
+            return Class.forName("float");
         if(i==7)
-            return Class.forName("java.lang.Double");
-        return Class.forName("java.lang.Void");
+            return Class.forName("double");
+        return Class.forName("void");
     }
 
     Map<String, T> enumConstantDirectory() {
@@ -370,7 +380,7 @@ public final class Class<T> {
     // would probably need to be modeled internally in our tools
     T[] getEnumConstantsShared() {
         // DIFFBLUE MODEL LIBRARY @TODO: implement this method internally in CBMC
-        return CProver.nondetWithoutNull(); 
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -419,6 +429,20 @@ public final class Class<T> {
         // queries the JVM.
         // TODO does this need native handling, or is this acceptable?
         return true;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // This method is called by CBMC just after nondeterministic object creation,
+    // i.e., the constraints that it specifies are enforced only on objects that
+    // are passed as an argument to a method, and only at the time when they are
+    // first created.
+    // We generally want to make sure that all necessary invariants of the class
+    // are satisfied, and potentially restrict some fields to speed up test
+    // generation.
+    @org.cprover.MustNotThrow
+    protected void cproverNondetInitialize() {
+        CProver.assume(name != null);
+        CProver.assume(enumConstantDirectory == null);
     }
 
     // DIFFBLUE MODEL LIBRARY
