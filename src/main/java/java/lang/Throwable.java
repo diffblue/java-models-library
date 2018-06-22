@@ -159,7 +159,8 @@ public class Throwable implements Serializable {
     /**
      * A shared value for an empty stack.
      */
-    private static final StackTraceElement[] UNASSIGNED_STACK = new StackTraceElement[0];
+    // DIFFBLUE MODEL LIBRARY
+    // private static final StackTraceElement[] UNASSIGNED_STACK = new StackTraceElement[0];
 
     /*
      * To allow Throwable objects to be made immutable and safely
@@ -210,7 +211,8 @@ public class Throwable implements Serializable {
      * @serial
      * @since 1.4
      */
-    private StackTraceElement[] stackTrace = UNASSIGNED_STACK;
+    // DIFFBLUE MODEL LIBRARY
+    // private StackTraceElement[] stackTrace = UNASSIGNED_STACK;
     // DIFFBLUE MODEL LIBRARY Uncommenting the following line would be helpful
     // for modelling some methods, but deterministic memory in models is not
     // currently supported.
@@ -232,20 +234,24 @@ public class Throwable implements Serializable {
      * @serial
      * @since 1.7
      */
+    // DIFFBLUE MODEL LIBRARY
     // private List<Throwable> suppressedExceptions = SUPPRESSED_SENTINEL;
-    private List<Throwable> suppressedExceptions;
 
     /** Message for trying to suppress a null exception. */
-    private static final String NULL_CAUSE_MESSAGE = "Cannot suppress a null exception.";
+    // DIFFBLUE MODEL LIBRARY
+    // private static final String NULL_CAUSE_MESSAGE = "Cannot suppress a null exception.";
 
     /** Message for trying to suppress oneself. */
-    private static final String SELF_SUPPRESSION_MESSAGE = "Self-suppression not permitted";
+    // DIFFBLUE MODEL LIBRARY
+    // private static final String SELF_SUPPRESSION_MESSAGE = "Self-suppression not permitted";
 
     /** Caption  for labeling causative exception stack traces */
-    private static final String CAUSE_CAPTION = "Caused by: ";
+    // DIFFBLUE MODEL LIBRARY
+    // private static final String CAUSE_CAPTION = "Caused by: ";
 
     /** Caption for labeling suppressed exception stack traces */
-    private static final String SUPPRESSED_CAPTION = "Suppressed: ";
+    // DIFFBLUE MODEL LIBRARY
+    // private static final String SUPPRESSED_CAPTION = "Suppressed: ";
 
     /**
      * Constructs a new throwable with {@code null} as its detail message.
@@ -365,16 +371,18 @@ public class Throwable implements Serializable {
     protected Throwable(String message, Throwable cause,
                         boolean enableSuppression,
                         boolean writableStackTrace) {
-        if (writableStackTrace) {
-            // fillInStackTrace();
-        } else {
-            stackTrace = null;
-        }
+        // DIFFBLUE MODEL LIBRARY
+        // if (writableStackTrace) {
+        //  fillInStackTrace();
+        // } else {
+        //     stackTrace = null;
+        // }
         detailMessage = message;
         this.cause = cause;
-        if (!enableSuppression) {
-            suppressedExceptions = null;
-        }
+        // DIFFBLUE MODEL LIBRARY
+        // if (!enableSuppression) {
+        //     suppressedExceptions = null;
+        // }
     }
 
     /**
@@ -809,14 +817,14 @@ public class Throwable implements Serializable {
         // }
         // return this;
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     // DIFFBLUE MODEL LIBRARY We do not model native methods.
     // private native Throwable fillInStackTrace(int dummy);
     private Throwable fillInStackTrace(int dummy) {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -861,7 +869,7 @@ public class Throwable implements Serializable {
         // }
         // return stackTrace;
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -935,7 +943,7 @@ public class Throwable implements Serializable {
     // native StackTraceElement getStackTraceElement(int index);
     StackTraceElement getStackTraceElement(int index) {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -1105,7 +1113,8 @@ public class Throwable implements Serializable {
         CProver.notModelled();
     }
 
-    private static final Throwable[] EMPTY_THROWABLE_ARRAY = new Throwable[0];
+    // DIFFBLUE MODEL LIBRARY
+    // private static final Throwable[] EMPTY_THROWABLE_ARRAY = new Throwable[0];
 
     /**
      * Returns an array containing all of the exceptions that were
@@ -1129,6 +1138,6 @@ public class Throwable implements Serializable {
         // else
         //     return suppressedExceptions.toArray(EMPTY_THROWABLE_ARRAY);
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 }

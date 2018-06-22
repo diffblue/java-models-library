@@ -1,5 +1,8 @@
 package org.cprover;
 
+import java.io.BufferedInputStream;
+import java.io.PrintStream;
+
 public final class CProver
 {
   public static boolean enableAssume=true;
@@ -94,7 +97,7 @@ public final class CProver
     return 0;
   }
 
-  public static <T> T nondetWithNull()
+  private static <T> T nondetWithNull()
   {
     if (enableNondet)
     {
@@ -105,15 +108,65 @@ public final class CProver
     return null;
   }
 
-  public static <T> T nondetWithoutNull()
+  /**
+   *
+   * @param instance an instance of the type T, this is not used but is there
+   *                 to make sure the class T is loaded. The parameter should
+   *                 not be `null`.
+   * @param <T> class of the object to return
+   * @return a non-deterministic object of type T, possibly `null`.
+   */
+  public static <T> T nondetWithNull(T instance)
   {
-    if (enableNondet)
-    {
-      throw new RuntimeException(
-          "Cannot execute program with CProver.nondetWithoutNull<T>(T)");
-    }
+    return nondetWithNull();
+  }
 
-    return null;
+  private static <T> T nondetWithoutNull()
+  {
+    T t = nondetWithNull();
+    assume(t != null);
+    return t;
+  }
+
+  /**
+   *
+   * @param instance an instance of the type T, this is not used but is there
+   *                 to make sure the class T is loaded. The parameter should
+   *                 not be `null`.
+   * @param <T> class of the object to return
+   * @return a non-deterministic object of type T, assumed to be non-null.
+   */
+  public static <T> T nondetWithoutNull(T instance)
+  {
+    return nondetWithoutNull();
+  }
+
+  public static <T> T nondetWithNullForNotModelled() {
+    return nondetWithNull();
+  }
+
+  public static <T> T nondetWithoutNullForNotModelled() {
+    return nondetWithoutNull();
+  }
+
+  /**
+   * Return a non-deterministic PrintStream.
+   * It is not recommended to use it, since it will not enforce that PrintStream
+   * is loaded, but is necessary for initializing System.out and System.err.
+   */
+  public static PrintStream nondetPrintStream()
+  {
+    return nondetWithoutNull();
+  }
+
+  /**
+   * Return a non-deterministic BufferedInputStream.
+   * It is not recommended to use it, since it will not enforce that 
+   * BufferedInputStream is loaded, but is necessary for initializing System.in.
+   */
+  public static BufferedInputStream nondetBufferedInputStream()
+  {
+    return nondetWithoutNull();
   }
 
   /**

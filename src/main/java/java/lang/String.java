@@ -27,18 +27,23 @@ package java.lang;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Locale;
-// DIFFBLUE MODEL LIBRARY : these headers are not used
+// DIFFBLUE MODEL LIBRARY these headers are not used
 // import java.io.ObjectStreamField;
 // import java.util.ArrayList;
 // import java.util.Arrays;
-// import java.util.Comparator;
 // import java.util.Formatter;
 // import java.util.Objects;
 // import java.util.StringJoiner;
 // import java.util.regex.Matcher;
 // import java.util.regex.Pattern;
 // import java.util.regex.PatternSyntaxException;
+
+// DIFFBLUE MODEL LIBRARY new imports in the model
+import java.nio.charset.StandardCharsets;
+
 import org.cprover.CProver;
 
 // Used as an interface with CProver internal string functions:
@@ -757,17 +762,15 @@ public final class String
      *             string.
      * @since      1.5
      *
-     * @diffblue.limitedSupport
-     * Does not throw exceptions.
-     * @diffblue.untested
+     * @diffblue.fullSupport
+     * @diffblue.untested Tests only cover exception throwing
      */
     public int codePointAt(int index) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetInt();
-        // if ((index < 0) || (index >= value.length)) {
-        //     throw new StringIndexOutOfBoundsException(index);
-        // }
+        if ((index < 0) || (index >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
         // return Character.codePointAtImpl(value, index, value.length);
+        return CProverString.codePointAt(this, index);
     }
 
     /**
@@ -792,18 +795,15 @@ public final class String
      *            of this string.
      * @since     1.5
      *
-     * @diffblue.limitedSupport
-     * Does not throw exceptions.
-     * @diffblue.untested
+     * @diffblue.fullSupport
      */
     public int codePointBefore(int index) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetInt();
-        // int i = index - 1;
-        // if ((i < 0) || (i >= value.length)) {
-        //     throw new StringIndexOutOfBoundsException(index);
-        // }
+        int i = index - 1;
+        if ((i < 0) || (i >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
         // return Character.codePointBeforeImpl(value, index, 0);
+        return CProverString.codePointBefore(this, index);
     }
 
     /**
@@ -828,15 +828,15 @@ public final class String
      * @since  1.5
      *
      * @diffblue.limitedSupport
-     * The result of this function is approximated and no exception is thrown.
+     * The result of this function is approximated.
+     * @diffblue.untested Tests only cover exception throwing
      */
     public int codePointCount(int beginIndex, int endIndex) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetInt();
-        // if (beginIndex < 0 || endIndex > value.length || beginIndex > endIndex) {
-        //     throw new IndexOutOfBoundsException();
-        // }
+        if (beginIndex < 0 || endIndex > this.length() || beginIndex > endIndex) {
+            throw new IndexOutOfBoundsException();
+        }
         // return Character.codePointCountImpl(value, beginIndex, endIndex - beginIndex);
+        return CProverString.codePointCount(this, beginIndex, endIndex);
     }
 
     /**
@@ -860,16 +860,17 @@ public final class String
      * @since 1.5
      *
      * @diffblue.limitedSupport
-     * The result of this function is approximated and no exception is thrown.
+     * The result of this function is approximated. Only the
+     * {@code IndexOutOfBoundsException} related to {@code index} is thrown.
+     * @diffblue.untested Only exception throwing is tested.
      */
     public int offsetByCodePoints(int index, int codePointOffset) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetInt();
-        // if (index < 0 || index > value.length) {
-        //     throw new IndexOutOfBoundsException();
-        // }
+        if (index < 0 || index > this.length()) {
+            throw new IndexOutOfBoundsException();
+        }
         // return Character.offsetByCodePointsImpl(value, 0, value.length,
         //         index, codePointOffset);
+        return CProverString.offsetByCodePoints(this, index, codePointOffset);
     }
 
     /**
@@ -1032,6 +1033,9 @@ public final class String
      * </ul>
      * Will enforce the argument is equal to "US-ASCII" in the other cases,
      * hence UnsupportedEncodingException will never be thrown.
+     *
+     * Uses loops so is affected by the `unwind` parameter, which needs to be
+     * 1 + length of the string to convert.
      */
     public byte[] getBytes(String charsetName)
         throws java.io.UnsupportedEncodingException {
@@ -1084,19 +1088,47 @@ public final class String
      * @since  1.6
      *
      * @diffblue.limitedSupport
-     * We enforce all characters are ASCII and the encoding is one in which
-     * ASCII characters are encoded with one byte. In particular this is
-     * wrong if the given charset is UTF16.
-     * NullPointerException are not raised by this model.
+     * Works as expected if the argument is:
+     * <ul>
+     *     <li> "US-ASCII" </li>
+     * </ul>
+     * Will enforce the string does not contain code points from supplementary
+     * planes https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
+     * if the argument is:
+     * <ul>
+     *     <li> "UTF-16BE" </li>
+     *     <li> "UTF-16LE" </li>
+     *     <li> "UTF-16" </li>
+     * </ul>
+     * Will enforce the string is composed of ASCII characters if the argument
+     * is one of the following:
+     * <ul>
+     *     <li> "ISO-8859-1" </li>
+     *     <li> "UTF-8" </li>
+     * </ul>
+     * Will enforce the argument is equal to "US-ASCII" in the other cases.
+     *
+     * Uses loops so is affected by the `unwind` parameter, which needs to be
+     * 1 + length of the string to convert.
      */
     public byte[] getBytes(Charset charset) {
-        // DIFFBLUE MODEL LIBRARY: this is disabled because a bug makes all static
-        // members null TG-1081
         // if (charset == null) throw new NullPointerException();
+        // return StringCoding.encode(charset, value, 0, value.length);
         // DIFFBLUE MODEL LIBRARY
-        // @diffblue.todo: we always enforce ASCII for now because of a bug
-        // with static object initialization, which makes all standard charsets
-        // (US_ASCII, ISO_8859_1, ...) null.
+        // @diffblue.todo: Write a model for StringCoding, change this method
+        // back to its original implementation and remove the import for
+        // StandardCharsets.
+        if (charset == null) throw new NullPointerException();
+        if (charset.equals(StandardCharsets.US_ASCII))
+            return getBytesAscii();
+        if (charset.equals(StandardCharsets.UTF_16BE))
+            return getBytesUTF_16BE();
+        if (charset.equals(StandardCharsets.UTF_16LE))
+            return getBytesUTF_16LE();
+        if (charset.equals(StandardCharsets.UTF_16))
+            return getBytesUTF_16();
+        // DIFFBLUE MODEL LIBRARY @diffblue.todo: Support further encodings
+        // (StandardCharsets.ISO_8859_1, StandardCharsets.UTF_8, ...)
         return getBytesEnforceAscii();
     }
 
@@ -1154,6 +1186,7 @@ public final class String
         for(int i = 0; i < l; i++)
         {
             char c = CProverString.charAt(this, i);
+            CProver.assume(c < '\ud800');
             result[2*i] = (byte) (c >> 8);
             result[2*i+1] = (byte) (c & 0xFF);
         }
@@ -1167,6 +1200,7 @@ public final class String
         for(int i = 0; i < l; i++)
         {
             char c = CProverString.charAt(this, i);
+            CProver.assume(c < '\ud800');
             result[2*i] = (byte) (c & 0xFF);
             result[2*i+1] = (byte) (c >> 8);
         }
@@ -1180,11 +1214,12 @@ public final class String
         byte result[] = new byte[2*l+2];
         result[0] = (byte) 0xFE;
         result[1] = (byte) 0xFF;
-        for(int i = 2; i < l+2; i++)
+        for (int i = 0; i < l; i++)
         {
             char c = CProverString.charAt(this, i);
-            result[2*i] = (byte) (c >> 8);
-            result[2*i+1] = (byte) (c & 0xFF);
+            CProver.assume(c < '\ud800');
+            result[2 * i + 2] = (byte) (c >> 8);
+            result[2 * i + 3] = (byte) (c & 0xFF);
         }
         return result;
     }
@@ -1195,11 +1230,12 @@ public final class String
         int output_size = 0;
         for(int i = 0; i < l; i++)
         {
-            int c = charAt(i);
+            int c = CProverString.charAt(this, i);
             if(c>=0xD800)
             {
                 i++;
-                c = 0x10000 | ((c & 0x3FF) << 10) | (charAt(i) & 0x3FF);
+                c = 0x10000 | ((c & 0x3FF) << 10)
+                        | (CProverString.charAt(this, i) & 0x3FF);
             }
             if(c<=0x7F)
                 output_size += 1;
@@ -1215,11 +1251,12 @@ public final class String
         int index = 0;
         for(int i = 0; i < l; i++)
         {
-            int c = charAt(i);
+            int c = CProverString.charAt(this, i);
             if(c>=0xD800)
             {
                 i++;
-                c = 0x10000 | ((c & 0x3FF) << 10) | (charAt(i) & 0x3FF);
+                c = 0x10000 | ((c & 0x3FF) << 10)
+                        | (CProverString.charAt(this, i) & 0x3FF);
             }
             if(c<=0x7F)
                 result[index++]=(byte)c;
@@ -1501,10 +1538,17 @@ public final class String
      *
      * @see     java.text.Collator#compare(String, String)
      * @since   1.2
+     *
+     * @diffblue.noSupport
+     * @diffblue.untested
      */
-    // DIFFBLUE MODEL LIBRARY Not needed for modelling
     // public static final Comparator<String> CASE_INSENSITIVE_ORDER
     //                                      = new CaseInsensitiveComparator();
+    // DIFFBLUE MODEL LIBRARY For some reason this needs to be not null for
+    // FileReader tests to pass.
+    public static final Comparator<String> CASE_INSENSITIVE_ORDER
+                                            = CProver.nondetWithoutNullForNotModelled();
+    // DIFFBLUE MODEL LIBRARY Not needed for modelling
     // private static class CaseInsensitiveComparator
     //         implements Comparator<String>, java.io.Serializable {
     //     // use serialVersionUID from JDK 1.2.2 for interoperability
@@ -2337,7 +2381,7 @@ public final class String
      *             length of this {@code String} object.
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
+     * @diffblue.untested Only exception throwing is tested.
      */
     public String substring(int beginIndex) {
         // DIFFBLUE MODEL LIBRARY
@@ -2385,7 +2429,7 @@ public final class String
      *             {@code endIndex}.
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
+     * @diffblue.untested Only exception throwing is tested.
      */
     public String substring(int beginIndex, int endIndex) {
         // DIFFBLUE MODEL LIBRARY
@@ -2414,7 +2458,12 @@ public final class String
         if (subLen < 0) {
             throw new StringIndexOutOfBoundsException(subLen);
         }
-        return CProverString.substring(this, beginIndex, endIndex);
+        // DIFFBLUE MODEL LIBRARY Exception case imported from {@code String(char value[], int offset, int count)}
+        // Note: beginIndex or subLen might be near -1>>>1.
+        if (beginIndex > length() - subLen) {
+            throw new StringIndexOutOfBoundsException(beginIndex + subLen);
+        }
+        return CProverString.substring(this, beginIndex, beginIndex + subLen);
     }
 
     /**
@@ -2446,14 +2495,11 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.limitedSupport
-     * Does not throw IndexOutOfBoundsException
-     * @diffblue.untested
+     * @diffblue.fullSupport
+     * @diffblue.untested Only exception throwing is tested
      */
     public CharSequence subSequence(int beginIndex, int endIndex) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
-        // return this.substring(beginIndex, endIndex);
+        return this.substring(beginIndex, endIndex);
     }
 
     /**
@@ -2481,7 +2527,7 @@ public final class String
      */
     public String concat(String str) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // int otherLen = str.length();
         // if (otherLen == 0) {
         //     return this;
@@ -2526,7 +2572,7 @@ public final class String
      */
     public String replace(char oldChar, char newChar) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // if (oldChar != newChar) {
         //     int len = value.length;
         //     int i = -1;
@@ -2650,7 +2696,7 @@ public final class String
      */
     public String replaceFirst(String regex, String replacement) {
         CProver.notModelled();
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(regex).matcher(this).replaceFirst(replacement);
     }
 
@@ -2743,7 +2789,7 @@ public final class String
      */
     public String replace(CharSequence target, CharSequence replacement) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(
         //         this).replaceAll(Matcher.quoteReplacement(replacement.toString()));
     }
@@ -2838,7 +2884,7 @@ public final class String
      */
     public String[] split(String regex, int limit) {
         CProver.notModelled();
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // /* fastpath if the regex is a
         //  (1)one-char String and this character is not one of the
         //     RegEx's meta characters ".$|()[{^?*+\\", or
@@ -2934,7 +2980,7 @@ public final class String
      */
     public String[] split(String regex) {
         CProver.notModelled();
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return split(regex, 0);
     }
 
@@ -2963,11 +3009,23 @@ public final class String
      * @see java.util.StringJoiner
      * @since 1.8
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The model assumes the delimiter and elements objects are not null
+     * instead of throwing an exception when they are.
+     * The number of elements will be limited by the unwind parameter.
      */
     public static String join(CharSequence delimiter, CharSequence... elements) {
-        CProver.notModelled();
-        return CProver.nondetWithNull();
+        CProver.assume(delimiter != null);
+        CProver.assume(elements != null);
+
+        StringBuilder builder = new StringBuilder();
+        if (elements.length > 0)
+            builder.append(elements[0]);
+        for (int i = 1; i < elements.length; i++) {
+            builder.append(delimiter);
+            builder.append(elements[i]);
+        }
+        return builder.toString();
         // Objects.requireNonNull(delimiter);
         // Objects.requireNonNull(elements);
         // // Number of elements not likely worth Arrays.stream overhead.
@@ -3015,12 +3073,26 @@ public final class String
      * @see    java.util.StringJoiner
      * @since 1.8
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The model assumes the delimiter and elements objects are not null
+     * instead of throwing an exception when they are.
+     * The number of elements will be limited by the unwind parameter.
      */
     public static String join(CharSequence delimiter,
             Iterable<? extends CharSequence> elements) {
-        CProver.notModelled();
-        return CProver.nondetWithNull();
+        CProver.assume(delimiter != null);
+        CProver.assume(elements != null);
+        Iterator<? extends CharSequence> iterator = elements.iterator();
+        if (!iterator.hasNext())
+            return "";
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(iterator.next().toString());
+        while (iterator.hasNext()) {
+            builder.append(delimiter.toString());
+            builder.append(iterator.next().toString());
+        }
+        return builder.toString();
         // Objects.requireNonNull(delimiter);
         // Objects.requireNonNull(elements);
         // StringJoiner joiner = new StringJoiner(delimiter);
@@ -3203,7 +3275,7 @@ public final class String
      */
     public String toLowerCase() {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return toLowerCase(Locale.getDefault());
     }
 
@@ -3379,7 +3451,7 @@ public final class String
      */
     public String toUpperCase() {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return toUpperCase(Locale.getDefault());
     }
 
@@ -3418,7 +3490,7 @@ public final class String
      */
     public String trim() {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // int len = value.length;
         // int st = 0;
         // char[] val = value;    /* avoid getfield opcode */
@@ -3444,7 +3516,7 @@ public final class String
      */
     public String toString() {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return this;
     }
 
@@ -3532,7 +3604,7 @@ public final class String
      */
     public static String format(String format, Object... args) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return new Formatter().format(format, args).toString();
     }
 
@@ -3578,7 +3650,7 @@ public final class String
     public static String format(Locale l, String format, Object... args) {
         // return new Formatter(l).format(format, args).toString();
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -3596,7 +3668,7 @@ public final class String
     public static String valueOf(Object obj) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
         // return (obj == null) ? "null" : obj.toString();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -3614,7 +3686,7 @@ public final class String
      */
     public static String valueOf(char data[]) {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return new String(data);
     }
 
@@ -3642,7 +3714,7 @@ public final class String
      */
     public static String valueOf(char data[], int offset, int count) {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return new String(data, offset, count);
     }
 
@@ -3663,7 +3735,7 @@ public final class String
      */
     public static String copyValueOf(char data[], int offset, int count) {
         CProver.notModelled();
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // return new String(data, offset, count);
     }
 
@@ -3678,7 +3750,7 @@ public final class String
      */
     public static String copyValueOf(char data[]) {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return new String(data);
     }
 
@@ -3695,7 +3767,7 @@ public final class String
      */
     public static String valueOf(boolean b) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return b ? "true" : "false";
     }
 
@@ -3712,7 +3784,7 @@ public final class String
      */
     public static String valueOf(char c) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNull();
+        return CProver.nondetWithNullForNotModelled();
         // char data[] = {c};
         // return new String(data, true);
     }
@@ -3732,7 +3804,7 @@ public final class String
      */
     public static String valueOf(int i) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return Integer.toString(i);
     }
 
@@ -3751,7 +3823,7 @@ public final class String
      */
     public static String valueOf(long l) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return Long.toString(l);
     }
 
@@ -3771,7 +3843,7 @@ public final class String
      */
     public static String valueOf(float f) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return Float.toString(f);
     }
 
@@ -3791,7 +3863,7 @@ public final class String
      */
     public static String valueOf(double d) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
         // return Double.toString(d);
     }
 
@@ -3823,6 +3895,6 @@ public final class String
     // public native String intern();
     public String intern() {
         CProver.notModelled();
-        return CProver.nondetWithoutNull();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 }
