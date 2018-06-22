@@ -1,0 +1,90 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.cprover.models</groupId>
+  <artifactId>models</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <name>CProver JDK Models</name>
+
+  <!-- Tell javadoc plugin not to fail on warnings -->
+  <profiles>
+    <profile>
+      <id>java8-doclint-disabled</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <javadoc.opts>-Xdoclint:none</javadoc.opts>
+      </properties>
+    </profile>
+  </profiles>
+
+  <build>
+    <finalName>core-models</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.6.1</version>
+        <configuration>
+          <compilerArguments>
+            <classpath>${java.home}/lib/rt.jar</classpath>
+          </compilerArguments>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.0.0-M1</version>
+        <configuration>
+          <outputDirectory>doc</outputDirectory>
+          <quiet>true</quiet>
+          <nosince>true</nosince>
+          <sourcepath>src/main/java</sourcepath>
+          <subpackages>java</subpackages>
+          <overview>src/main/overview.html</overview>
+          <windowtitle>Diffblue Library of Models</windowtitle>
+          <doctitle>Diffblue Library of Models</doctitle>
+          <tags>
+            <tag>
+              <name>diffblue.fullSupport</name>
+              <placement>ptcm</placement>
+              <head>DIFFBLUE: Full support</head>
+            </tag>
+            <tag>
+              <name>diffblue.limitedSupport</name>
+              <placement>ptcm</placement>
+              <head>DIFFBLUE: Limited support</head>
+            </tag>
+            <tag>
+              <name>diffblue.noSupport</name>
+              <placement>ptcm</placement>
+              <head>DIFFBLUE: No support</head>
+            </tag>
+            <tag>
+              <name>diffblue.untested</name>
+              <placement>ptcm</placement>
+              <head>DIFFBLUE: Untested</head>
+            </tag>
+            <tag>
+              <name>diffblue.todo</name>
+              <placement>ptcm</placement>
+              <head>DIFFBLUE: To do</head>
+            </tag>
+          </tags>
+          <!--No fail on warning-->
+          <additionalparam>${javadoc.opts}</additionalparam>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
