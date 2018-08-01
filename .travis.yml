@@ -1,0 +1,12 @@
+language: java
+
+script:
+  - mvn package
+
+notifications:
+  webhooks:
+    on_success: always
+    on_failure: always
+    on_start: never
+    on_cancel: never
+    on_error: always
