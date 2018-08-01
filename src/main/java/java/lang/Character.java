@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
@@ -7217,19 +7219,21 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @since 1.7
      */
     public static String getName(int codePoint) {
-        if (!isValidCodePoint(codePoint)) {
-            throw new IllegalArgumentException();
-        }
-        String name = CharacterName.get(codePoint);
-        if (name != null)
-            return name;
-        if (getType(codePoint) == UNASSIGNED)
-            return null;
-        UnicodeBlock block = UnicodeBlock.of(codePoint);
-        if (block != null)
-            return block.toString().replace('_', ' ') + " "
-                   + Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
-        // should never come here
-        return Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
+        // if (!isValidCodePoint(codePoint)) {
+        //     throw new IllegalArgumentException();
+        // }
+        // String name = CharacterName.get(codePoint);
+        // if (name != null)
+        //     return name;
+        // if (getType(codePoint) == UNASSIGNED)
+        //     return null;
+        // UnicodeBlock block = UnicodeBlock.of(codePoint);
+        // if (block != null)
+        //     return block.toString().replace('_', ' ') + " "
+        //            + Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
+        // // should never come here
+        // return Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 }
