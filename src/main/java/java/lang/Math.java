@@ -26,8 +26,8 @@
 package java.lang;
 import java.util.Random;
 
-import sun.misc.FloatConsts;
-import sun.misc.DoubleConsts;
+// import sun.misc.FloatConsts;
+// import sun.misc.DoubleConsts;
 
 import org.cprover.CProver;
 

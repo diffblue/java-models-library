@@ -28,8 +28,8 @@ package java.lang;
 import java.util.HashMap;
 import java.util.Map;
 
-import sun.reflect.CallerSensitive;
-import sun.reflect.Reflection;
+// import sun.reflect.CallerSensitive;
+// import sun.reflect.Reflection;
 
 import org.cprover.CProver;
 import org.cprover.CProverString;
@@ -179,16 +179,17 @@ public final class Class<T> {
      * @see SecurityManager#checkPermission
      * @see java.lang.RuntimePermission
      */
-    @CallerSensitive
+    // @CallerSensitive
     public ClassLoader getClassLoader() {
-        ClassLoader cl = getClassLoader0();
-        if (cl == null)
-            return null;
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
-        }
-        return cl;
+        // ClassLoader cl = getClassLoader0();
+        // if (cl == null)
+        //     return null;
+        // SecurityManager sm = System.getSecurityManager();
+        // if (sm != null) {
+        //     ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
+        // }
+        // return cl;
+        return null;
     }
 
     ClassLoader getClassLoader0() {
