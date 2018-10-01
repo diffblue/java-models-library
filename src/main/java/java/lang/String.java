@@ -1390,11 +1390,33 @@ public final class String
      * @see  #equalsIgnoreCase(String)
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     public boolean equals(Object anObject) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetBoolean();
+        // if (this == anObject) {
+        //     return true;
+        // }
+        // if (anObject instanceof String) {
+        //     String anotherString = (String)anObject;
+        //     int n = value.length;
+        //     if (n == anotherString.value.length) {
+        //         char v1[] = value;
+        //         char v2[] = anotherString.value;
+        //         int i = 0;
+        //         while (n-- != 0) {
+        //             if (v1[i] != v2[i])
+        //                 return false;
+        //             i++;
+        //         }
+        //         return true;
+        //     }
+        // }
+        // return false;
+
+        // DIFFBLUE MODEL LIBRARY Use CProverString function
+        if (anObject instanceof String) {
+            return CProverString.equals((String) anObject, this);
+        }
+        return false;
     }
 
     /**
@@ -1611,7 +1633,7 @@ public final class String
     // DIFFBLUE MODEL LIBRARY For some reason this needs to be not null for
     // FileReader tests to pass.
     public static final Comparator<String> CASE_INSENSITIVE_ORDER
-                                            = CProver.nondetWithoutNullForNotModelled();
+                                            = null;
     // DIFFBLUE MODEL LIBRARY Not needed for modelling
     // private static class CaseInsensitiveComparator
     //         implements Comparator<String>, java.io.Serializable {
