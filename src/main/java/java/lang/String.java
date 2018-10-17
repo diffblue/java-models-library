@@ -195,6 +195,27 @@ public final class String
     }
 
     /**
+     * Intermediary function for modelling the constructor for
+     * String(char value[], int offset, int count).
+     * The code is copied from the original String(char value[], int offset, int count).
+     */
+    private static String CProverStringOfCharArray(char value[], int offset, int count) {
+        if (offset < 0) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        if (count < 0) {
+            throw new StringIndexOutOfBoundsException(count);
+        }
+        // Note: offset or count might be near -1>>>1.
+        if (offset > value.length - count) {
+            throw new StringIndexOutOfBoundsException(offset + count);
+        }
+        // DIFFBLUE MODEL LIBRARY Use CProverString function instead of array copy
+        return CProverString.ofCharArray(value, offset, count);
+        // this.value = Arrays.copyOfRange(value, offset, offset+count);
+    }
+
+    /**
      * Allocates a new {@code String} that contains characters from a subarray
      * of the character array argument. The {@code offset} argument is the
      * index of the first character of the subarray and the {@code count}
@@ -216,11 +237,11 @@ public final class String
      *          characters outside the bounds of the {@code value} array
      *
      * @diffblue.limitedSupport
-     * Does not throw exceptions.
      * @diffblue.untested
      */
     public String(char value[], int offset, int count) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
+        // DIFFBLUE MODEL LIBRARY
+        this(CProverStringOfCharArray(value, offset, count));
         // if (offset < 0) {
         //     throw new StringIndexOutOfBoundsException(offset);
         // }

@@ -241,23 +241,25 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder append(char[] str) {
-        // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
+        // DIFFBLUE MODEL LIBRARY
+        String string = CProverString.ofCharArray(str, 0, str.length);
+        return append(string);
         // super.append(str);
         // return this;
-        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     @Override
     public StringBuilder append(char[] str, int offset, int len) {
+        // DIFFBLUE MODEL LIBRARY
+        String string = new String(str, offset, len);
+        return append(string);
         // super.append(str, offset, len);
         // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
     }
 
     /**

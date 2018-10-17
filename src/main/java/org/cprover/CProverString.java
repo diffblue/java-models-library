@@ -388,4 +388,26 @@ public final class CProverString
         return CProver.nondetWithoutNullForNotModelled();
     }
 
+    /**
+     * Converts an array of characters to a string. This uses a loop and
+     * therefore in test-generation the {@code count} will be limited by the
+     * unwind parameter.
+     * This constrains {@code value} to not be null, its length is greater or equal to
+     * {@code offset + count} and {@code offset} and {@code count} are non-negative.
+     *
+     * @param value  array of characters which is the source to copy from
+     * @param offset index in {@code value} of the first character to copy
+     * @param count  number of characters to copy
+     * @return The created String
+     */
+    public static String ofCharArray(char value[], int offset, int count) {
+        CProver.assume(value != null);
+        CProver.assume(value.length - count >= offset
+                                   && offset >= 0 && count >= 0);
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < count; i++) {
+            builder.append(value[offset + i]);
+        }
+        return builder.toString();
+    }
 }
