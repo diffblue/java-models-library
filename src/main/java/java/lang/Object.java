@@ -110,7 +110,7 @@ public class Object {
     protected void finalize() throws Throwable { }
 
     /**
-     * This method is not present in the original Objecct class.
+     * This method is not present in the original Object class.
      * It will be called by JBMC when the monitor in this instance
      * is being acquired as a result of either the execution of a
      * monitorenter bytecode instruction or the call to a synchronized
@@ -134,7 +134,7 @@ public class Object {
     }
 
     /**
-     * This method is not present in the original Objecct class.
+     * This method is not present in the original Object class.
      * It will be called by JBMC when the monitor in this instance
      * is being released as a result of either the execution of a
      * monitorexit bytecode instruction or the return (normal or exceptional)
