@@ -122,8 +122,8 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
-      // if (object == null)
-      //   throw new NullPointerException();
+      if (object == null)
+          throw new NullPointerException();
 
       CProver.atomicBegin();
       // this assume blocks this execution path in JBMC and simulates
@@ -145,6 +145,9 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
+      // FIXME: Enabling these exceptions makes
+      // jbmc-regression/synchronized-blocks/test_sync.desc
+      // run into an infinite loop during symex
       // if (object == null)
       //   throw new NullPointerException();
 
