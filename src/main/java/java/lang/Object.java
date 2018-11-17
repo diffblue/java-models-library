@@ -110,7 +110,7 @@ public class Object {
     protected void finalize() throws Throwable { }
 
     /**
-     * This method is not present in the original Objecct class.
+     * This method is not present in the original Object class.
      * It will be called by JBMC when the monitor in this instance
      * is being acquired as a result of either the execution of a
      * monitorenter bytecode instruction or the call to a synchronized
@@ -122,8 +122,8 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
-      // if (object == null)
-      //   throw new NullPointerException();
+      if (object == null)
+          throw new NullPointerException();
 
       CProver.atomicBegin();
       // this assume blocks this execution path in JBMC and simulates
@@ -134,7 +134,7 @@ public class Object {
     }
 
     /**
-     * This method is not present in the original Objecct class.
+     * This method is not present in the original Object class.
      * It will be called by JBMC when the monitor in this instance
      * is being released as a result of either the execution of a
      * monitorexit bytecode instruction or the return (normal or exceptional)
@@ -145,6 +145,9 @@ public class Object {
     {
       //FIXME: we shoud remove the call to this method from the call
       // stack appended to the thrown exception
+      // FIXME: Enabling these exceptions makes
+      // jbmc-regression/synchronized-blocks/test_sync.desc
+      // run into an infinite loop during symex
       // if (object == null)
       //   throw new NullPointerException();
 
