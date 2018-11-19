@@ -161,7 +161,7 @@ public final class CProver
 
   /**
    * Return a non-deterministic BufferedInputStream.
-   * It is not recommended to use it, since it will not enforce that 
+   * It is not recommended to use it, since it will not enforce that
    * BufferedInputStream is loaded, but is necessary for initializing System.in.
    */
   public static BufferedInputStream nondetBufferedInputStream()
@@ -222,7 +222,7 @@ public final class CProver
   }
 
   /**
-   * This method is used by jbmc to indicate an atomic section which enforces
+   * This method is used by JBMC to indicate an atomic section which enforces
    * the bmc equation to avoid interleavings of the code inside the section
    */
   public static void atomicBegin()
@@ -235,7 +235,7 @@ public final class CProver
   }
 
   /**
-   * This method is used by jbmc to indicate the end of an atomic section
+   * This method is used by JBMC to indicate the end of an atomic section
    * (see atomicBegin).
    */
   public static void atomicEnd()
@@ -262,10 +262,48 @@ public final class CProver
   }
 
   /**
-  *  Retrieves the current locking count for 'object'.
-  */
-  public static int getMonitorCount(Object object)
-  {
-    return object.cproverMonitorCount;
+   * Array copy for byte arrays. Does not check for exceptions.
+   * Use instead of System.arraycopy when the bounds are ensured to be
+   * respected, that is, the following should be false:
+   * srcPos < 0 || destPos < 0 || length < 0 ||
+   * srcPos + length > src.length || destPos + length > dest.length
+   *
+   * @param      src      the source array.
+   * @param      srcPos   starting position in the source array.
+   * @param      dest     the destination array.
+   * @param      destPos  starting position in the destination data.
+   * @param      length   the number of array elements to be copied.
+    */
+  public static void arraycopy(byte[] src, int srcPos, byte[] dest,
+                               int destPos, int length)  {
+      byte[] temp = new byte[length];
+      for (int i = 0; i < length; i++) {
+	  temp[i] = src[srcPos + i];
+      }
+      for (int i = 0; i < length; i++) {
+	  dest[destPos + i] = temp[i];
+      }
+  }
+
+  /**
+   * Array copy for byte arrays. Does not check for exceptions,
+   * and assumes that `src` and `dest`.
+   * Use instead of System.arraycopy when `src` and `dest` are guaranteed to be
+   * different and the bounds are ensured to be
+   * respected, that is, the following should be false:
+   * src == dest || srcPos < 0 || destPos < 0 || length < 0 ||
+   * srcPos + length > src.length || destPos + length > dest.length
+   *
+   * @param      src      the source array.
+   * @param      srcPos   starting position in the source array.
+   * @param      dest     the destination array.
+   * @param      destPos  starting position in the destination data.
+   * @param      length   the number of array elements to be copied.
+    */
+  public static void arraycopyInPlace(byte[] src, int srcPos, byte[] dest,
+                               int destPos, int length)  {
+      for (int i = 0; i < length; i++) {
+          dest[destPos + i] = src[srcPos + i];
+      }
   }
 }
