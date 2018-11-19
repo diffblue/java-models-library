@@ -178,6 +178,16 @@ public final class String
     }
 
     /**
+     * Intermediary function for modelling the constructor String(char value[]).
+     */
+    private static String CProverStringOfCharArray(char value[]) {
+        if (value == null) {
+            throw new NullPointerException();
+        }
+        return CProverString.ofCharArray(value, 0, value.length);
+    }
+
+    /**
      * Allocates a new {@code String} so that it represents the sequence of
      * characters currently contained in the character array argument. The
      * contents of the character array are copied; subsequent modification of
@@ -186,12 +196,15 @@ public final class String
      * @param  value
      *         The initial value of the string
      *
-     * @diffblue.noSupport
-     * @diffblue.todo implement using the version with offset and count arguments
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     public String(char value[]) {
-        CProver.notModelled();
         // this.value = Arrays.copyOf(value, value.length);
+
+        // DIFFBLUE MODEL LIBRARY
+        this(CProverStringOfCharArray(value));
     }
 
     /**
@@ -256,6 +269,15 @@ public final class String
     }
 
     /**
+     * DIFFBLUE MODEL LIBRARY
+     * Helper for generating non-deterministic strings.
+     */
+    private static String cproverNonDet()
+    {
+        return CProver.nondetWithoutNull("");
+    }
+
+    /**
      * Allocates a new {@code String} that contains characters from a subarray
      * of the <a href="Character.html#unicode">Unicode code point</a> array
      * argument.  The {@code offset} argument is the index of the first code
@@ -283,11 +305,10 @@ public final class String
      *
      * @since  1.5
      *
-     * @diffblue.noSupport
-     * @diffblue.todo Implement assuming ASCII.
+     * @diffblue.limitedSupport
+     * Assumes all codePoints are in the Basic Multilingual Plane.
      */
     public String(int[] codePoints, int offset, int count) {
-        CProver.notModelled();
         // if (offset < 0) {
         //     throw new StringIndexOutOfBoundsException(offset);
         // }
@@ -298,9 +319,9 @@ public final class String
         // if (offset > codePoints.length - count) {
         //     throw new StringIndexOutOfBoundsException(offset + count);
         // }
-        //
+
         // final int end = offset + count;
-        //
+
         // // Pass 1: Compute precise size of char[]
         // int n = count;
         // for (int i = offset; i < end; i++) {
@@ -311,10 +332,10 @@ public final class String
         //         n++;
         //     else throw new IllegalArgumentException(Integer.toString(c));
         // }
-        //
+
         // // Pass 2: Allocate and fill in char[]
         // final char[] v = new char[n];
-        //
+
         // for (int i = offset, j = 0; i < end; i++, j++) {
         //     int c = codePoints[i];
         //     if (Character.isBmpCodePoint(c))
@@ -322,8 +343,30 @@ public final class String
         //     else
         //         Character.toSurrogates(c, v, j++);
         // }
-        //
+
         // this.value = v;
+
+        // DIFFBLUE MODEL LIBRARY
+        // We initialize the string non-deterministically and add constraints on
+        // it, instead of using an array of characters.
+        this(cproverNonDet());
+
+        if (offset < 0) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        if (count < 0) {
+            throw new StringIndexOutOfBoundsException(count);
+        }
+        if (offset > codePoints.length - count) {
+            throw new StringIndexOutOfBoundsException(offset + count);
+        }
+        final int end = offset + count;
+        CProver.assume(length() == count);
+        for (int i = offset, j = 0; i < end; i++, j++) {
+            int c = codePoints[i];
+            CProver.assume(Character.isBmpCodePoint(c));
+            CProver.assume(CProverString.charAt(this, j) == (char)c);
+        }
     }
 
     /**
@@ -365,14 +408,15 @@ public final class String
      * @see  #String(byte[], java.nio.charset.Charset)
      * @see  #String(byte[])
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     @Deprecated
     public String(byte ascii[], int hibyte, int offset, int count) {
-        CProver.notModelled();
         // checkBounds(ascii, offset, count);
         // char value[] = new char[count];
-        //
+
         // if (hibyte == 0) {
         //     for (int i = count; i-- > 0;) {
         //         value[i] = (char)(ascii[i + offset] & 0xff);
@@ -384,6 +428,25 @@ public final class String
         //     }
         // }
         // this.value = value;
+
+        // DIFFBLUE MODEL LIBRARY
+        // We initialize the string non-deterministically and add constraints on
+        // it, instead of using an array of characters.
+        this(cproverNonDet());
+
+        checkBounds(ascii, offset, count);
+        CProver.assume(length() == count);
+
+        if (hibyte == 0) {
+            for (int i = count; i-- > 0;) {
+                CProver.assume(CProverString.charAt(this, i) == (char)(ascii[i + offset] & 0xff));
+            }
+        } else {
+            hibyte <<= 8;
+            for (int i = count; i-- > 0;) {
+                CProver.assume(CProverString.charAt(this, i) == (char)(hibyte | (ascii[i + offset] & 0xff)));
+            }
+        }
     }
 
     /**
@@ -416,27 +479,27 @@ public final class String
      * @see  #String(byte[], java.nio.charset.Charset)
      * @see  #String(byte[])
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     @Deprecated
     public String(byte ascii[], int hibyte) {
-        CProver.notModelled();
-        // this(ascii, hibyte, 0, ascii.length);
+        this(ascii, hibyte, 0, ascii.length);
     }
 
     /* Common private utility method used to bounds check the byte array
      * and requested offset & length values used by the String(byte[],..)
      * constructors.
      */
-    // DIFFBLUE MODEL LIBRARY Unused private method
-    // private static void checkBounds(byte[] bytes, int offset, int length) {
-    //     if (length < 0)
-    //         throw new StringIndexOutOfBoundsException(length);
-    //     if (offset < 0)
-    //         throw new StringIndexOutOfBoundsException(offset);
-    //     if (offset > bytes.length - length)
-    //         throw new StringIndexOutOfBoundsException(offset + length);
-    // }
+    private static void checkBounds(byte[] bytes, int offset, int length) {
+        if (length < 0)
+            throw new StringIndexOutOfBoundsException(length);
+        if (offset < 0)
+            throw new StringIndexOutOfBoundsException(offset);
+        if (offset > bytes.length - length)
+            throw new StringIndexOutOfBoundsException(offset + length);
+    }
 
     /**
      * Constructs a new {@code String} by decoding the specified subarray of
@@ -471,16 +534,31 @@ public final class String
      *
      * @since  JDK1.1
      *
-     * @diffblue.noSupport
-     * @diffblue.todo Implement assuming ASCII.
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     public String(byte bytes[], int offset, int length, String charsetName)
             throws UnsupportedEncodingException {
-        CProver.notModelled();
         // if (charsetName == null)
         //     throw new NullPointerException("charsetName");
         // checkBounds(bytes, offset, length);
         // this.value = StringCoding.decode(charsetName, bytes, offset, length);
+
+        // DIFFBLUE MODEL LIBRARY
+        // We initialize the string non-deterministically and add constraints on
+        // it, instead of using an array of characters.
+        this(cproverNonDet());
+
+        if (charsetName == null)
+            throw new NullPointerException("charsetName");
+        checkBounds(bytes, offset, length);
+
+        byte[] getBytesResult = cproverReversibleGetBytes(charsetName);
+        CProver.assume(getBytesResult.length == length);
+        for (int i = 0; i < length; i++) {
+            CProver.assume(bytes[i + offset] == getBytesResult[i]);
+        }
     }
 
     /**
@@ -513,14 +591,29 @@ public final class String
      *
      * @since  1.6
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     public String(byte bytes[], int offset, int length, Charset charset) {
-        CProver.notModelled();
         // if (charset == null)
         //     throw new NullPointerException("charset");
         // checkBounds(bytes, offset, length);
         // this.value =  StringCoding.decode(charset, bytes, offset, length);
+
+        // DIFFBLUE MODEL LIBRARY
+        // We initialize the string non-deterministically and add constraints on
+        // it, instead of using an array of characters.
+        this(cproverNonDet());
+        if (charset == null)
+            throw new NullPointerException("charset");
+        checkBounds(bytes, offset, length);
+
+        byte[] getBytesResult = cproverReversibleGetBytes(charset);
+        CProver.assume(getBytesResult.length == length);
+        for (int i = 0; i < length; i++) {
+            CProver.assume(bytes[i + offset] == getBytesResult[i]);
+        }
     }
 
     /**
@@ -546,12 +639,13 @@ public final class String
      *
      * @since  JDK1.1
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * The length of the String constructed is limited by the unwind
+     * parameter.
      */
     public String(byte bytes[], String charsetName)
             throws UnsupportedEncodingException {
-        CProver.notModelled();
-        // this(bytes, 0, bytes.length, charsetName);
+        this(bytes, 0, bytes.length, charsetName);
     }
 
     /**
@@ -638,12 +732,26 @@ public final class String
      *
      * @since  JDK1.1
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport We assume all the bytes are ASCII characters,
+     * and that the default charset encodes ASCII characters with one byte.
+     * In particular test may fail if the default charset is UTF-16.
      */
     public String(byte bytes[], int offset, int length) {
-        CProver.notModelled();
-        // checkBounds(bytes, offset, length);
+        // DIFFBLUE MODEL LIBRARY
+        // We initialize the string non-deterministically and add constraints on
+        // it, instead of using an array of characters.
+        this(cproverNonDet());
+
+        checkBounds(bytes, offset, length);
+        // DIFFBLUE MODEL LIBRARY We replace StringCoding.decode by the implementation below
         // this.value = StringCoding.decode(bytes, offset, length);
+
+        CProver.assume(length() == length);
+        byte[] getBytesResult = cproverGetBytesEnforceAscii();
+        CProver.assume(getBytesResult.length == length);
+        for (int i = 0; i < length; i++) {
+            CProver.assume(bytes[i + offset] == getBytesResult[i]);
+        }
     }
 
     /**
@@ -662,11 +770,12 @@ public final class String
      *
      * @since  JDK1.1
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport We assume all the bytes are ASCII characters,
+     * and that the default charset encodes ASCII characters with one byte.
+     * In particular test may fail if the default charset is UTF-16.
      */
     public String(byte bytes[]) {
-        CProver.notModelled();
-        // this(bytes, 0, bytes.length);
+        this(bytes, 0, bytes.length);
     }
 
     /**
@@ -678,10 +787,10 @@ public final class String
      * @param  buffer
      *         A {@code StringBuffer}
      *
-     * @diffblue.noSupport
+     * @diffblue.fullSupport
      */
     public String(StringBuffer buffer) {
-        CProver.notModelled();
+        this(buffer.toString());
         // synchronized(buffer) {
         //     this.value = Arrays.copyOf(buffer.getValue(), buffer.length());
         // }
@@ -1106,10 +1215,10 @@ public final class String
         // we force the string to be ASCII.
         // DIFFBLUE MODEL LIBRARY @diffblue.todo: Support further encodings
         if(CProverString.equals(charsetName, "ISO-8859-1"))
-            return getBytesEnforceAscii();
+            return cproverGetBytesEnforceAscii();
 
         CProver.assume(CProverString.equals(charsetName, "UTF-8"));
-        return getBytesEnforceAscii();
+        return cproverGetBytesEnforceAscii();
 
         // DIFFBLUE MODEL LIBRARY We do not know the complete list of supported
         // encodings so we cannot be sure an exception will be thrown.
@@ -1183,7 +1292,7 @@ public final class String
         // (StandardCharsets.ISO_8859_1, StandardCharsets.UTF_8, ...)
         CProver.assume(CProverString.equals(charset.name(), "UTF-8")
                        || CProverString.equals(charset.name(), "ISO-8859-1"));
-        return getBytesEnforceAscii();
+        return cproverGetBytesEnforceAscii();
     }
 
     // DIFFBLUE MODELS LIBRARY
@@ -1206,7 +1315,7 @@ public final class String
     // DIFFBLUE MODELS LIBRARY utility function
     // This converts the String to a byte array and adds assumptions enforcing
     // all characters are valid ASCII
-    private byte[] getBytesEnforceAscii() {
+    private byte[] cproverGetBytesEnforceAscii() {
         int l = length();
         byte result[] = new byte[l];
         for(int i = 0; i < l; i++)
@@ -1344,6 +1453,29 @@ public final class String
      * for non-UTF-16 encodings. This is useful for models of methods which
      * do the inverse transformation of getBytes.
      *
+     * @param  charsetName
+     *         The name of the Charset used to encode the {@code String}
+     */
+    private byte[] cproverReversibleGetBytes(String charsetName) {
+        if (CProverString.equals(charsetName, "UTF-16BE")) {
+            return getBytesUTF_16BE();
+        }
+        if (CProverString.equals(charsetName, "UTF-16LE")) {
+            return getBytesUTF_16LE();
+        }
+        if (CProverString.equals(charsetName, "UTF-16")) {
+            return getBytesUTF_16();
+        }
+        CProver.assume(CProverString.equals(charsetName, "UTF-8")
+                || CProverString.equals(charsetName, "ISO-8859-1")
+                || CProverString.equals(charsetName, "US-ASCII"));
+        return cproverGetBytesEnforceAscii();
+    }
+
+    /**
+     * Overload of cproverReversibleGetBytes(String charsetName) with a Charset
+     * parameter instead of a String.
+     *
      * @param  charset
      *         The {@linkplain java.nio.charset.Charset} to be used to encode
      *         the {@code String}
@@ -1352,19 +1484,7 @@ public final class String
         if (charset == null) {
             throw new NullPointerException();
         }
-        if (CProverString.equals(charset.name(), "UTF-16BE")) {
-            return getBytesUTF_16BE();
-        }
-        if (CProverString.equals(charset.name(), "UTF-16LE")) {
-            return getBytesUTF_16LE();
-        }
-        if (CProverString.equals(charset.name(), "UTF-16")) {
-            return getBytesUTF_16();
-        }
-        CProver.assume(CProverString.equals(charset.name(), "UTF-8")
-                || CProverString.equals(charset.name(), "ISO-8859-1")
-                || CProverString.equals(charset.name(), "US-ASCII"));
-        return getBytesEnforceAscii();
+        return cproverReversibleGetBytes(charset.name());
     }
 
     /**
@@ -1392,7 +1512,7 @@ public final class String
         // encodes ASCII characters as one byte: this is the case of ASCII,
         // UTF-8 and ISO-8859-1 but not UTF-16.
         // return StringCoding.encode(value, 0, value.length);
-        return getBytesEnforceAscii();
+        return cproverGetBytesEnforceAscii();
     }
 
     /**
@@ -1433,7 +1553,7 @@ public final class String
         // }
         // return false;
 
-        // DIFFBLUE MODEL LIBRARY Use CProverString function
+        // DIFFBLUE MODEL use a CProverString function
         if (anObject instanceof String) {
             return CProverString.equals((String) anObject, this);
         }
@@ -1654,7 +1774,7 @@ public final class String
     // DIFFBLUE MODEL LIBRARY For some reason this needs to be not null for
     // FileReader tests to pass.
     public static final Comparator<String> CASE_INSENSITIVE_ORDER
-                                            = null;
+                                            = CProver.nondetWithoutNullForNotModelled();
     // DIFFBLUE MODEL LIBRARY Not needed for modelling
     // private static class CaseInsensitiveComparator
     //         implements Comparator<String>, java.io.Serializable {
