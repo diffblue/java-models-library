@@ -2968,32 +2968,13 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.limitedSupport
-     * We enforce the regex argument is a string literal without any special
-     * characters used in regular expressions:
-     * '[', ']','.', '\\', '?', '^', '$', '*', '+', '{', '}', '|', '(', ')',
-     * hence PatternSyntaxException will never be thrown.
+     * @diffblue.noSupport
      */
     public String replaceAll(String regex, String replacement)
     {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(regex).matcher(this).replaceAll(replacement);
-        // DIFFBLUE MODELS LIBRARY: we assume the expression is just a string literal
-        CProver.assume(
-            regex.indexOf('[') == -1 &&
-            regex.indexOf(']') == -1 &&
-            regex.indexOf('.') == -1 &&
-            regex.indexOf('\\') == -1 &&
-            regex.indexOf('?') == -1 &&
-            regex.indexOf('^') == -1 &&
-            regex.indexOf('$') == -1 &&
-            regex.indexOf('*') == -1 &&
-            regex.indexOf('+') == -1 &&
-            regex.indexOf('{') == -1 &&
-            regex.indexOf('}') == -1 &&
-            regex.indexOf('|') == -1 &&
-            regex.indexOf('(') == -1 &&
-            regex.indexOf(')') == -1);
-        return replace(regex, replacement);
     }
 
     /**
@@ -3008,14 +2989,10 @@ public final class String
      * @return  The resulting string
      * @since 1.5
      *
-     * @diffblue.limitedSupport
-     * Only works for arguments that are constant strings with only 1 character.
-     * For instance, we can generate tests for s.replace("a", "b") but not
-     * s.replace("a", "bc") or s.replace(arg, "b").
-     * @diffblue.untested
+     * @diffblue.noSupport
      */
     public String replace(CharSequence target, CharSequence replacement) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
+        CProver.notModelled();
         return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(
         //         this).replaceAll(Matcher.quoteReplacement(replacement.toString()));
