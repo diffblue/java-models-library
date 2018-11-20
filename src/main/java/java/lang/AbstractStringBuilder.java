@@ -82,7 +82,9 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
         return CProver.nondetInt();
     }
 
-    public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {}
+    public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
+      CProver.notModelled();
+    }
 
     public void setCharAt(int index, char ch) {}
 
