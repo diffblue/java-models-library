@@ -3873,9 +3873,7 @@ public final class String
      * @diffblue.untested
      */
     public static String valueOf(boolean b) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
-        // return b ? "true" : "false";
+        return b ? "true" : "false";
     }
 
     /**
