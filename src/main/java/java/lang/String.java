@@ -3089,11 +3089,13 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * This forces the regex argument to contain at most one character.
+     * The model assumes the regex is not a special regex character:
+     * <code> \.[{()<>*+-=?^$| </code>.
+     * So no test can be generated for these characters.
      */
     public String[] split(String regex, int limit) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
         // /* fastpath if the regex is a
         //  (1)one-char String and this character is not one of the
         //     RegEx's meta characters ".$|()[{^?*+\\", or
@@ -3145,6 +3147,71 @@ public final class String
         //     return list.subList(0, resultSize).toArray(result);
         // }
         // return Pattern.compile(regex).split(this, limit);
+
+        // DIFFBLUE MODELS LIBRARY
+        if (limit == 0) {
+            return split(regex);
+        }
+
+        int size = CProver.nondetInt();
+        String[] result = new String[size];
+
+        int tokenStart = 0;
+        int tokenIndex = 0;
+
+        if (regex.length() == 0) {
+            do {
+                if (tokenStart == length() || tokenIndex == limit - 1) {
+                    // extract the remainder of the string
+                    result[tokenIndex++] =
+                            CProverString.substring(this, tokenStart, length());
+                    // stop here
+                    tokenStart = -1;
+                } else {
+                    // extract the token prior to the delimiter
+                    result[tokenIndex++] =
+                            CProverString.substring(this, tokenStart, tokenStart + 1);
+                    tokenStart = tokenStart + 1;
+                }
+            } while (tokenStart >= 0 && (limit <= 0 || tokenIndex < limit));
+
+            // Ensure the size of the array corresponds to the number of tokens
+            CProver.assume(tokenIndex == size);
+            return result;
+        }
+
+        // We only handle single character delimiters
+        CProver.assume(regex.length() <= 1);
+        char delimiter = CProverString.charAt(regex, 0);
+
+        // We don't handle special regex characters \.[{()<>*+-=?^$|
+        CProver.assume(delimiter != '\\' && delimiter != '.' && delimiter != '['
+                       && delimiter != '{' && delimiter != '('
+                       && delimiter != ')' && delimiter != '<'
+                       && delimiter != '>' && delimiter != '*'
+                       && delimiter != '+' && delimiter != '-'
+                       && delimiter != '=' && delimiter != '?'
+                       && delimiter != '^' && delimiter != '$');
+
+        do {
+            int tokenEnd = indexOf(delimiter, tokenStart);
+            if (tokenEnd == -1 || tokenIndex == limit - 1) {
+                // extract the remainder of the string
+                result[tokenIndex++] =
+                        CProverString.substring(this, tokenStart, length());
+                // stop here
+                tokenStart = -1;
+            } else {
+                // extract the token prior to the delimiter
+                result[tokenIndex++] =
+                        CProverString.substring(this, tokenStart, tokenEnd);
+                tokenStart = tokenEnd + 1;
+            }
+        } while (tokenStart >= 0 && (limit <= 0 || tokenIndex < limit));
+
+        // Ensure the size of the array corresponds to the number of tokens
+        CProver.assume(tokenIndex == size);
+        return result;
     }
 
     /**
@@ -3185,12 +3252,75 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * This forces the regex argument to contain at most one character.
+     * The model assumes the regex is not a special regex character:
+     * <code> \.[{()<>*+-=?^$| </code>.
+     * So no test can be generated for these characters.
      */
     public String[] split(String regex) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
         // return split(regex, 0);
+
+        // DIFFBLUE MODELS LIBRARY
+        int size = CProver.nondetInt();
+        String[] result = new String[size];
+        int tokenIndex = 0;
+        int tokenStart = 0;
+
+        if (regex.length() == 0) {
+            if (length() == 0) {
+                result[tokenIndex++] = "";
+            }
+            while (tokenStart < length()) {
+                result[tokenIndex++] =
+                        CProverString.substring(this, tokenStart, tokenStart + 1);
+                tokenStart = tokenStart + 1;
+            }
+            // Ensure the size of the array corresponds to the number of tokens
+            CProver.assume(tokenIndex == size);
+            return result;
+        }
+
+        // We only handle single character delimiters
+        CProver.assume(regex.length() == 1);
+        char delimiter = CProverString.charAt(regex, 0);
+
+        // We don't handle special regex characters \.[{()<>*+-=?^$|
+        CProver.assume(delimiter != '\\' && delimiter != '.' && delimiter != '['
+                       && delimiter != '{' && delimiter != '('
+                       && delimiter != ')' && delimiter != '<'
+                       && delimiter != '>' && delimiter != '*'
+                       && delimiter != '+' && delimiter != '-'
+                       && delimiter != '=' && delimiter != '?'
+                       && delimiter != '^' && delimiter != '$');
+
+        do {
+            int tokenEnd = indexOf(delimiter, tokenStart);
+            if (tokenIndex >= size && tokenIndex >= 1) {
+                // Ignore trailing empty strings
+                CProver.assume(tokenEnd == tokenStart);
+                tokenStart++;
+            } else if (tokenEnd >= 0) {
+                // extract the token prior to the delimiter
+                result[tokenIndex++] =
+                        CProverString.substring(this, tokenStart, tokenEnd);
+                // Ensure trailing empty strings are skipped
+                CProver.assume(tokenEnd != tokenStart || tokenIndex != size);
+                tokenStart = tokenEnd + 1;
+            } else {
+                // extract the remainder of the string
+                result[tokenIndex++] =
+                        CProverString.substring(this, tokenStart, length());
+                // Ensure trailing empty strings are skipped
+                CProver.assume(length() > tokenStart);
+                // stop here
+                tokenStart = -1;
+            }
+        } while (tokenStart >= 0 && tokenStart < length());
+
+        // Ensure the size of the array corresponds to the number of tokens
+        CProver.assume(tokenIndex == size);
+        return result;
     }
 
     /**
