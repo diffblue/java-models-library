@@ -662,4 +662,13 @@ public final class StringBuilder
     //     value = (char[]) s.readObject();
     // }
 
+    // DIFFBLUE MODEL LIBRARY This should be inherited from AbstractStringBuilder
+    /**
+     * @diffblue.fullSupport
+     * @diffblue.untested
+     */
+    public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
+        toString().getChars(srcBegin, srcEnd, dst, dstBegin);
+    }
+
 }
