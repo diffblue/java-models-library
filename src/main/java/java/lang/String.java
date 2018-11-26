@@ -1073,20 +1073,25 @@ public final class String
      *            <li>{@code dstBegin+(srcEnd-srcBegin)} is larger than
      *                {@code dst.length}</ul>
      *
-     * @diffblue.noSupport
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
-        CProver.notModelled();
-        // if (srcBegin < 0) {
-        //     throw new StringIndexOutOfBoundsException(srcBegin);
-        // }
-        // if (srcEnd > value.length) {
-        //     throw new StringIndexOutOfBoundsException(srcEnd);
-        // }
-        // if (srcBegin > srcEnd) {
-        //     throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
-        // }
+        if (srcBegin < 0) {
+            throw new StringIndexOutOfBoundsException(srcBegin);
+        }
+        if (srcEnd > length()) {
+            throw new StringIndexOutOfBoundsException(srcEnd);
+        }
+        if (srcBegin > srcEnd) {
+            throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
+        }
+        // DIFFBLUE MODEL LIBRARY we inline System.arraycopy here so that we
+        // can specialize it for characters.
         // System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
+        for(int i = 0; i < srcEnd - srcBegin; i++) {
+            dst[dstBegin + i] = CProverString.charAt(this, srcBegin + i);
+        }
     }
 
     /**
