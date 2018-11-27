@@ -3154,6 +3154,7 @@ public final class String
         }
 
         int size = CProver.nondetInt();
+        CProver.assume(size >= 0);
         String[] result = new String[size];
 
         int tokenStart = 0;
@@ -3161,6 +3162,7 @@ public final class String
 
         if (regex.length() == 0) {
             do {
+                CProver.assume(size > tokenIndex);
                 if (tokenStart == length() || tokenIndex == limit - 1) {
                     // extract the remainder of the string
                     result[tokenIndex++] =
@@ -3195,6 +3197,7 @@ public final class String
 
         do {
             int tokenEnd = indexOf(delimiter, tokenStart);
+            CProver.assume(size > tokenIndex);
             if (tokenEnd == -1 || tokenIndex == limit - 1) {
                 // extract the remainder of the string
                 result[tokenIndex++] =
@@ -3263,11 +3266,13 @@ public final class String
 
         // DIFFBLUE MODELS LIBRARY
         int size = CProver.nondetInt();
+        CProver.assume(size >= 0);
         String[] result = new String[size];
         int tokenIndex = 0;
         int tokenStart = 0;
 
         if (regex.length() == 0) {
+            CProver.assume(size > tokenIndex);
             if (length() == 0) {
                 result[tokenIndex++] = "";
             }
@@ -3302,6 +3307,7 @@ public final class String
                 tokenStart++;
             } else if (tokenEnd >= 0) {
                 // extract the token prior to the delimiter
+                CProver.assume(size > tokenIndex);
                 result[tokenIndex++] =
                         CProverString.substring(this, tokenStart, tokenEnd);
                 // Ensure trailing empty strings are skipped
@@ -3309,6 +3315,7 @@ public final class String
                 tokenStart = tokenEnd + 1;
             } else {
                 // extract the remainder of the string
+                CProver.assume(size > tokenIndex);
                 result[tokenIndex++] =
                         CProverString.substring(this, tokenStart, length());
                 // Ensure trailing empty strings are skipped
