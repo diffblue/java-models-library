@@ -3885,6 +3885,50 @@ public final class String
     }
 
     /**
+     * Helper function for the {@code format} function.
+     * Serialize potential String.format argument to a String.
+     * The returned String is never null.
+     */
+    static String cproverFormatArgument(Object obj) {
+        if (obj == null) {
+            return "null";
+        }
+        if (obj instanceof String) {
+            return (String) obj;
+        }
+
+        // All primitive types are cast to a long
+        long longValue = 0;
+        if (obj instanceof Integer) {
+            longValue = (Integer) obj;
+        } else if (obj instanceof Long) {
+            longValue = (Long) obj;
+        } else if (obj instanceof Float) {
+            longValue = (long) ((Float) obj).doubleValue();
+        } else if (obj instanceof Double) {
+            longValue = (long) ((Double) obj).doubleValue();
+        } else if (obj instanceof Character) {
+            char charValue = (Character) obj;
+            longValue = (long) charValue;
+        } else if (obj instanceof Byte) {
+            byte byteValue = ((Byte) obj);
+            longValue = (long) byteValue;
+        } else if (obj instanceof Boolean) {
+            longValue = ((Boolean) obj) ? 1 : 0;
+        } else {
+            return CProver.nondetWithoutNull("");
+        }
+
+        // The long value is encoded using a string of 4 characters
+        StringBuilder builder = new StringBuilder();
+        builder.append((char) (longValue >> 48 & 0xFFFF));
+        builder.append((char) (longValue >> 32 & 0xFFFF));
+        builder.append((char) (longValue >> 16 & 0xFFFF));
+        builder.append((char) (longValue & 0xFFFF));
+        return builder.toString();
+    }
+
+    /**
      * Returns a formatted string using the specified format string and
      * arguments.
      *
@@ -3946,9 +3990,23 @@ public final class String
      * @diffblue.untested
      */
     public static String format(String format, Object... args) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
         // return new Formatter().format(format, args).toString();
+        // DIFFBLUE MODEL LIBRARY
+        if (args.length > 10) {
+            return CProver.nondetWithoutNull("");
+        }
+        String arg0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
+        String arg1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
+        String arg2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
+        String arg3 = args.length > 3 ? cproverFormatArgument(args[3]) : "";
+        String arg4 = args.length > 4 ? cproverFormatArgument(args[4]) : "";
+        String arg5 = args.length > 5 ? cproverFormatArgument(args[5]) : "";
+        String arg6 = args.length > 6 ? cproverFormatArgument(args[6]) : "";
+        String arg7 = args.length > 7 ? cproverFormatArgument(args[7]) : "";
+        String arg8 = args.length > 8 ? cproverFormatArgument(args[8]) : "";
+        String arg9 = args.length > 9 ? cproverFormatArgument(args[9]) : "";
+        return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5,
+                arg6, arg7, arg8, arg9);
     }
 
     /**
@@ -3988,12 +4046,11 @@ public final class String
      * @see  java.util.Formatter
      * @since  1.5
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport The locale argument is ignored
      */
     public static String format(Locale l, String format, Object... args) {
         // return new Formatter(l).format(format, args).toString();
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        return format(format, args);
     }
 
     /**
