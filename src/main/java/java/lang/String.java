@@ -3092,8 +3092,6 @@ public final class String
      * @diffblue.noSupport
      */
     public String[] split(String regex, int limit) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
         // /* fastpath if the regex is a
         //  (1)one-char String and this character is not one of the
         //     RegEx's meta characters ".$|()[{^?*+\\", or
@@ -3145,6 +3143,72 @@ public final class String
         //     return list.subList(0, resultSize).toArray(result);
         // }
         // return Pattern.compile(regex).split(this, limit);
+
+        // DIFFBLUE MODEL LIBRARY
+        if (limit == 0) {
+            return split(regex);
+        }
+
+        int size = CProver.nondetInt();
+        CProver.assume(size > 0);
+        String[] result = new String[size];
+
+        if (regex.length() == 0) {
+            int tokenIndex = 0;
+            while (tokenIndex < length() && tokenIndex != limit - 1) {
+                result[tokenIndex] =
+                        CProverString.substring(this, tokenIndex, tokenIndex + 1);
+                tokenIndex++;
+            }
+            // extract the remainder of the string
+            if (tokenIndex < length()) {
+                result[tokenIndex] =
+                        CProverString.substring(this, tokenIndex, length());
+                tokenIndex++;
+            } else {
+                result[tokenIndex] = "";
+                tokenIndex++;
+            }
+            // Ensure the size of the array corresponds to the number of tokens
+            CProver.assume(tokenIndex == size);
+            return result;
+        }
+
+        // We only handle empty or single character delimiters
+        CProver.assume(regex.length() == 1);
+        char delimiter = CProverString.charAt(regex, 0);
+
+        // We don't handle special regex characters \.[{()<>*+-=?^$|
+        CProver.assume(delimiter != '\\' && delimiter != '.' && delimiter != '['
+                       && delimiter != '{' && delimiter != '('
+                       && delimiter != ')' && delimiter != '<'
+                       && delimiter != '>' && delimiter != '*'
+                       && delimiter != '+' && delimiter != '-'
+                       && delimiter != '=' && delimiter != '?'
+                       && delimiter != '^' && delimiter != '$'
+                       && delimiter != '|');
+
+        int tokenStart = 0;
+        int tokenIndex = 0;
+        int tokenEnd = indexOf(delimiter, tokenStart);
+        while (tokenIndex < size - 1) {
+            // extract the token prior to the delimiter
+            CProver.assume(tokenEnd != -1);
+            result[tokenIndex] =
+                    CProverString.substring(this, tokenStart, tokenEnd);
+            tokenIndex++;
+            tokenStart = tokenEnd + 1;
+            tokenEnd = indexOf(delimiter, tokenStart);
+        }
+
+        // extract the remainder of the string
+        result[tokenIndex] =
+                CProverString.substring(this, tokenStart, length());
+        tokenIndex++;
+        CProver.assume(tokenIndex == limit || tokenEnd == -1);
+
+        CProver.assume(limit <= 0 || size <= limit);
+        return result;
     }
 
     /**
@@ -3188,9 +3252,79 @@ public final class String
      * @diffblue.noSupport
      */
     public String[] split(String regex) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
         // return split(regex, 0);
+
+        // DIFFBLUE MODEL LIBRARY
+        // The (String, int) version in our model calls the String version,
+        // which is the other way in the original implementation.
+        // This way, if the String version is called in the code we analyse,
+        // only the code for this one is loaded.
+        // The 0 case is a bit special compared to the others in that it disregard trailing empty strings.
+        int size = CProver.nondetInt();
+        CProver.assume(size > 0);
+        String[] result = new String[size];
+
+        if (regex.length() == 0) {
+            int tokenIndex = 0;
+            if (length() == 0) {
+                CProver.assume(size == 1);
+                result[tokenIndex] = "";
+                return result;
+            }
+            while (tokenIndex < length()) {
+                result[tokenIndex] =
+                        CProverString.substring(this, tokenIndex, tokenIndex + 1);
+                tokenIndex++;
+            }
+            // Ensure the size of the array corresponds to the number of tokens
+            CProver.assume(tokenIndex == size);
+            return result;
+        }
+
+        // We only handle empty or single character delimiters
+        CProver.assume(regex.length() == 1);
+        char delimiter = CProverString.charAt(regex, 0);
+
+        // We don't handle special regex characters \.[{()<>*+-=?^$|
+        CProver.assume(delimiter != '\\' && delimiter != '.' && delimiter != '['
+                && delimiter != '{' && delimiter != '('
+                && delimiter != ')' && delimiter != '<'
+                && delimiter != '>' && delimiter != '*'
+                && delimiter != '+' && delimiter != '-'
+                && delimiter != '=' && delimiter != '?'
+                && delimiter != '^' && delimiter != '$'
+                && delimiter != '|');
+
+        int tokenIndex = 0;
+        int tokenStart = 0;
+        int tokenEnd = indexOf(delimiter, tokenStart);
+        while (tokenIndex < size - 1) {
+            CProver.assume(tokenEnd != -1);
+            result[tokenIndex++] =
+                    CProverString.substring(this, tokenStart, tokenEnd);
+            tokenStart = tokenEnd + 1;
+            tokenEnd = indexOf(delimiter, tokenStart);
+        }
+        // extract the remainder of the string
+        if (tokenEnd == -1) {
+            // Exclude trailing empty strings
+            CProver.assume(tokenStart != length());
+
+            result[tokenIndex] =
+                CProverString.substring(this, tokenStart, length());
+        } else {
+            // Exclude trailing empty strings
+            CProver.assume(tokenStart != tokenEnd);
+
+            result[tokenIndex] =
+                CProverString.substring(this, tokenStart, tokenEnd);
+
+            // ignore trailing empty strings
+            for (int i = tokenEnd + 1; i < length(); i++) {
+                CProver.assume(charAt(i) == delimiter);
+            }
+        }
+        return result;
     }
 
     /**

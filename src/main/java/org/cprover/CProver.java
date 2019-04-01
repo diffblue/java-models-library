@@ -306,4 +306,12 @@ public final class CProver
           dest[destPos + i] = src[srcPos + i];
       }
   }
+
+  /**
+   *  Retrieves the current locking count for 'object'.
+   */
+  public static int getMonitorCount(Object object)
+  {
+    return object.cproverMonitorCount;
+  }
 }
