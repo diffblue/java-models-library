@@ -3986,6 +3986,11 @@ public final class String
      * <li>
      *   having 5 arguments or more makes the solver slow
      * </li>
+     * <li>
+     *   the string "null" is interpreted the same way {@code null} would be by
+     *   the JDK String.format function, which is correct for the %s format
+     *   specifier but not %b for instance.
+     * </li>
      * </ul>
      * @diffblue.untested
      */
@@ -4046,7 +4051,8 @@ public final class String
      * @see  java.util.Formatter
      * @since  1.5
      *
-     * @diffblue.limitedSupport The locale argument is ignored
+     * @diffblue.limitedSupport The locale argument is ignored and it has the
+     * same limitations as {@link #format(String, Object...)}.
      */
     public static String format(Locale l, String format, Object... args) {
         // return new Formatter(l).format(format, args).toString();
