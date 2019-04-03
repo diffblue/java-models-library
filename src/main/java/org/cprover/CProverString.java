@@ -410,4 +410,17 @@ public final class CProverString
         }
         return builder.toString();
     }
+
+    /**
+     * Format a string according to the given {@param formatString}.
+     * Unlike the JDK version, all arguments are given by strings, there is
+     * a fixed number of them and they should not be null.
+     * This fixed number corresponds to the constant {@code MAX_FORMAT_ARGS} defined in
+     * {@code java_string_library_preprocess.h} from JBMC.
+     */
+    public static String format(
+            String formatString, String arg0, String arg1, String arg2, String arg3,
+            String arg4, String arg5, String arg6, String arg7, String arg8, String arg9) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
 }
