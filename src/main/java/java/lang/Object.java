@@ -41,16 +41,8 @@ public class Object {
     }
 
     public final Class<?> getClass() {
-      /*
-       * MODELS LIBRARY {
-       *   We make this call to Class.forName to ensure it is loaded
-       *   by CBMC even with --lazy-methods on. We have to do this
-       *   because the internal support for getClass use the model of
-       *   Class.forName.
-       * }
-       */
-      Class c = Class.forName("");
-      return CProver.nondetWithoutNullForNotModelled();
+      // DIFFBLUE MODEL LIBRARY
+      return Class.forName(CProver.classIdentifier(this));
     }
 
     public int hashCode() {
