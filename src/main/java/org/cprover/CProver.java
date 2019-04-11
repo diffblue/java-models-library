@@ -314,4 +314,12 @@ public final class CProver
   {
     return object.cproverMonitorCount;
   }
+
+  /**
+   * Class identifier of an Object. For instance "java.lang.String", "java.lang.Interger".
+   */
+  public static String classIdentifier(Object object)
+  {
+    return object.getClass().getCanonicalName();
+  }
 }
