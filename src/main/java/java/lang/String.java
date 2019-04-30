@@ -4272,6 +4272,18 @@ public final class String
     }
 
     /**
+     * Pool of strings used by the {@code String}.intern model.
+     */
+    static String[] cproverInternPool = null;
+
+    /**
+     * Number of elements stored in the pool for {@code String.intern} pool.
+     * This can be smaller than {@code cproverInternPool.length} which
+     * represents the capacity of the array and is fixed for each execution.
+     */
+    static int cproverInternPoolSize = 0;
+
+    /**
      * Returns a canonical representation for the string object.
      * <p>
      * A pool of strings, initially empty, is maintained privately by the
@@ -4294,11 +4306,29 @@ public final class String
      * @return  a string that has the same contents as this string, but is
      *          guaranteed to be from a pool of unique strings.
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport literal strings and string-valued constant
+     * expressions are not interned.
      */
+    // DIFFBLUE MODEL LIBRARY
     // public native String intern();
     public String intern() {
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // Initialize the pool if needed
+        if (cproverInternPool == null) {
+            int capacity = CProver.nondetInt();
+            CProver.assume(capacity > 0);
+            cproverInternPool = new String[capacity];
+            cproverInternPool[0] = this;
+            return this;
+        }
+        // Look for an entry in the pool equal to `this`
+        for (int i = 0; i < cproverInternPoolSize; ++i) {
+            if (CProverString.equals(cproverInternPool[i], this)) {
+                return cproverInternPool[i];
+            }
+        }
+        // Add `this` to the pool
+        CProver.assume(cproverInternPool.length > cproverInternPoolSize);
+        cproverInternPool[cproverInternPoolSize++] = this;
+        return this;
     }
 }
