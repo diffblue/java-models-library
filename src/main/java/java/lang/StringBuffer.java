@@ -576,7 +576,7 @@ import org.cprover.CProverString;
         // toStringCache = null;
         // super.append(f);
         // return this;
-        return CProver.nondetWithoutNullForNotModelled();
+        return append(String.valueOf(f));
     }
 
     /**
@@ -589,7 +589,7 @@ import org.cprover.CProverString;
         // toStringCache = null;
         // super.append(d);
         // return this;
-        return CProver.nondetWithoutNullForNotModelled();
+        return append(String.valueOf(d));
     }
 
     /**
