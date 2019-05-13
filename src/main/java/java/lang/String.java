@@ -2087,13 +2087,10 @@ public final class String
      *
      * @return  a hash code value for this object.
      *
-     * @diffblue.limitedSupport
-     * We guarantee that two strings with different hash code have different
-     * content, but the exact value will not correspond to the actual one.
+     * @diffblue.fullSupport length of the string is limited by unwind value
      */
     public int hashCode() {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetInt();
+        // DIFFBLUE MODEL LIBRARY
         // int h = hash;
         // if (h == 0 && value.length > 0) {
         //     char val[] = value;
@@ -2104,6 +2101,12 @@ public final class String
         //     hash = h;
         // }
         // return h;
+        int len = length();
+        int h = 0;
+        for (int i = 0; i < len; i++) {
+            h = 31 * h + CProverString.charAt(this, i);
+        }
+        return h;
     }
 
     /**
