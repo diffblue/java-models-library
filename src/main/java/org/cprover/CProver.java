@@ -322,4 +322,27 @@ public final class CProver
   {
     return object.getClass().getCanonicalName();
   }
+
+  /**
+   * This method converts a double to a float and adds assumes that the conversion
+   * did not result any loss of precision. Calling this method is useful when we
+   * need to call a certain complicated operation on double, but we only have it
+   * implemented for floats.
+   *
+   * The method is a workaround for the current limitations of the string solver,
+   * which is able to convert float to String but not double to String. Once this
+   * limitation goes away, the method and its usages can be removed.
+   *
+   * The method itself has limitations:
+   * * There are doubles that can't be converted to float and back without loss
+   *   of precision, so the assertion will sometimes be violated
+   * * Even if the assertion is satisfied for numbers d and converted, these
+   *   might not have the same String representation.
+   */
+  public static float doubleToFloat(double d)
+  {
+    float converted = nondetFloat();
+    assert(d == (double) converted);
+    return converted;
+  }
 }

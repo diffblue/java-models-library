@@ -4269,8 +4269,9 @@ public final class String
      * actual program.
      */
     public static String valueOf(double d) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY we cast the number down to float because
+        // the string solver only knows how to convert floats to string
+        return valueOf(CProver.doubleToFloat(d));
         // return Double.toString(d);
     }
 

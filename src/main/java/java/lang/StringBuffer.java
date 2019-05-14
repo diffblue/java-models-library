@@ -531,11 +531,10 @@ import org.cprover.CProverString;
      */
     @Override
     public synchronized StringBuffer append(int i) {
-        // DIFFBLUE MODEL LIBRARY this is replaced internally
         // toStringCache = null;
         // super.append(i);
         // return this;
-        return CProver.nondetWithoutNullForNotModelled();
+        return append(String.valueOf(i));
     }
 
     /**
@@ -576,7 +575,7 @@ import org.cprover.CProverString;
         // toStringCache = null;
         // super.append(f);
         // return this;
-        return CProver.nondetWithoutNullForNotModelled();
+        return append(String.valueOf(f));
     }
 
     /**
@@ -589,7 +588,7 @@ import org.cprover.CProverString;
         // toStringCache = null;
         // super.append(d);
         // return this;
-        return CProver.nondetWithoutNullForNotModelled();
+        return append(String.valueOf(d));
     }
 
     /**
