@@ -31,7 +31,7 @@ import java.lang.IllegalMonitorStateException;
 
 public class Object {
 
-    // lock needed for synchronization in cbmc
+    // lock needed for synchronization in JBMC
     // used by monitorenter, monitorexit, wait, and notify
     // Not present in the original Object class
     public int cproverMonitorCount;
@@ -40,6 +40,13 @@ public class Object {
       cproverMonitorCount = 0;
     }
 
+    /**
+     * @diffblue.limitedSupport
+     * This relies on Class.forName whose model is only partial. The model of
+     * Class is made to work for combinations of calls to Object.getClass,
+     * Class.forName and Class.getName but other operations are unlikely to
+     * work.
+     */
     public final Class<?> getClass() {
       // DIFFBLUE MODEL LIBRARY
       return Class.forName(CProver.classIdentifier(this));
@@ -61,20 +68,17 @@ public class Object {
         return getClass().getName() + "@" + Integer.toHexString(hashCode());
     }
 
-    public final void notify()
-    {
-      // FIXME: the thread must own the lock when it calls notify
+    public final void notify() {
+      // TODO: the thread must own the lock when it calls notify
     }
 
-    // See implementation of notify
-    public final void notifyAll()
-    {
-      // FIXME: the thread must own the lock when it calls notifyAll
+    public final void notifyAll() {
+      // TODO: the thread must own the lock when it calls notifyAll
     }
 
     public final void wait(long timeout) throws InterruptedException {
-      // FIXME: the thread must own the lock when it calls wait
-      // FIXME: should only throw if the interrupted flag in Thread is enabled
+      // TODO: the thread must own the lock when it calls wait
+      //       should only throw if the interrupted flag in Thread is enabled
       throw new InterruptedException();
     }
 
@@ -112,8 +116,8 @@ public class Object {
      */
     public static void monitorenter(Object object)
     {
-      //FIXME: we shoud remove the call to this method from the call
-      // stack appended to the thrown exception
+      // TODO: we shoud remove the call to this method from the call
+      //       stack appended to the thrown exception
       if (object == null)
           throw new NullPointerException();
 
@@ -135,19 +139,17 @@ public class Object {
      */
     public static void monitorexit(Object object)
     {
-      //FIXME: we shoud remove the call to this method from the call
-      // stack appended to the thrown exception
-      // FIXME: Enabling these exceptions makes
-      // jbmc-regression/synchronized-blocks/test_sync.desc
-      // run into an infinite loop during symex
+      // TODO: we shoud remove the call to this method from the call
+      //       stack appended to the thrown exception
+      // TODO: Enabling these exceptions makes
+      //       jbmc/synchronized-blocks/test_sync.desc
+      //       run into an infinite loop during symex
       // if (object == null)
       //   throw new NullPointerException();
-
       // if (object.cproverMonitorCount == 0)
       //   throw new IllegalMonitorStateException();
       CProver.atomicBegin();
       object.cproverMonitorCount--;
       CProver.atomicEnd();
     }
-
 }

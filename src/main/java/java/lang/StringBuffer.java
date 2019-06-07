@@ -505,11 +505,11 @@ import org.cprover.CProverString;
      */
     @Override
     public synchronized StringBuffer append(boolean b) {
-        // DIFFBLUE MODEL LIBRARY do not use cache
+        // DIFFBLUE MODEL LIBRARY this is replaced internally
         // toStringCache = null;
         // super.append(b);
         // return this;
-        return append(b ? "true" : "false");
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -527,7 +527,6 @@ import org.cprover.CProverString;
 
     /**
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     @Override
     public synchronized StringBuffer append(int i) {
@@ -567,11 +566,9 @@ import org.cprover.CProverString;
 
     /**
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     @Override
     public synchronized StringBuffer append(float f) {
-        // DIFFBLUE MODEL LIBRARY this is replaced internally
         // toStringCache = null;
         // super.append(f);
         // return this;
@@ -579,12 +576,10 @@ import org.cprover.CProverString;
     }
 
     /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
+     * @diffblue.partialSupport This uses float approximation, so might return incorrect results
      */
     @Override
     public synchronized StringBuffer append(double d) {
-        // DIFFBLUE MODEL LIBRARY this is replaced internally
         // toStringCache = null;
         // super.append(d);
         // return this;

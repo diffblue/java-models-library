@@ -151,7 +151,6 @@ public final class String
      * unnecessary since Strings are immutable.
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     public String() {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
@@ -169,7 +168,6 @@ public final class String
      *         A {@code String}
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     public String(String original) {
         // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
@@ -307,6 +305,8 @@ public final class String
      *
      * @diffblue.limitedSupport
      * Assumes all codePoints are in the Basic Multilingual Plane.
+     * An implication of this limitation is that no trace is generated for
+     * the cases where IllegalArgumentException would be thrown.
      */
     public String(int[] codePoints, int offset, int count) {
         // if (offset < 0) {
@@ -595,7 +595,8 @@ public final class String
      * The length of the String constructed is limited by the unwind
      * parameter.
      */
-    public String(byte bytes[], int offset, int length, Charset charset) {
+    public String(byte bytes[], int offset, int length, Charset charset)
+    {
         // if (charset == null)
         //     throw new NullPointerException("charset");
         // checkBounds(bytes, offset, length);
@@ -663,7 +664,8 @@ public final class String
      *
      * @return the constructed string
      */
-    private static String cproverOfByteArray(byte[] bytes, Charset charset) {
+    private static String cproverOfByteArray(byte[] bytes, Charset charset)
+    {
         String s = CProver.nondetWithoutNull("");
         byte[] getBytesResult = s.cproverReversibleGetBytes(charset);
         CProver.assume(getBytesResult.length == bytes.length);
@@ -696,10 +698,9 @@ public final class String
      * @diffblue.limitedSupport
      * Only standard charsets are supported and for ASCII, UTF-8 and ISO-8859-1
      * we restrict all the characters to be ASCII.
-     * Generated tests will not pass if the function under test takes a
-     * Charset argument because it is set using reflection.
      */
-    public String(byte bytes[], Charset charset) {
+    public String(byte bytes[], Charset charset)
+    {
         // this(bytes, 0, bytes.length, charset);
 
         // DIFFBLUE MODEL LIBRARY
@@ -734,7 +735,6 @@ public final class String
      *
      * @diffblue.limitedSupport We assume all the bytes are ASCII characters,
      * and that the default charset encodes ASCII characters with one byte.
-     * In particular test may fail if the default charset is UTF-16.
      */
     public String(byte bytes[], int offset, int length) {
         // DIFFBLUE MODEL LIBRARY
@@ -772,7 +772,6 @@ public final class String
      *
      * @diffblue.limitedSupport We assume all the bytes are ASCII characters,
      * and that the default charset encodes ASCII characters with one byte.
-     * In particular test may fail if the default charset is UTF-16.
      */
     public String(byte bytes[]) {
         this(bytes, 0, bytes.length);
@@ -1080,15 +1079,17 @@ public final class String
         if (srcBegin < 0) {
             throw new StringIndexOutOfBoundsException(srcBegin);
         }
+        // if (srcEnd > value.length) {
+        // DIFFBLUE MODEL LIBRARY we have no value member
         if (srcEnd > length()) {
             throw new StringIndexOutOfBoundsException(srcEnd);
         }
         if (srcBegin > srcEnd) {
             throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
         }
+        // System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
         // DIFFBLUE MODEL LIBRARY we inline System.arraycopy here so that we
         // can specialize it for characters.
-        // System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
         for(int i = 0; i < srcEnd - srcBegin; i++) {
             dst[dstBegin + i] = CProverString.charAt(this, srcBegin + i);
         }
@@ -1461,7 +1462,9 @@ public final class String
      * @param  charsetName
      *         The name of the Charset used to encode the {@code String}
      */
-    private byte[] cproverReversibleGetBytes(String charsetName) {
+    private byte[] cproverReversibleGetBytes(String charsetName)
+        throws UnsupportedEncodingException
+    {
         if (CProverString.equals(charsetName, "UTF-16BE")) {
             return getBytesUTF_16BE();
         }
@@ -1471,10 +1474,12 @@ public final class String
         if (CProverString.equals(charsetName, "UTF-16")) {
             return getBytesUTF_16();
         }
-        CProver.assume(CProverString.equals(charsetName, "UTF-8")
+        if (CProverString.equals(charsetName, "UTF-8")
                 || CProverString.equals(charsetName, "ISO-8859-1")
-                || CProverString.equals(charsetName, "US-ASCII"));
-        return cproverGetBytesEnforceAscii();
+                || CProverString.equals(charsetName, "US-ASCII")) {
+            return cproverGetBytesEnforceAscii();
+        }
+        throw new UnsupportedEncodingException(charsetName);
     }
 
     /**
@@ -1489,7 +1494,12 @@ public final class String
         if (charset == null) {
             throw new NullPointerException();
         }
-        return cproverReversibleGetBytes(charset.name());
+        try {
+            return cproverReversibleGetBytes(charset.name());
+        } catch (UnsupportedEncodingException e) {
+            CProver.assume(false);
+            return new byte[0];
+        }
     }
 
     /**
@@ -2976,13 +2986,32 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * We enforce the regex argument is a string literal without any special
+     * characters used in regular expressions:
+     * '[', ']','.', '\\', '?', '^', '$', '*', '+', '{', '}', '|', '(', ')',
+     * hence PatternSyntaxException will never be thrown.
      */
     public String replaceAll(String regex, String replacement)
     {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(regex).matcher(this).replaceAll(replacement);
+        // DIFFBLUE MODELS LIBRARY: we assume the expression is just a string literal
+        CProver.assume(
+            regex.indexOf('[') == -1 &&
+            regex.indexOf(']') == -1 &&
+            regex.indexOf('.') == -1 &&
+            regex.indexOf('\\') == -1 &&
+            regex.indexOf('?') == -1 &&
+            regex.indexOf('^') == -1 &&
+            regex.indexOf('$') == -1 &&
+            regex.indexOf('*') == -1 &&
+            regex.indexOf('+') == -1 &&
+            regex.indexOf('{') == -1 &&
+            regex.indexOf('}') == -1 &&
+            regex.indexOf('|') == -1 &&
+            regex.indexOf('(') == -1 &&
+            regex.indexOf(')') == -1);
+        return replace(regex, replacement);
     }
 
     /**
@@ -2997,10 +3026,14 @@ public final class String
      * @return  The resulting string
      * @since 1.5
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * Only works for arguments that are constant strings with only 1 character.
+     * For instance, we can generate traces for s.replace("a", "b") but not
+     * s.replace("a", "bc") or s.replace(arg, "b").
+     * @diffblue.untested
      */
     public String replace(CharSequence target, CharSequence replacement) {
-        CProver.notModelled();
+        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
         return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(
         //         this).replaceAll(Matcher.quoteReplacement(replacement.toString()));
@@ -3092,7 +3125,17 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * This forces the regex argument to contain at most one character.
+     * The model assumes the regex is not a special regex character:
+     * <code> \.[{()<>*+-=?^$| </code>.
+     * So no trace can be generated for these characters.
+     * In particular this prevents any trace for the PatternSyntaxException case
+     * from being generated.
+     *
+     * The size of the computed array is limited by the unwind parameter.
+     * No trace can be generated for which the resulting array would be greater
+     * than the unwind value.
      */
     public String[] split(String regex, int limit) {
         // /* fastpath if the regex is a
@@ -3252,14 +3295,24 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * This forces the regex argument to contain at most one character.
+     * The model assumes the regex is not a special regex character:
+     * <code> \.[{()<>*+-=?^$| </code>.
+     * So no trace can be generated for these characters.
+     * In particular this prevents any trace for the PatternSyntaxException case
+     * from being generated.
+     *
+     * The size of the computed array is limited by the unwind parameter.
+     * No trace can be generated for which the resulting array would be greater
+     * than the unwind value.
      */
     public String[] split(String regex) {
         // return split(regex, 0);
 
         // DIFFBLUE MODEL LIBRARY
         // The (String, int) version in our model calls the String version,
-        // which is the other way in the original implementation.
+        // which the other way in the original implementation.
         // This way, if the String version is called in the code we analyse,
         // only the code for this one is loaded.
         // The 0 case is a bit special compared to the others in that it disregard trailing empty strings.
@@ -3916,10 +3969,13 @@ public final class String
         } else if (obj instanceof Byte) {
             byte byteValue = ((Byte) obj);
             longValue = (long) byteValue;
+        } else if (obj instanceof Short) {
+            short shortValue = ((Short) obj);
+            longValue = (long) shortValue;
         } else if (obj instanceof Boolean) {
             longValue = ((Boolean) obj) ? 1 : 0;
         } else {
-            return CProver.nondetWithoutNull("");
+            CProver.assume(false);
         }
 
         // The long value is encoded using a string of 4 characters
@@ -3986,15 +4042,15 @@ public final class String
      * <ul>
      * <li>
      *   'dateTime', 'hashcode' and 'octal' format specifiers are not
-     *   implemented, which can lead to incorrect tests when they are used
+     *   implemented, which can lead to incorrect trace when they are used
      * </li>
      * <li>
      *   precision and width are ignored
      * </li>
      * <li>
-     *   no test will be generated if the format specifier is not a constant
+     *   no trace will be generated if the format specifier is not a constant
      *   String with correct syntax and compatible with the arguments,
-     *   in particular no test can throw IllegalFormatException
+     *   in particular no trace can throw IllegalFormatException
      * </li>
      * <li>
      *   we arbitrary limit the number of arguments to 10 (increasing
@@ -4004,20 +4060,13 @@ public final class String
      * <li>
      *   having 5 arguments or more makes the solver slow
      * </li>
-     * <li>
-     *   the string "null" is interpreted the same way {@code null} would be by
-     *   the JDK String.format function, which is correct for the %s format
-     *   specifier but not %b for instance.
-     * </li>
      * </ul>
      * @diffblue.untested
      */
     public static String format(String format, Object... args) {
         // return new Formatter().format(format, args).toString();
         // DIFFBLUE MODEL LIBRARY
-        if (args.length > 10) {
-            return CProver.nondetWithoutNull("");
-        }
+        CProver.assume(args.length <= 10);
         String arg0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
         String arg1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
         String arg2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
@@ -4028,9 +4077,10 @@ public final class String
         String arg7 = args.length > 7 ? cproverFormatArgument(args[7]) : "";
         String arg8 = args.length > 8 ? cproverFormatArgument(args[8]) : "";
         String arg9 = args.length > 9 ? cproverFormatArgument(args[9]) : "";
-        return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5,
-                arg6, arg7, arg8, arg9);
+        return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5, arg6,
+                arg7, arg8, arg9);
     }
+
 
     /**
      * Returns a formatted string using the specified locale, format string,
@@ -4069,8 +4119,7 @@ public final class String
      * @see  java.util.Formatter
      * @since  1.5
      *
-     * @diffblue.limitedSupport The locale argument is ignored and it has the
-     * same limitations as {@link #format(String, Object...)}.
+     * @diffblue.noSupport
      */
     public static String format(Locale l, String format, Object... args) {
         // return new Formatter(l).format(format, args).toString();
@@ -4187,10 +4236,11 @@ public final class String
      *          {@code "false"} is returned.
      *
      * @diffblue.fullSupport
-     * @diffblue.untested
      */
     public static String valueOf(boolean b) {
-        return b ? "true" : "false";
+        // DIFFBLUE MODEL LIBRARY This is treated internally in JBMC
+        return CProver.nondetWithoutNullForNotModelled();
+        // return b ? "true" : "false";
     }
 
     /**
@@ -4285,7 +4335,7 @@ public final class String
      */
     public static String valueOf(double d) {
         // DIFFBLUE MODEL LIBRARY we cast the number down to float because
-        // the string solver only knows how to convert floats to string
+        // string solver only knows how to convert floats to string
         return valueOf(CProver.doubleToFloat(d));
         // return Double.toString(d);
     }
@@ -4296,7 +4346,7 @@ public final class String
     static String[] cproverInternPool = null;
 
     /**
-     * Number of elements stored in the pool for {@code String.intern} pool.
+     * Number of elements stored in the pool for {@code String.intern}.
      * This can be smaller than {@code cproverInternPool.length} which
      * represents the capacity of the array and is fixed for each execution.
      */
@@ -4327,6 +4377,7 @@ public final class String
      *
      * @diffblue.limitedSupport literal strings and string-valued constant
      * expressions are not interned.
+     * @diffblue.untested
      */
     // DIFFBLUE MODEL LIBRARY
     // public native String intern();

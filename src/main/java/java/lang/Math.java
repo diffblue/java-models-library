@@ -245,11 +245,11 @@ public final class Math {
      * @return  the measurement of the angle {@code angdeg}
      *          in radians.
      * @since   1.2
+     *
+     * @diffblue.fullSupport
      */
     public static double toRadians(double angdeg) {
-        CProver.notModelled();
-        return CProver.nondetDouble();
-        // return angdeg / 180.0 * PI;
+        return angdeg / 180.0 * PI;
     }
 
     /**
@@ -358,15 +358,48 @@ public final class Math {
      * @param   a   a value.
      * @return  the positive square root of {@code a}.
      *          If the argument is NaN or less than zero, the result is NaN.
+     *
+     * @diffblue.limitedSupport
+     * This implementation using solver constraints only works if squaring the
+     * result of sqrt is equal to the original number, which is not always
+     * true. As a result, the solver will return UNSAT in many cases.
+     * For instance, {@code Math.sqrt(2.0)} will cause the solver to be UNSAT.
+     * Reported in: TG-5598
+     *
+     * Also, there are precision issues on very small numbers. For instance,
+     * for values between 0 and {@code 0x0.0000000000001p-900}, the sqrt method
+     * is likely to not be equal to the result of the real Math.sqrt method.
+     * Reported in: TG-5602
      */
     public static double sqrt(double a) {
-        CProver.notModelled();
-        return CProver.nondetDouble();
         // return StrictMath.sqrt(a); // default impl. delegates to StrictMath
                                    // Note that hardware sqrt instructions
                                    // frequently can be directly used by JITs
                                    // and should be much faster than doing
                                    // Math.sqrt in software.
+        if (Double.isNaN(a) || a < 0.0) {
+            return Double.NaN;
+        }
+        if (a == Double.POSITIVE_INFINITY || a == 0.0) {
+            return a;
+        }
+        double sqrt = CProver.nondetDouble();
+        CProver.assume(sqrt >= 0);
+        CProver.assume(sqrt * sqrt == a);
+
+        // To solve the satisfiability issue, we should adapt the constraints
+        // to something like:
+        //
+        // double reMultiplied = sqrt * sqrt;
+        // CProver.assume(reMultiplied > lower);
+        // CProver.assume(reMultiplied <= upper);
+        //
+        // Where lower and upper only differ by one bit in their
+        // representation, which should ensure that they are the double values
+        // that are the closest to reMultiplied.
+        // This implementation cannot be done yet because it would require
+        // Double.doubleToRawLongBits() to be supported.
+        return sqrt;
     }
 
 
@@ -1270,11 +1303,12 @@ public final class Math {
      *
      * @param   a   the argument whose absolute value is to be determined
      * @return  the absolute value of the argument.
+     *
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     public static int abs(int a) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // return (a < 0) ? -a : a;
+        return (a < 0) ? -a : a;
     }
 
     /**
@@ -1289,11 +1323,12 @@ public final class Math {
      *
      * @param   a   the argument whose absolute value is to be determined
      * @return  the absolute value of the argument.
+     *
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     public static long abs(long a) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // return (a < 0) ? -a : a;
+        return (a < 0) ? -a : a;
     }
 
     /**
@@ -1310,11 +1345,11 @@ public final class Math {
      *
      * @param   a   the argument whose absolute value is to be determined
      * @return  the absolute value of the argument.
+     *
+     * @diffblue.fullSupport
      */
     public static float abs(float a) {
-        CProver.notModelled();
-        return CProver.nondetFloat();
-        // return (a <= 0.0F) ? 0.0F - a : a;
+        return (a <= 0.0F) ? 0.0F - a : a;
     }
 
     /**
@@ -1331,11 +1366,11 @@ public final class Math {
      *
      * @param   a   the argument whose absolute value is to be determined
      * @return  the absolute value of the argument.
+     *
+     * @diffblue.fullSupport
      */
     public static double abs(double a) {
-        CProver.notModelled();
-        return CProver.nondetDouble();
-        // return (a <= 0.0D) ? 0.0D - a : a;
+        return (a <= 0.0D) ? 0.0D - a : a;
     }
 
     /**
@@ -1664,11 +1699,15 @@ public final class Math {
      * @return the signum function of the argument
      * @author Joseph D. Darcy
      * @since 1.5
+     *
+     * @diffblue.fullSupport
      */
     public static double signum(double d) {
-        CProver.notModelled();
-        return CProver.nondetDouble();
         // return (d == 0.0 || Double.isNaN(d))?d:copySign(1.0, d);
+        if (d == 0 || Double.isNaN(d)) {
+            return d;
+        }
+        return d > 0.0 ? 1.0 : -1.0;
     }
 
     /**
@@ -1687,11 +1726,16 @@ public final class Math {
      * @return the signum function of the argument
      * @author Joseph D. Darcy
      * @since 1.5
+     *
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     public static float signum(float f) {
-        CProver.notModelled();
-        return CProver.nondetFloat();
         // return (f == 0.0f || Float.isNaN(f))?f:copySign(1.0f, f);
+        if (f == 0 || Float.isNaN(f)) {
+            return f;
+        }
+        return f > 0.0f ? 1.0f : -1.0f;
     }
 
     /**

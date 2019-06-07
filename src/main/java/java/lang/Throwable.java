@@ -263,6 +263,7 @@ public class Throwable implements Serializable {
      */
     public Throwable() {
         // fillInStackTrace();
+        detailMessage = null;
     }
 
     /**
