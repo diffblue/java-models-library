@@ -3928,7 +3928,22 @@ public final class String
         builder.append((char) (longValue >> 32 & 0xFFFF));
         builder.append((char) (longValue >> 16 & 0xFFFF));
         builder.append((char) (longValue & 0xFFFF));
-        return builder.toString();
+        String str = builder.toString();
+
+        // These redundant constraints are necessary in case the string solver
+        // decides not to propagate the constraints for the concatenation above.
+        // This happens, for instance, when the method under test calls
+        // String.format on an integer and returns the length. In this case,
+        // only the constraints for the length are propagated in the
+        // dependency graph, but the length of the formatted string depends
+        // on the value of the integer, whose conversion is not normally
+        // propagated in the dependency graph.
+        CProver.assume(str.charAt(0) == (char) (longValue >> 48 & 0xFFFF));
+        CProver.assume(str.charAt(1) == (char) (longValue >> 32 & 0xFFFF));
+        CProver.assume(str.charAt(2) == (char) (longValue >> 16 & 0xFFFF));
+        CProver.assume(str.charAt(3) == (char) (longValue & 0xFFFF));
+
+        return str;
     }
 
     /**
