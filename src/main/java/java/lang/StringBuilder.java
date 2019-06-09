@@ -611,14 +611,22 @@ public final class StringBuilder
     }
 
     /**
-     * @diffblue.noSupport
+     * @diffblue.fullSupport
+     * @diffblue.untested
      */
     @Override
     public StringBuilder reverse() {
         // super.reverse();
         // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        int size = this.length();
+        if (size < 2)
+          return this;
+        String tmp = this.toString();
+        CProverString.delete(this, 0, size);
+        for (int i=size-1; i>=0; --i) {
+            this.append(CProverString.charAt(tmp, i));
+         }
+        return this;
     }
 
     /**
