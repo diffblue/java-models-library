@@ -25,12 +25,12 @@
 
 package java.lang;
 
-import org.cprover.CProver;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Locale;
+
+import org.cprover.CProver;
 
 /**
  * The {@code Character} class wraps a value of the primitive
@@ -7217,8 +7217,15 @@ class Character implements java.io.Serializable, Comparable<Character> {
      *            code point.
      *
      * @since 1.7
+     *
+     * @diffblue.limitedSupport Only works for capital latin letters.
      */
     public static String getName(int codePoint) {
+        if (!isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException();
+        }
+        // DIFFBLUE MODEL LIBRARY
+        // removed for compatibility with Java 9 and newer
         // if (!isValidCodePoint(codePoint)) {
         //     throw new IllegalArgumentException();
         // }
@@ -7233,7 +7240,13 @@ class Character implements java.io.Serializable, Comparable<Character> {
         //            + Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
         // // should never come here
         // return Integer.toHexString(codePoint).toUpperCase(Locale.ENGLISH);
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        return cproverGetNameRestricted(codePoint);
     }
+
+    public static String cproverGetNameRestricted(int codePoint)
+    {
+      CProver.assume(codePoint >= 65 && codePoint <= 90);
+      return "LATIN CAPITAL LETTER " + ((char) codePoint);
+    }
+
 }

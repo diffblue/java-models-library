@@ -1,8 +1,10 @@
 package org.cprover;
 
-/// This class provides an interface with string functions modeled internally
-/// in CProver, for which the CProver model differs from the JDK actual behavior.
-/// This is in particular the case for functions that throw exceptions.
+/**
+ * This class provides an interface with string functions modeled internally
+ * in CProver, for which the CProver model differs from the JDK actual behavior.
+ * This is in particular the case for functions that throw exceptions.
+ */
 public final class CProverString
 {
     /**
@@ -63,23 +65,29 @@ public final class CProverString
         return  CProver.nondetInt();
     }
 
-    /// Modeled internally in CBMC.
-    /// @return '\u0000' if index is out of bounds and behave as s.charAt(i)
-    ///         otherwise.
+    /**
+     * Modeled internally in CBMC.
+     * @return '\u0000' if index is out of bounds and behave as s.charAt(i)
+     *         otherwise.
+     */
     public static char charAt(String s, int i) {
         return CProver.nondetChar();
     }
 
-    /// Modeled internally in CBMC.
-    /// @return empty string if index is too large, s if index too small and
-    ///         behave as s.substring(i) otherwise.
+    /**
+     * Modeled internally in CBMC.
+     * @return empty string if index is too large, s if index too small and
+     *         behave as s.substring(i) otherwise.
+     */
     public static String substring(String s, int i) {
         return CProver.nondetWithoutNullForNotModelled();
     }
 
-    /// Modeled internally in CBMC.
-    /// @return empty string if i >= j, s.substring(k, l) where k = max(0, i)
-    ///         and l = min(s.length() - 1, j) otherwise.
+    /**
+     * Modeled internally in CBMC.
+     * @return empty string if i >= j, s.substring(k, l) where k = max(0, i)
+     *         and l = min(s.length() - 1, j) otherwise.
+     */
     public static String substring(String s, int i, int j) {
         return CProver.nondetWithoutNullForNotModelled();
     }
@@ -93,7 +101,7 @@ public final class CProverString
      * @return  the specified subsequence.
      */
     public static CharSequence subSequence(
-            String s, int beginIndex, int endIndex) {
+            String instance, int beginIndex, int endIndex) {
         return CProver.nondetWithoutNullForNotModelled();
     }
 
@@ -102,7 +110,7 @@ public final class CProverString
      * sequence.
      *
      * @param   instance  the StringBuilder instance
-     * @param   s         the sequence to append.
+     * @param   cs        the sequence to append.
      * @param   start     the starting index of the subsequence to be appended.
      * @param   end       the end index of the subsequence to be appended.
      * @return  the modified StringBuilder.
@@ -198,7 +206,7 @@ public final class CProverString
      *
      * @param      instance  the StringBuilder instance
      * @param      offset   the offset.
-     * @param      b        a {@code int}.
+     * @param      i        a {@code int}.
      * @return     the modified StringBuilder.
      */
     public static StringBuilder insert(
@@ -212,7 +220,7 @@ public final class CProverString
      *
      * @param      instance  the StringBuilder instance
      * @param      offset   the offset.
-     * @param      b        a {@code long}.
+     * @param      l        a {@code long}.
      * @return     the modified StringBuilder.
      */
     public static StringBuilder insert(
@@ -226,7 +234,7 @@ public final class CProverString
      *
      * @param      instance  the StringBuilder instance
      * @param      offset   the offset.
-     * @param      b        a {@code float}.
+     * @param      f        a {@code float}.
      * @return     the modified StringBuilder.
      */
     public static StringBuilder insert(
@@ -240,7 +248,7 @@ public final class CProverString
      *
      * @param      instance  the StringBuilder instance
      * @param      offset   the offset.
-     * @param      b        a {@code double}.
+     * @param      d        a {@code double}.
      * @return     the modified StringBuilder.
      */
     public static StringBuilder insert(
@@ -273,7 +281,7 @@ public final class CProverString
      *
      * @param      instance    the StringBuffer instance
      * @param      index       the index of the character to modify.
-     * @param      ch          the new character.
+     * @param      c           the new character.
      */
     public static void setCharAt(StringBuffer instance, int index, char c) {
     }
@@ -392,8 +400,9 @@ public final class CProverString
      * Converts an array of characters to a string. This uses a loop and
      * therefore in test-generation the {@code count} will be limited by the
      * unwind parameter.
-     * This constrains {@code value} to not be null, its length is greater or equal to
-     * {@code offset + count} and {@code offset} and {@code count} are non-negative.
+     * This constrains {@code value} to not be null, its length to be greater
+     * or equal to {@code offset + count} and {@code offset} and {@code count}
+     * to be non-negative.
      *
      * @param value  array of characters which is the source to copy from
      * @param offset index in {@code value} of the first character to copy

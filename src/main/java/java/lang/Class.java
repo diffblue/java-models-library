@@ -25,14 +25,19 @@
 
 package java.lang;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cprover.CProverString;
+
+// DIFFBLUE MODEL LIBRARY
+// removed for compatibility with Java 9 and newer
 // import sun.reflect.CallerSensitive;
 // import sun.reflect.Reflection;
 
 import org.cprover.CProver;
-import org.cprover.CProverString;
 
 public final class Class<T> {
 
@@ -42,13 +47,13 @@ public final class Class<T> {
 
     // TODO: these boolean fields model the internal encoding of classes
     // they should be set by the getClass methods of the different classes
-    private boolean isAnnotation;
-    private boolean isArray;
-    private boolean isInterface;
-    private boolean isSynthetic;
-    private boolean isLocalClass;
-    private boolean isMemberClass;
-    private boolean isEnum;
+    private boolean cproverIsAnnotation;
+    private boolean cproverIsArray;
+    private boolean cproverIsInterface;
+    private boolean cproverIsSynthetic;
+    private boolean cproverIsLocalClass;
+    private boolean cproverIsMemberClass;
+    private boolean cproverIsEnum;
 
     public String toString() {
         return (isInterface() ? "interface " : (isPrimitive() ? "" : "class "))
@@ -118,8 +123,8 @@ public final class Class<T> {
     }
 
     public boolean isInstance(Object obj) { return obj.getClass()==this; }
-    public boolean isInterface() { return isInterface; }
-    public boolean isArray() { return isArray; }
+    public boolean isInterface() { return cproverIsInterface; }
+    public boolean isArray() { return cproverIsArray; }
     public boolean isPrimitive() {
         // DIFFBLUE MODEL LIBRARY
         // We use pointer equality instead of string equality because
@@ -137,12 +142,12 @@ public final class Class<T> {
                 name == "void";
     }
 
-    public boolean isAnnotation() { return isAnnotation; }
-    public boolean isSynthetic() { return isSynthetic; }
-    public boolean isLocalClass() { return isLocalClass; }
-    public boolean isMemberClass() { return isMemberClass; }
+    public boolean isAnnotation() { return cproverIsAnnotation; }
+    public boolean isSynthetic() { return cproverIsSynthetic; }
+    public boolean isLocalClass() { return cproverIsLocalClass; }
+    public boolean isMemberClass() { return cproverIsMemberClass; }
     public boolean isAnonymousClass() { return "".equals(getSimpleName()); }
-    public boolean isEnum() { return isEnum; }
+    public boolean isEnum() { return cproverIsEnum; }
     private boolean isLocalOrAnonymousClass() {
         return isLocalClass() || isAnonymousClass();
     }
@@ -179,17 +184,21 @@ public final class Class<T> {
      * @see SecurityManager#checkPermission
      * @see java.lang.RuntimePermission
      */
+    // DIFFBLUE MODEL LIBRARY
+    // removed for compatibility with Java 9 and newer
     // @CallerSensitive
     public ClassLoader getClassLoader() {
-        // ClassLoader cl = getClassLoader0();
-        // if (cl == null)
-        //     return null;
-        // SecurityManager sm = System.getSecurityManager();
-        // if (sm != null) {
-        //     ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
-        // }
-        // return cl;
-        return null;
+        ClassLoader cl = getClassLoader0();
+        if (cl == null)
+            return null;
+        SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            // DIFFBLUE MODEL LIBRARY
+            // removed for compatibility with Java 9 and newer
+            // ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
+            ClassLoader.checkClassLoaderPermission(cl, null);
+        }
+        return cl;
     }
 
     ClassLoader getClassLoader0() {
@@ -338,9 +347,9 @@ public final class Class<T> {
 
     // This version is nicer for the symbolic execution as it knows how to
     // compare integers but not Strings.
-    // This method should be used instead of the String version whenever 
+    // This method should be used instead of the String version whenever
     // possible by our models.
-    // Experimenting with the test booleanValue_Fail, the String version 
+    // Experimenting with the test booleanValue_Fail, the String version
     // takes 8 seconds while the int version takes 3 seconds.
     static Class getPrimitiveClass(int i){
         if(i==0)
@@ -462,13 +471,139 @@ public final class Class<T> {
             boolean isMemberClass,
             boolean isEnum) {
         this.name = name;
-        this.isAnnotation = isAnnotation;
-        this.isArray = isArray;
-        this.isInterface = isInterface;
-        this.isSynthetic = isSynthetic;
-        this.isLocalClass = isLocalClass;
-        this.isMemberClass = isMemberClass;
-        this.isEnum = isEnum;
+        this.cproverIsAnnotation = isAnnotation;
+        this.cproverIsArray = isArray;
+        this.cproverIsInterface = isInterface;
+        this.cproverIsSynthetic = isSynthetic;
+        this.cproverIsLocalClass = isLocalClass;
+        this.cproverIsMemberClass = isMemberClass;
+        this.cproverIsEnum = isEnum;
     }
 
+    /**
+     * Returns a {@code Field} object that reflects the specified public member
+     * field of the class or interface represented by this {@code Class}
+     * object. The {@code name} parameter is a {@code String} specifying the
+     * simple name of the desired field.
+     *
+     * <p> The field to be reflected is determined by the algorithm that
+     * follows.  Let C be the class or interface represented by this object:
+     *
+     * <OL>
+     * <LI> If C declares a public field with the name specified, that is the
+     *      field to be reflected.</LI>
+     * <LI> If no field was found in step 1 above, this algorithm is applied
+     *      recursively to each direct superinterface of C. The direct
+     *      superinterfaces are searched in the order they were declared.</LI>
+     * <LI> If no field was found in steps 1 and 2 above, and C has a
+     *      superclass S, then this algorithm is invoked recursively upon S.
+     *      If C has no superclass, then a {@code NoSuchFieldException}
+     *      is thrown.</LI>
+     * </OL>
+     *
+     * <p> If this {@code Class} object represents an array type, then this
+     * method does not find the {@code length} field of the array type.
+     *
+     * @param name the field name
+     * @return the {@code Field} object of this class specified by
+     *         {@code name}
+     * @throws NoSuchFieldException if a field with the specified name is
+     *         not found.
+     * @throws NullPointerException if {@code name} is {@code null}
+     * @throws SecurityException
+     *         If a security manager, <i>s</i>, is present and
+     *         the caller's class loader is not the same as or an
+     *         ancestor of the class loader for the current class and
+     *         invocation of {@link SecurityManager#checkPackageAccess
+     *         s.checkPackageAccess()} denies access to the package
+     *         of this class.
+     *
+     * @since JDK1.1
+     * @jls 8.2 Class Members
+     * @jls 8.3 Field Declarations
+     */
+    // DIFFBLUE MODEL LIBRARY
+    // removed for compatibility with Java 9 and newer
+    // @CallerSensitive
+    public Field getField(String name) throws NoSuchFieldException, SecurityException {
+        return new Field(this, name);
+    }
+
+    /**
+     * Returns a {@code Method} object that reflects the specified public
+     * member method of the class or interface represented by this
+     * {@code Class} object. The {@code name} parameter is a
+     * {@code String} specifying the simple name of the desired method. The
+     * {@code parameterTypes} parameter is an array of {@code Class}
+     * objects that identify the method's formal parameter types, in declared
+     * order. If {@code parameterTypes} is {@code null}, it is
+     * treated as if it were an empty array.
+     *
+     * <p> If the {@code name} is "{@code <init>}" or "{@code <clinit>}" a
+     * {@code NoSuchMethodException} is raised. Otherwise, the method to
+     * be reflected is determined by the algorithm that follows.  Let C be the
+     * class or interface represented by this object:
+     * <OL>
+     * <LI> C is searched for a <I>matching method</I>, as defined below. If a
+     *      matching method is found, it is reflected.</LI>
+     * <LI> If no matching method is found by step 1 then:
+     *   <OL TYPE="a">
+     *   <LI> If C is a class other than {@code Object}, then this algorithm is
+     *        invoked recursively on the superclass of C.</LI>
+     *   <LI> If C is the class {@code Object}, or if C is an interface, then
+     *        the superinterfaces of C (if any) are searched for a matching
+     *        method. If any such method is found, it is reflected.</LI>
+     *   </OL></LI>
+     * </OL>
+     *
+     * <p> To find a matching method in a class or interface C:&nbsp; If C
+     * declares exactly one public method with the specified name and exactly
+     * the same formal parameter types, that is the method reflected. If more
+     * than one such method is found in C, and one of these methods has a
+     * return type that is more specific than any of the others, that method is
+     * reflected; otherwise one of the methods is chosen arbitrarily.
+     *
+     * <p>Note that there may be more than one matching method in a
+     * class because while the Java language forbids a class to
+     * declare multiple methods with the same signature but different
+     * return types, the Java virtual machine does not.  This
+     * increased flexibility in the virtual machine can be used to
+     * implement various language features.  For example, covariant
+     * returns can be implemented with {@linkplain
+     * java.lang.reflect.Method#isBridge bridge methods}; the bridge
+     * method and the method being overridden would have the same
+     * signature but different return types.
+     *
+     * <p> If this {@code Class} object represents an array type, then this
+     * method does not find the {@code clone()} method.
+     *
+     * <p> Static methods declared in superinterfaces of the class or interface
+     * represented by this {@code Class} object are not considered members of
+     * the class or interface.
+     *
+     * @param name the name of the method
+     * @param parameterTypes the list of parameters
+     * @return the {@code Method} object that matches the specified
+     *         {@code name} and {@code parameterTypes}
+     * @throws NoSuchMethodException if a matching method is not found
+     *         or if the name is "&lt;init&gt;"or "&lt;clinit&gt;".
+     * @throws NullPointerException if {@code name} is {@code null}
+     * @throws SecurityException
+     *         If a security manager, <i>s</i>, is present and
+     *         the caller's class loader is not the same as or an
+     *         ancestor of the class loader for the current class and
+     *         invocation of {@link SecurityManager#checkPackageAccess
+     *         s.checkPackageAccess()} denies access to the package
+     *         of this class.
+     *
+     * @jls 8.2 Class Members
+     * @jls 8.4 Method Declarations
+     * @since JDK1.1
+     */
+    // DIFFBLUE MODEL LIBRARY
+    // removed for compatibility with Java 9 and newer
+    // @CallerSensitive
+    public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException, SecurityException {
+        return new Method(this, name, parameterTypes);
+    }
 }

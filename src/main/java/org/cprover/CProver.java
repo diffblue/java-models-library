@@ -316,7 +316,12 @@ public final class CProver
   }
 
   /**
-   * Class identifier of an Object. For instance "java.lang.String", "java.lang.Interger".
+   * Class identifier of an Object. For instance "java.lang.String",
+   * "java.lang.Integer". This gives direct read access to the
+   * {@code @class_identifier} field used internally by JBMC and test-generator.
+   * The body of this function is replaced by preprocessing of the java
+   * bytecode, it is only meant to give meaningful output in case the model is
+   * executed.
    */
   public static String classIdentifier(Object object)
   {
@@ -342,7 +347,7 @@ public final class CProver
   public static float doubleToFloat(double d)
   {
     float converted = nondetFloat();
-    assert(d == (double) converted);
+    CProver.assume(d == (double) converted);
     return converted;
   }
 }

@@ -186,14 +186,13 @@ class Random implements java.io.Serializable {
      *
      * @param seed the initial seed
      *
-     * @diffblue.noSupport
-     * Due to TG-2435.<br>
+     * @diffblue.mock
+     * @diffblue.limitedSupport
      * We currently ignore seeds and make test-generator pick return values
      * for the methods in this class nondeterministically rather than
      * calculating them according to a probability distribution. So this
      * method is simply modelled as a no-op.
      *
-     * @diffblue.mock
      */
     synchronized public void setSeed(long seed) {
         // this.seed.set(initialScramble(seed));
@@ -258,14 +257,9 @@ class Random implements java.io.Serializable {
      * @throws NullPointerException if the byte array is null
      * @since  1.1
      *
-     * @diffblue.noSupport
-     * Due to TG-2435.<br>
-     * This method sets each entry of the argument to a nondeterministic
-     * {@code byte} value.
-     * The nondeterminism is introduced by test-generator itself, and
-     * probability distributions are ignored.
-     *
      * @diffblue.mock
+     * @diffblue.limitedSupport
+     *
      */
     public void nextBytes(byte[] bytes) {
         // for (int i = 0, len = bytes.length; i < len; )
@@ -273,7 +267,6 @@ class Random implements java.io.Serializable {
         //              n = Math.min(len - i, Integer.SIZE/Byte.SIZE);
         //          n-- > 0; rnd >>= Byte.SIZE)
         //         bytes[i++] = (byte)rnd;
-
         for (int i = 0; i < bytes.length; i++) {
             byte b = CProver.nondetByte();
             bytes[i] = b;
