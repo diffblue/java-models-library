@@ -487,7 +487,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, b);
+        return CProverString.insert(this, offset, String.valueOf(b));
     }
 
     /**
@@ -502,7 +502,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new IndexOutOfBoundsException();
-        return CProverString.insert(this, offset, c);
+        return CProverString.insert(this, offset, String.valueOf(c));
     }
 
     /**
@@ -517,7 +517,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, i);
+        return CProverString.insert(this, offset, String.valueOf(i));
     }
 
     /**
@@ -533,7 +533,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, l);
+        return CProverString.insert(this, offset, String.valueOf(l));
     }
 
     /**
@@ -549,7 +549,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, f);
+        return CProverString.insert(this, offset, String.valueOf(f));
     }
 
     /**
@@ -567,7 +567,7 @@ public final class StringBuilder
         // return this;
         if ((offset < 0) || (offset > length()))
             throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, d);
+        return CProverString.insert(this, offset, String.valueOf(d));
     }
 
     /**
