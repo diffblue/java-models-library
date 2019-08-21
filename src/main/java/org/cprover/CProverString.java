@@ -348,4 +348,77 @@ public final class CProverString
             String arg4, String arg5, String arg6, String arg7, String arg8, String arg9) {
         return CProver.nondetWithoutNullForNotModelled();
     }
+
+    /**
+     * Returns a {@code String} object representing the
+     * specified integer. The argument is converted to signed decimal
+     * representation and returned as a string.
+     *
+     * @param   i   an integer to be converted.
+     * @return  a string representation of the argument in base&nbsp;10.
+     */
+    public static String toString(int i) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Returns a string representation of the first argument in the
+     * radix specified by the second argument.
+     *
+     * @param   i       an integer to be converted to a string.
+     * @param   radix   the radix to use in the string representation.
+     * @return  a string representation of the argument in the specified radix.
+     */
+    public static String toString(int i, int radix) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Returns a {@code String} object representing the specified
+     * {@code long}.  The argument is converted to signed decimal
+     * representation and returned as a string.
+     *
+     * @param   l   a {@code long} to be converted.
+     * @return  a string representation of the argument in base&nbsp;10.
+     */
+    public static String toString(long l) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Returns a string representation of the first argument in the
+     * radix specified by the second argument.
+     *
+     * @param   l       a {@code long} to be converted to a string.
+     * @param   radix   the radix to use in the string representation.
+     * @return  a string representation of the argument in the specified radix.
+     */
+    public static String toString(long l, int radix) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Returns a string representation of the {@code float}
+     * argument.
+     *
+     * @param   f   the float to be converted.
+     * @return  a string representation of the argument.
+     */
+    public static String toString(float f) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Returns a string representation of the {@code double}
+     * argument.
+     *
+     * The double is converted to a float first as the string solver currently
+     * can convert float to String but not double to String.
+     *
+     * @param   d   the double to be converted.
+     * @return  a string representation of the argument.
+     */
+    public static String toString(double d) {
+        return toString(CProver.doubleToFloat(d));
+    }
 }
