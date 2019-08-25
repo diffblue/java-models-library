@@ -606,4 +606,19 @@ public final class Class<T> {
     public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException, SecurityException {
         return new Method(this, name, parameterTypes);
     }
+
+    /**
+     * Returns the {@code Class} representing the component type of an
+     * array.  If this class does not represent an array class this method
+     * returns null.
+     *
+     * @return the {@code Class} representing the component type of this
+     * class if this class is an array
+     * @see     java.lang.reflect.Array
+     * @since 1.1
+     */
+    public Class<?> getComponentType() {
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
+    }
 }
