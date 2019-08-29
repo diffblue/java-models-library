@@ -2,6 +2,7 @@ package org.cprover;
 
 import java.io.BufferedInputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 
 public final class CProver
 {
@@ -349,5 +350,19 @@ public final class CProver
     float converted = nondetFloat();
     CProver.assume(d == (double) converted);
     return converted;
+  }
+
+  /**
+   * Instantiates (but does not populate) an array with type matching a given array,
+   * but with a potentially different length. Used by ArrayList.toArray, for example,
+   * whose internal array is an Object[] but must provide that array as a user-supplied
+   * T[], copying the runtime type of whatever array the user provided as a template.
+   *
+   * The implementation given here is correct, but JBMC cannot currently understand these
+   * reflective methods and therefore replaces this function with its own implementation.
+   */
+  public static <T> T[] createArrayWithType(int length, T[] type) {
+    Class typeClass = type.getClass();
+    return (T[])Array.newInstance(typeClass.getComponentType(), length);
   }
 }
