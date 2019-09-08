@@ -4238,9 +4238,7 @@ public final class String
      * @diffblue.fullSupport
      */
     public static String valueOf(boolean b) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in JBMC
-        return CProver.nondetWithoutNullForNotModelled();
-        // return b ? "true" : "false";
+        return b ? "true" : "false";
     }
 
     /**
@@ -4255,8 +4253,8 @@ public final class String
      * @diffblue.untested
      */
     public static String valueOf(char c) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithNullForNotModelled();
+        char data[] = {c};
+        return CProverString.ofCharArray(data, 0, 1);
         // char data[] = {c};
         // return new String(data, true);
     }
@@ -4275,8 +4273,7 @@ public final class String
      * @diffblue.untested
      */
     public static String valueOf(int i) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(i);
         // return Integer.toString(i);
     }
 
@@ -4294,8 +4291,7 @@ public final class String
      * @diffblue.untested
      */
     public static String valueOf(long l) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(l);
         // return Long.toString(l);
     }
 
@@ -4314,8 +4310,7 @@ public final class String
      * actual program.
      */
     public static String valueOf(float f) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(f);
         // return Float.toString(f);
     }
 
@@ -4334,9 +4329,8 @@ public final class String
      * actual program.
      */
     public static String valueOf(double d) {
-        // DIFFBLUE MODEL LIBRARY we cast the number down to float because
         // string solver only knows how to convert floats to string
-        return valueOf(CProver.doubleToFloat(d));
+        return CProverString.toString(d);
         // return Double.toString(d);
     }
 
