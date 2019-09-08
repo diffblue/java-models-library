@@ -31,6 +31,7 @@ package java.lang;
 import sun.misc.FloatConsts;
 import sun.misc.DoubleConsts;
 import org.cprover.CProver;
+import org.cprover.CProverString;
 
 /**
  * The {@code Float} class wraps a value of primitive type
@@ -204,14 +205,13 @@ public final class Float extends Number implements Comparable<Float> {
      *
      * @param   f   the float to be converted.
      * @return a string representation of the argument.
-     * @diffblue.noSupport
+     *
+     * @diffblue.limitedSupport
+     * The precision in the produced string may not match that of the
+     * actual program.
      */
     public static String toString(float f) {
-        // DIFFBLUE MODEL LIBRARY
-        // removed for compatibility with Java 9 and newer
-        // return FloatingDecimal.toJavaFormatString(f);
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return CProverString.toString(f);
     }
 
     /**

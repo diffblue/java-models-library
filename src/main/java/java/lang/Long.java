@@ -123,9 +123,11 @@ public final class Long extends Number implements Comparable<Long> {
      * @return  a string representation of the argument in the specified radix.
      * @see     java.lang.Character#MAX_RADIX
      * @see     java.lang.Character#MIN_RADIX
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(long i, int radix) {
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(i, radix);
     }
 
     /**
@@ -349,10 +351,11 @@ public final class Long extends Number implements Comparable<Long> {
      *
      * @param   i   a {@code long} to be converted.
      * @return  a string representation of the argument in base&nbsp;10.
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(long i) {
-         // this function is handled by cbmc internally
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(i);
     }
 
     /**
