@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Locale;
 
 import org.cprover.CProver;
+import org.cprover.CProverString;
 
 /**
  * The {@code Character} class wraps a value of the primitive
@@ -4651,9 +4652,12 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @param c the {@code char} to be converted
      * @return the string representation of the specified {@code char}
      * @since 1.4
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(char c) {
-        return String.valueOf(c);
+        char data[] = {c};
+        return CProverString.ofCharArray(data, 0, 1);
     }
 
     /**

@@ -119,10 +119,11 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @return  a string representation of the argument in the specified radix.
      * @see     java.lang.Character#MAX_RADIX
      * @see     java.lang.Character#MIN_RADIX
+     *
+     * @diffblue.fullSupport
      */
-    // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
     public static String toString(int i, int radix) {
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(i, radix);
     }
 
     /**
@@ -287,11 +288,11 @@ public final class Integer extends Number implements Comparable<Integer> {
      *
      * @param   i   an integer to be converted.
      * @return  a string representation of the argument in base&nbsp;10.
+     *
+     * @diffblue.fullSupport
      */
-    // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
     public static String toString(int i) {
-         // this function is handled by cbmc internally
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProverString.toString(i);
     }
 
     /**

@@ -208,11 +208,14 @@ public final class Double extends Number implements Comparable<Double> {
      *
      * @param   d   the {@code double} to be converted.
      * @return a string representation of the argument.
-     * @diffblue.noSupport
+     *
+     * @diffblue.limitedSupport
+     * The precision in the produced string may not match that of the
+     * actual program.
      */
     public static String toString(double d) {
         //  return FloatingDecimal.toJavaFormatString(d);
-        return String.valueOf(d);
+        return CProverString.toString(d);
     }
 
     /**

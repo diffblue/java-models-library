@@ -26,6 +26,7 @@
 package java.lang;
 
 import org.cprover.CProver;
+import org.cprover.CProverString;
 
 /**
  *
@@ -71,9 +72,11 @@ public final class Byte extends Number implements Comparable<Byte> {
      * @param b the {@code byte} to be converted
      * @return the string representation of the specified {@code byte}
      * @see java.lang.Integer#toString(int)
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(byte b) {
-        return Integer.toString((int)b, 10);
+        return CProverString.toString((int)b);
     }
 
     /**

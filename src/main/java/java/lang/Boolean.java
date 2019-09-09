@@ -176,6 +176,8 @@ public final class Boolean implements java.io.Serializable,
      * @param b the boolean to be converted
      * @return the string representation of the specified {@code boolean}
      * @since 1.4
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(boolean b) {
         return b ? "true" : "false";

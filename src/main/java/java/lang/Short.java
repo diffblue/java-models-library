@@ -26,6 +26,7 @@
 package java.lang;
 
 import org.cprover.CProver;
+import org.cprover.CProverString;
 
 /**
  * The {@code Short} class wraps a value of primitive type {@code
@@ -69,9 +70,11 @@ public final class Short extends Number implements Comparable<Short> {
      * @param s the {@code short} to be converted
      * @return the string representation of the specified {@code short}
      * @see java.lang.Integer#toString(int)
+     *
+     * @diffblue.fullSupport
      */
     public static String toString(short s) {
-        return Integer.toString((int)s, 10);
+        return CProverString.toString((int)s);
     }
 
     /**
