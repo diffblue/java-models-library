@@ -679,4 +679,29 @@ public final class StringBuilder
         toString().getChars(srcBegin, srcEnd, dst, dstBegin);
     }
 
+    /**
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @see    #length()
+     *
+     * @diffblue.fullSupport
+     */
+    @Override
+    public void setLength(int newLength) {
+        if (newLength < 0)
+            throw new StringIndexOutOfBoundsException(newLength);
+        CProverString.setLength(this, newLength);
+    }
+
+    /**
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @see    #length()
+     *
+     * @diffblue.fullSupport
+     */
+    @Override
+    public void setCharAt(int index, char ch) {
+        if ((index < 0) || (index >= this.length()))
+            throw new StringIndexOutOfBoundsException(index);
+        CProverString.setCharAt(this, index, ch);
+    }
 }
