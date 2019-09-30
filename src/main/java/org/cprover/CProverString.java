@@ -182,6 +182,15 @@ public final class CProverString
     }
 
     /**
+     * Sets the length of the character sequence.
+     *
+     * @param      instance    the StringBuilder instance
+     * @param      newLength   the new length
+     */
+    public static void setLength(StringBuilder instance, int newLength) {
+    }
+
+    /**
      * Returns the {@code char} value in this sequence at the specified index.
      *
      * @param      instance    the StringBuffer instance
@@ -200,6 +209,16 @@ public final class CProverString
      * @param      c           the new character.
      */
     public static void setCharAt(StringBuffer instance, int index, char c) {
+    }
+
+    /**
+     * The character at the specified index is set to {@code ch}.
+     *
+     * @param      instance    the StringBuilder instance
+     * @param      index       the index of the character to modify.
+     * @param      c           the new character.
+     */
+    public static void setCharAt(StringBuilder instance, int index, char c) {
     }
 
     /**
