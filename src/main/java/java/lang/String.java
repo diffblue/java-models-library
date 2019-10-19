@@ -4333,7 +4333,7 @@ public final class String
      */
     public static String valueOf(double d) {
         // string solver only knows how to convert floats to string
-        return CProverString.toString(d);
+        return CProverString.toString((float)d);
         // return Double.toString(d);
     }
 
