@@ -1157,9 +1157,9 @@ public final class Pattern
      * no characters that has special meaning in regular expressions.
      * This way we can then match the regex using String.equals().
      */
-    private static void cproverAssumeIsPlainString(String regex)
+    private static boolean cproverIsPlainString(String regex)
     {
-        CProver.assume(
+        return
             regex.indexOf('[') == -1 &&
             regex.indexOf(']') == -1 &&
             regex.indexOf('{') == -1 &&
@@ -1173,7 +1173,11 @@ public final class Pattern
             regex.indexOf('*') == -1 &&
             regex.indexOf('^') == -1 &&
             regex.indexOf('$') == -1 &&
-            regex.indexOf('|') == -1);
+            regex.indexOf('|') == -1;
+    }
+    private static void cproverAssumeIsPlainString(String regex)
+    {
+      CProver.assume(cproverIsPlainString(regex));
     }
 
     /**
@@ -1210,14 +1214,18 @@ public final class Pattern
         // Matcher m = p.matcher(input);
         // return m.matches();
 
-        // DIFFBLUE MODEL LIBRARY
-        // We disallow special characters so that we can do matching using equals.
-        cproverAssumeIsPlainString(regex);
         //
         if (input == null) {
           throw new NullPointerException(); // JDK throws NPE when the 2nd param is null
         }
-        return regex.equals(input);
+        // DIFFBLUE MODEL LIBRARY
+        // We disallow special characters so that we can do matching using equals.
+        if (cproverIsPlainString(regex)) {
+          return regex.equals(input);
+        } else {
+          CProver.notModelled();
+          return CProver.nondetBoolean();
+        }
     }
 
     /**
@@ -1441,7 +1449,9 @@ public final class Pattern
     private Pattern(String p, int f) {
         // DIFFBLUE MODEL LIBRARY
         // We disallow special characters so that we can use equals for matching.
-        cproverAssumeIsPlainString(p);
+        if (!cproverIsPlainString(p)) {
+            CProver.notModelled();
+        }
         pattern = p;
     //     pattern = p;
     //     flags = f;
