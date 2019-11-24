@@ -107,6 +107,13 @@ public final class Class<T> {
     private boolean cproverIsMemberClass;
     private boolean cproverIsEnum;
 
+    // TODO: these fields are to enforce singleton semantics of
+    // Class objects as returned by Object.getClass() and Class.forName()
+    // The size is currently hard-coded which may lead to incorrect results.
+    // A map could be used here in future.
+    private static String[] cproverClassNames = new String[8];
+    private static Class<?>[] cproverClassInstances = new Class<?>[8];
+
     public String toString() {
         return (isInterface() ? "interface " : (isPrimitive() ? "" : "class "))
             + getName();
@@ -163,9 +170,21 @@ public final class Class<T> {
     // forName method. The goal is to correctly model combinations of forName
     // and getName, but precisely following the JDK behaviour is more involved.
     public static Class<?> forName(String className) {
-        Class c=new Class();
-        c.name=className;
-        return c;
+        String foundName = null;
+        for (int i = 0; i < cproverClassNames.length; ++i) {
+            String currentName = cproverClassNames[i];
+            if (currentName == null) {
+                Class<?> c = new Class();
+                c.name = className;
+                cproverClassNames[i] = className;
+                cproverClassInstances[i] = c;
+                return c;
+            }
+            if (className.equals(currentName)) {
+                return cproverClassInstances[i];
+            }
+        }
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     public static Class<?> forName(String name, boolean initialize,
