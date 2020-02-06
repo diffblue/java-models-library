@@ -410,51 +410,7 @@ public final class Integer extends Number implements Comparable<Integer> {
                                             " greater than Character.MAX_RADIX");
         }
 
-        if (radix == 10) {
-            return parseInt(s);
-        }
-
-        //TODO from here on
-        int result = 0;
-        boolean negative = false;
-        int i = 0, len = s.length();
-        int limit = -Integer.MAX_VALUE;
-        int multmin;
-        int digit;
-
-        if (len > 0) {
-            char firstChar = CProverString.charAt(s, 0);
-            if (firstChar < '0') { // Possible leading "+" or "-"
-                if (firstChar == '-') {
-                    negative = true;
-                    limit = Integer.MIN_VALUE;
-                } else if (firstChar != '+')
-                    throw NumberFormatException.forInputString(s);
-
-                if (len == 1) // Cannot have lone "+" or "-"
-                    throw NumberFormatException.forInputString(s);
-                i++;
-            }
-            multmin = limit / radix;
-            while (i < len) {
-                // Accumulating negatively avoids surprises near MAX_VALUE
-                digit = Character.digit(CProverString.charAt(s, i++), radix);
-                if (digit < 0) {
-                    throw NumberFormatException.forInputString(s);
-                }
-                if (result < multmin) {
-                    throw NumberFormatException.forInputString(s);
-                }
-                result *= radix;
-                if (result < limit + digit) {
-                    throw NumberFormatException.forInputString(s);
-                }
-                result -= digit;
-            }
-        } else {
-            throw NumberFormatException.forInputString(s);
-        }
-        return negative ? result : -result;
+        return CProverString.parseInt(s, radix);
     }
 
     /**
@@ -475,7 +431,11 @@ public final class Integer extends Number implements Comparable<Integer> {
      *               parsable integer.
      */
     public static int parseInt(String s) throws NumberFormatException {
-        return CProver.nondetInt(); //The function is handled by cbmc internally
+        if (s == null) {
+            throw new NumberFormatException("null");
+        }
+
+        return CProverString.parseInt(s, 10);
     }
 
     /**
