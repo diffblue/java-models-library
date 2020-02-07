@@ -440,4 +440,20 @@ public final class CProverString
     public static String toString(double d) {
         return toString(CProver.doubleToFloat(d));
     }
+
+    /**
+     * Exactly as Integer.parseInt, except s is already checked non-null and the
+     * radix is already checked in-range.
+     */
+    public static int parseInt(String s, int radix) {
+        return CProver.nondetInt();
+    }
+
+    /**
+     * Exactly as Long.parseLong, except s is already checked non-null and the
+     * radix is already checked in-range.
+     */
+    public static long parseLong(String s, int radix) {
+        return CProver.nondetLong();
+    }
 }
