@@ -473,6 +473,9 @@ public final class Long extends Number implements Comparable<Long> {
             throw new NumberFormatException("radix " + radix +
                                             " greater than Character.MAX_RADIX");
         }
+        if (!CProverString.isValidLong(s, radix)) {
+            throw new NumberFormatException(s + " isn't a valid long");
+        }
 
         return CProverString.parseLong(s, radix);
     }
@@ -502,10 +505,7 @@ public final class Long extends Number implements Comparable<Long> {
      *             parsable {@code long}.
      */
     public static long parseLong(String s) throws NumberFormatException {
-        if (s == null) {
-            throw new NumberFormatException("null");
-        }
-        return CProverString.parseLong(s, 10);
+        return parseLong(s, 10);
     }
 
     /**

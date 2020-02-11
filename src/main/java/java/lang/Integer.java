@@ -410,6 +410,10 @@ public final class Integer extends Number implements Comparable<Integer> {
                                             " greater than Character.MAX_RADIX");
         }
 
+        if(!CProverString.isValidInt(s, radix)) {
+            throw new NumberFormatException(s + " isn't a valid integer");
+        }
+
         return CProverString.parseInt(s, radix);
     }
 
@@ -431,11 +435,7 @@ public final class Integer extends Number implements Comparable<Integer> {
      *               parsable integer.
      */
     public static int parseInt(String s) throws NumberFormatException {
-        if (s == null) {
-            throw new NumberFormatException("null");
-        }
-
-        return CProverString.parseInt(s, 10);
+        return parseInt(s, 10);
     }
 
     /**

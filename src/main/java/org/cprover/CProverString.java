@@ -442,18 +442,38 @@ public final class CProverString
     }
 
     /**
-     * Exactly as Integer.parseInt, except s is already checked non-null and the
-     * radix is already checked in-range.
+     * Exactly as Integer.parseInt, except s is already checked non-null, the
+     * radix is already checked in-range and 's' is known to be a valid integer
+     * according to isValidInt below
      */
     public static int parseInt(String s, int radix) {
         return CProver.nondetInt();
     }
 
     /**
-     * Exactly as Long.parseLong, except s is already checked non-null and the
-     * radix is already checked in-range.
+     * Exactly as Long.parseLong, except s is already checked non-null, the
+     * radix is already checked in-range and 's' is known to be a valid integer
+     * according to isValidLong below
      */
     public static long parseLong(String s, int radix) {
         return CProver.nondetLong();
+    }
+
+    /**
+     * Returns true if string 's' is a valid integer: contains at least one
+     * digit, perhaps a leading '+' or '-', and doesn't contain invalid chars
+     * for the given radix.
+     */
+    public static boolean isValidInt(String s, int radix) {
+        return CProver.nondetBoolean();
+    }
+
+    /**
+     * Returns true if string 's' is a valid long: contains at least one
+     * digit, perhaps a leading '+' or '-', and doesn't contain invalid chars
+     * for the given radix.
+     */
+    public static boolean isValidLong(String s, int radix) {
+        return CProver.nondetBoolean();
     }
 }
