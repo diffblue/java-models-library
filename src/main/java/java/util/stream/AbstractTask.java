@@ -157,14 +157,17 @@ abstract class AbstractTask<P_IN, P_OUT, R,
      * four tasks per processor, which enables others to help out
      * if leaf tasks are uneven or some processors are otherwise busy.
      */
+    /// MODELS LIBRARY ALTERATION: we don't have java.lang.Thread in this version of
+    /// the models library.
     public static int getLeafTarget() {
+        /*
         Thread t = Thread.currentThread();
         if (t instanceof ForkJoinWorkerThread) {
             return ((ForkJoinWorkerThread) t).getPool().getParallelism() << 2;
         }
-        else {
+        else {*/
             return LEAF_TARGET;
-        }
+        /*}*/
     }
 
     /**
