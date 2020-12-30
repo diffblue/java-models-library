@@ -26,16 +26,58 @@
     </profile>
   </profiles>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.cprover.util</groupId>
+      <artifactId>cprover-api</artifactId>
+      <version>1.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <finalName>core-models</finalName>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>build-classpath</goal>
+            </goals>
+            <configuration>
+              <outputProperty>maven.compile.classpath</outputProperty>
+            </configuration>
+          </execution>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.cprover.util</groupId>
+                  <artifactId>cprover-api</artifactId>
+                  <outputDirectory>${project.build.directory}</outputDirectory>
+                  <destFileName>cprover-api.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.6.1</version>
         <configuration>
           <compilerArguments>
-            <classpath>${java.home}/lib/rt.jar</classpath>
+            <classpath>${java.home}/lib/rt.jar${path.separator}${maven.compile.classpath}</classpath>
           </compilerArguments>
           <source>1.8</source>
           <target>1.8</target>
