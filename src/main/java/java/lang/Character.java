@@ -5459,8 +5459,11 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @since   1.5
      */
     public static boolean isLowerCase(int codePoint) {
-        return getType(codePoint) == Character.LOWERCASE_LETTER ||
-               CharacterData.of(codePoint).isOtherLowercase(codePoint);
+        return getType(codePoint) == Character.LOWERCASE_LETTER;
+            // This code has been simplified in the upstream JDK repository
+            // at https://github.com/openjdk/jdk/pull/2846/files. The change
+            // below is to bring the code at parity with openJDK.
+            // || CharacterData.of(codePoint).isOtherLowercase(codePoint);
     }
 
     /**
@@ -5525,8 +5528,11 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @since   1.5
      */
     public static boolean isUpperCase(int codePoint) {
-        return getType(codePoint) == Character.UPPERCASE_LETTER ||
-               CharacterData.of(codePoint).isOtherUppercase(codePoint);
+        return getType(codePoint) == Character.UPPERCASE_LETTER;
+            // // This code has been simplified in the upstream JDK repository
+            // at https://github.com/openjdk/jdk/pull/2846/files. The change
+            // below is to bring the code at parity with openJDK.
+            // || CharacterData.of(codePoint).isOtherUppercase(codePoint);
     }
 
     /**
