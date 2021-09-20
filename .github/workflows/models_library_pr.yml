@@ -1,0 +1,18 @@
+name: Build JBMC Java Models Library
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  Build-Models-Library:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Java environment
+        uses: actions/setup-java@v2
+        with:
+          java-version: '16'
+          distribution: 'adopt'
+      - name: Build with Maven
+        run: mvn package
