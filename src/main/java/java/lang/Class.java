@@ -87,8 +87,8 @@ import org.cprover.CProver;
  * @diffblue.limitedSupport
  * Generated tests that create an instance of Class will be incorrect:
  * <ul>
- *   <li>TG-7636: IllegalAccessError error when attempting to set the java.lang.class via reflection</li>
- *   <li>TG-4727: When test-gen mocks java.lang.Class, it causes IllegalAccessError</li>
+ *   <li>IllegalAccessError error when attempting to set the java.lang.class via reflection</li>
+ *   <li>When JBMC mocks java.lang.Class, it causes IllegalAccessError</li>
  * </ul>
  */
 public final class Class<T> {
@@ -170,6 +170,9 @@ public final class Class<T> {
     // forName method. The goal is to correctly model combinations of forName
     // and getName, but precisely following the JDK behaviour is more involved.
     public static Class<?> forName(String className) {
+        CProver.notModelled();
+        throw new AssertionError();
+        /*
         String foundName = null;
         for (int i = 0; i < cproverClassNames.length; ++i) {
             String currentName = cproverClassNames[i];
@@ -185,6 +188,7 @@ public final class Class<T> {
             }
         }
         return CProver.nondetWithoutNullForNotModelled();
+        */
     }
 
     public static Class<?> forName(String name, boolean initialize,
@@ -276,7 +280,7 @@ public final class Class<T> {
         // DIFFBLUE MODEL LIBRARY The real java.lang.Class stores a
         // `private final ClassLoader classLoader` which is initialised by the
         // jvm rather than by the constructor of this object.
-        // TODO test-gen should understand this method natively.
+        // TODO JBMC should understand this method natively.
         return null;
     }
 
