@@ -333,7 +333,7 @@ import org.cprover.CProverString;
 
     /**
      * @diffblue.limitedSupport
-     * This method can be slow to generate tests due to TG-2866 and is
+     * This method can be slow to generate tests due to an issue and is
      * also limited by which {@code toString()} methods have been modelled.
      */
     @Override

@@ -716,7 +716,7 @@ public final class Float extends Number implements Comparable<Float> {
      * @diffblue.fullSupport
      *
      * Until the native method floatToRawIntBits(F) is implemented in
-     * CBMC, this model will allow test generation for checking equality
+     * CBMC, this model will allow JBMC for checking equality
      * between two Floats.
      */
     public boolean equals(Object obj) {

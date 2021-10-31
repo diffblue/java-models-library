@@ -188,7 +188,7 @@ class Random implements java.io.Serializable {
      *
      * @diffblue.mock
      * @diffblue.limitedSupport
-     * We currently ignore seeds and make test-generator pick return values
+     * We currently ignore seeds and make JBMC pick return values
      * for the methods in this class nondeterministically rather than
      * calculating them according to a probability distribution. So this
      * method is simply modelled as a no-op.
@@ -374,7 +374,7 @@ class Random implements java.io.Serializable {
      *
      * @diffblue.fullSupport
      * This method returns a nondeterministic {@code int} value.
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
      *
      * @diffblue.mock
@@ -441,9 +441,9 @@ class Random implements java.io.Serializable {
      * @diffblue.limitedSupport
      * This method returns a nondeterministic {@code int} value between 0
      * (inclusive) and {@code bound} (exclusive).
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
-     * Exceptions for mocked methods are currently not supported, see TG-1387.
+     * Exceptions for mocked methods are currently not supported.
      *
      * @diffblue.mock
      */
@@ -522,7 +522,7 @@ class Random implements java.io.Serializable {
      *
      * @diffblue.fullSupport
      * This method returns a nondeterministic {@code boolean} value.
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
      *
      * @diffblue.mock
@@ -572,7 +572,7 @@ class Random implements java.io.Serializable {
      * @diffblue.fullSupport
      * This method returns a nondeterministic {@code float} value between 0.0
      * (inclusive) and 1.0 (exclusive).
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
      *
      * @diffblue.mock
@@ -626,7 +626,7 @@ class Random implements java.io.Serializable {
      * @diffblue.fullSupport
      * This method returns a nondeterministic {@code double} value between 0.0
      * (inclusive) and 1.0 (exclusive).
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
      *
      * @diffblue.mock
@@ -688,7 +688,7 @@ class Random implements java.io.Serializable {
      *
      * @diffblue.fullSupport
      * This method returns a nondeterministic {@code double} value.
-     * The nondeterminism is introduced by test-generator itself, and
+     * The nondeterminism is introduced by JBMC itself, and
      * probability distributions are ignored.
      *
      * @diffblue.mock
