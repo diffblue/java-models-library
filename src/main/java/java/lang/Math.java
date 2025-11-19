@@ -364,12 +364,10 @@ public final class Math {
      * result of sqrt is equal to the original number, which is not always
      * true. As a result, the solver will return UNSAT in many cases.
      * For instance, {@code Math.sqrt(2.0)} will cause the solver to be UNSAT.
-     * Reported in: TG-5598
      *
      * Also, there are precision issues on very small numbers. For instance,
      * for values between 0 and {@code 0x0.0000000000001p-900}, the sqrt method
      * is likely to not be equal to the result of the real Math.sqrt method.
-     * Reported in: TG-5602
      */
     public static double sqrt(double a) {
         // return StrictMath.sqrt(a); // default impl. delegates to StrictMath

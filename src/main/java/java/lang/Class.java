@@ -39,6 +39,58 @@ import org.cprover.CProverString;
 
 import org.cprover.CProver;
 
+/**
+ * Instances of the class {@code Class} represent classes and
+ * interfaces in a running Java application.  An enum is a kind of
+ * class and an annotation is a kind of interface.  Every array also
+ * belongs to a class that is reflected as a {@code Class} object
+ * that is shared by all arrays with the same element type and number
+ * of dimensions.  The primitive Java types ({@code boolean},
+ * {@code byte}, {@code char}, {@code short},
+ * {@code int}, {@code long}, {@code float}, and
+ * {@code double}), and the keyword {@code void} are also
+ * represented as {@code Class} objects.
+ *
+ * <p> {@code Class} has no public constructor. Instead {@code Class}
+ * objects are constructed automatically by the Java Virtual Machine as classes
+ * are loaded and by calls to the {@code defineClass} method in the class
+ * loader.
+ *
+ * <p> The following example uses a {@code Class} object to print the
+ * class name of an object:
+ *
+ * <blockquote><pre>
+ *     void printClassName(Object obj) {
+ *         System.out.println("The class of " + obj +
+ *                            " is " + obj.getClass().getName());
+ *     }
+ * </pre></blockquote>
+ *
+ * <p> It is also possible to get the {@code Class} object for a named
+ * type (or for void) using a class literal.  See Section 15.8.2 of
+ * <cite>The Java&trade; Language Specification</cite>.
+ * For example:
+ *
+ * <blockquote>
+ *     {@code System.out.println("The name of class Foo is: "+Foo.class.getName());}
+ * </blockquote>
+ *
+ * @param <T> the type of the class modeled by this {@code Class}
+ * object.  For example, the type of {@code String.class} is {@code
+ * Class<String>}.  Use {@code Class<?>} if the class being modeled is
+ * unknown.
+ *
+ * @author  unascribed
+ * @see     java.lang.ClassLoader#defineClass(byte[], int, int)
+ * @since   JDK1.0
+ *
+ * @diffblue.limitedSupport
+ * Generated tests that create an instance of Class will be incorrect:
+ * <ul>
+ *   <li>IllegalAccessError error when attempting to set the java.lang.class via reflection</li>
+ *   <li>When JBMC mocks java.lang.Class, it causes IllegalAccessError</li>
+ * </ul>
+ */
 public final class Class<T> {
 
     private Class() {}
@@ -54,6 +106,13 @@ public final class Class<T> {
     private boolean cproverIsLocalClass;
     private boolean cproverIsMemberClass;
     private boolean cproverIsEnum;
+
+    // TODO: these fields are to enforce singleton semantics of
+    // Class objects as returned by Object.getClass() and Class.forName()
+    // The size is currently hard-coded which may lead to incorrect results.
+    // A map could be used here in future.
+    private static String[] cproverClassNames = new String[8];
+    private static Class<?>[] cproverClassInstances = new Class<?>[8];
 
     public String toString() {
         return (isInterface() ? "interface " : (isPrimitive() ? "" : "class "))
@@ -111,9 +170,25 @@ public final class Class<T> {
     // forName method. The goal is to correctly model combinations of forName
     // and getName, but precisely following the JDK behaviour is more involved.
     public static Class<?> forName(String className) {
-        Class c=new Class();
-        c.name=className;
-        return c;
+        CProver.notModelled();
+        throw new AssertionError();
+        /*
+        String foundName = null;
+        for (int i = 0; i < cproverClassNames.length; ++i) {
+            String currentName = cproverClassNames[i];
+            if (currentName == null) {
+                Class<?> c = new Class();
+                c.name = className;
+                cproverClassNames[i] = className;
+                cproverClassInstances[i] = c;
+                return c;
+            }
+            if (className.equals(currentName)) {
+                return cproverClassInstances[i];
+            }
+        }
+        return CProver.nondetWithoutNullForNotModelled();
+        */
     }
 
     public static Class<?> forName(String name, boolean initialize,
@@ -205,7 +280,7 @@ public final class Class<T> {
         // DIFFBLUE MODEL LIBRARY The real java.lang.Class stores a
         // `private final ClassLoader classLoader` which is initialised by the
         // jvm rather than by the constructor of this object.
-        // TODO test-gen should understand this method natively.
+        // TODO JBMC should understand this method natively.
         return null;
     }
 
@@ -453,6 +528,7 @@ public final class Class<T> {
     protected void cproverNondetInitialize() {
         CProver.assume(name != null);
         CProver.assume(enumConstantDirectory == null);
+        CProver.assume(classValueMap == null);
     }
 
     // DIFFBLUE MODEL LIBRARY
@@ -607,6 +683,13 @@ public final class Class<T> {
         return new Method(this, name, parameterTypes);
     }
 
+    // DIFFBLUE MODEL LIBRARY
+    // This field is never read in our model. We include them because ClassValue
+    // (in the java library, not our models) references it, so it is needed to
+    // make ClassValue compile.
+    // transient ClassValue.ClassValueMap classValueMap;
+    transient ClassValue.ClassValueMap classValueMap = null;
+
     /**
      * Returns the {@code Class} representing the component type of an
      * array.  If this class does not represent an array class this method
@@ -615,10 +698,12 @@ public final class Class<T> {
      * @return the {@code Class} representing the component type of this
      * class if this class is an array
      * @see     java.lang.reflect.Array
-     * @since 1.1
+     * @since JDK1.1
+     * @diffblue.noSupport
      */
+    // public native Class<?> getComponentType();
     public Class<?> getComponentType() {
         CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 }

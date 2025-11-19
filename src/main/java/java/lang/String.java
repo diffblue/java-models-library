@@ -2996,8 +2996,7 @@ public final class String
     {
         // return Pattern.compile(regex).matcher(this).replaceAll(replacement);
         // DIFFBLUE MODELS LIBRARY: we assume the expression is just a string literal
-        CProver.assume(
-            regex.indexOf('[') == -1 &&
+        if (regex.indexOf('[') == -1 &&
             regex.indexOf(']') == -1 &&
             regex.indexOf('.') == -1 &&
             regex.indexOf('\\') == -1 &&
@@ -3010,8 +3009,12 @@ public final class String
             regex.indexOf('}') == -1 &&
             regex.indexOf('|') == -1 &&
             regex.indexOf('(') == -1 &&
-            regex.indexOf(')') == -1);
-        return replace(regex, replacement);
+            regex.indexOf(')') == -1) {
+            return replace(regex, replacement);
+        } else {
+            CProver.notModelled();
+            return CProver.nondetWithNullForNotModelled();
+        }
     }
 
     /**
@@ -4330,7 +4333,7 @@ public final class String
      */
     public static String valueOf(double d) {
         // string solver only knows how to convert floats to string
-        return CProverString.toString(d);
+        return CProverString.toString((float)d);
         // return Double.toString(d);
     }
 

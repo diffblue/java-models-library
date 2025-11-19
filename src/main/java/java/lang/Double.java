@@ -816,7 +816,7 @@ public final class Double extends Number implements Comparable<Double> {
      * @diffblue.fullSupport
      *
      * Until the native method doubleToRawLongBits(D) is implemented in
-     * CBMC, this model will allow test generation for checking equality
+     * CBMC, this model will allow JBMC for checking equality
      * between two Doubles.
      */
     public boolean equals(Object obj) {
