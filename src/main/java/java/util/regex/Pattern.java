@@ -945,8 +945,9 @@ public final class Pattern
      *
      * @serial
      */
-    // DIFFBLUE MODEL LIBRARY - not used in model
-    // private int flags;
+    // DIFFBLUE MODEL LIBRARY Stored so flags() returns the compile flags
+    // (JLS) and the Matcher model can fall back to nondet for flags != 0.
+    private int cproverFlags;
 
     /**
      * Boolean indicating this Pattern is compiled; this is necessary in order
@@ -1132,10 +1133,10 @@ public final class Pattern
         //             compile();
         //     }
         // }
-        // Matcher m = new Matcher(this, input);
-        // return m;
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY A real Matcher carrying this pattern and
+        // the input, so Matcher.matches()/lookingAt()/find() can decide
+        // exactly (see the Matcher model).
+        return new Matcher(this, input);
     }
 
     /**
@@ -1147,8 +1148,7 @@ public final class Pattern
      * @diffblue.noSupport
      */
     public int flags() {
-        // return flags;
-        return CProver.nondetInt();
+        return cproverFlags;
     }
 
     /**
@@ -1203,21 +1203,15 @@ public final class Pattern
      *          If the expression's syntax is invalid
      *
      * @diffblue.untested
-     * @diffblue.limitedSupport Regex can only be a plain string.
+     * @diffblue.fullSupport (via the intercepted regex machinery)
      */
     public static boolean matches(String regex, CharSequence input) {
-        // Pattern p = Pattern.compile(regex);
-        // Matcher m = p.matcher(input);
-        // return m.matches();
-
-        // DIFFBLUE MODEL LIBRARY
-        // We disallow special characters so that we can do matching using equals.
-        cproverAssumeIsPlainString(regex);
-        //
+        // DIFFBLUE MODEL LIBRARY Delegates to the intercepted matching
+        // machinery (JLS semantics; no plain-string restriction).
         if (input == null) {
           throw new NullPointerException(); // JDK throws NPE when the 2nd param is null
         }
-        return regex.equals(input);
+        return compile(regex).matcher(input).matches();
     }
 
     /**
@@ -1436,13 +1430,14 @@ public final class Pattern
      * a Pattern. An empty pattern string results in an object tree with
      * only a Start node and a LastNode node.
      */
-    // DIFFBLUE MODEL LIBRARY - argument `f` is ignored for now but kept
-    //                          to stay closer to the original implementation
     private Pattern(String p, int f) {
         // DIFFBLUE MODEL LIBRARY
-        // We disallow special characters so that we can use equals for matching.
-        cproverAssumeIsPlainString(p);
+        // Store the pattern and flags; matching is delegated to
+        // String.matches / the Matcher model, which JBMC intercepts (the
+        // regex is translated to the SMT string theory or evaluated
+        // concretely; unsupported patterns yield a sound nondet result).
         pattern = p;
+        cproverFlags = f;
     //     pattern = p;
     //     flags = f;
 
