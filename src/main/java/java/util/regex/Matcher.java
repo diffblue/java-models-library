@@ -236,22 +236,36 @@ public final class Matcher implements MatchResult {
     // Matcher() {
     // }
 
+    // DIFFBLUE MODEL LIBRARY The pattern and input this matcher was
+    // created with, plus two staleness flags (JLS state semantics):
+    // - cproverImprecise: the REGION no longer covers the whole input
+    //   (region(start, end)); matches()/lookingAt()/find() are all anchored
+    //   to the region, so every query degrades to a sound nondet.
+    // - cproverFindConsumed: a find() already advanced the (unmodelled)
+    //   match POSITION; only find() depends on it, so only find() degrades.
+    //   matches()/lookingAt() are position-independent per the JLS.
+    private Pattern cproverPattern;
+    private String cproverText;
+    private boolean cproverImprecise;
+    private boolean cproverFindConsumed;
+
     /**
      * All matchers have the state used by Pattern during a match.
      */
-    // DIFFBLUE MODEL LIBRARY - not used in model
-    // Matcher(Pattern parent, CharSequence text) {
-    //     this.parentPattern = parent;
-    //     this.text = text;
-
-    //     // Allocate state storage
-    //     int parentGroupCount = Math.max(parent.capturingGroupCount, 10);
-    //     groups = new int[parentGroupCount * 2];
-    //     locals = new int[parent.localCount];
-
-    //     // Put fields into initial states
-    //     reset();
-    // }
+    Matcher(Pattern parent, CharSequence text) {
+        // DIFFBLUE MODEL LIBRARY Store the pattern and the input converted
+        // to a String (String/StringBuilder toString() are intercepted; an
+        // unknown CharSequence yields a nondet String, keeping queries
+        // sound). Callers validate arguments (Pattern.matcher throws
+        // NullPointerException on a null input, per the JDK); the null
+        // tolerance HERE is defence for nondet-generated Matcher objects
+        // from the object factory, whose fields may legitimately be null --
+        // the query methods degrade those to a sound nondet result.
+        cproverPattern = parent;
+        cproverText = text == null ? null : text.toString();
+        cproverImprecise = false;
+        cproverFindConsumed = false;
+    }
 
     /**
      * Returns the pattern that is interpreted by this matcher.
@@ -262,9 +276,8 @@ public final class Matcher implements MatchResult {
      * @diffblue.noSupport
      */
     public Pattern pattern() {
-        // return parentPattern;
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY
+        return cproverPattern;
     }
 
     /**
@@ -321,8 +334,17 @@ public final class Matcher implements MatchResult {
         // for (int i = 0; i < locals.length; i++)
         //     locals[i] = -1;
         // return this;
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY Method contract: a null pattern throws
+        // IllegalArgumentException (see the commented-out original above).
+        if (newPattern == null) {
+            throw new IllegalArgumentException("Pattern cannot be null");
+        }
+        // JDK: changes the pattern; the region is unchanged and the match
+        // POSITION is retained (unmodelled), so find() degrades but
+        // matches()/lookingAt() stay precise.
+        cproverPattern = newPattern;
+        cproverFindConsumed = true;
+        return this;
     }
 
     /**
@@ -349,9 +371,12 @@ public final class Matcher implements MatchResult {
         // lastAppendPosition = 0;
         // from = 0;
         // to = getTextLength();
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY JLS: returns the matcher to its initial
+        // state (full region, no match state) -- exactly the state the
+        // model's fields describe, so precision is restored.
+        cproverImprecise = false;
+        cproverFindConsumed = false;
+        return this;
     }
 
     /**
@@ -372,10 +397,16 @@ public final class Matcher implements MatchResult {
      * @diffblue.noSupport
      */
     public Matcher reset(CharSequence input) {
-        // text = input;
-        // return reset();
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY JDK behaviour: resetting with a null input
+        // throws NullPointerException (the real reset dereferences the
+        // text); otherwise resets to the initial state with the new input.
+        if (input == null) {
+            throw new NullPointerException();
+        }
+        cproverText = input.toString();
+        cproverImprecise = false;
+        cproverFindConsumed = false;
+        return this;
     }
 
     /**
@@ -703,9 +734,14 @@ public final class Matcher implements MatchResult {
      * @diffblue.noSupport
      */
     public boolean matches() {
-        // return match(from, ENDANCHOR);
-        CProver.notModelled();
-        return CProver.nondetBoolean();
+        // DIFFBLUE MODEL LIBRARY JLS: attempts to match the ENTIRE region
+        // against the pattern. Delegates to the intercepted String.matches;
+        // nondet when the pattern/flags/state are outside the model.
+        if (cproverImprecise || cproverPattern == null || cproverText == null
+            || cproverPattern.flags() != 0) {
+            return CProver.nondetBoolean();
+        }
+        return cproverText.matches(cproverPattern.pattern());
     }
 
     /**
@@ -742,7 +778,29 @@ public final class Matcher implements MatchResult {
         //     return false;
         // }
         // return search(nextSearchIndex);
-        CProver.notModelled();
+
+        // DIFFBLUE MODEL LIBRARY JLS: successive find() calls advance
+        // through the input. The FIRST find() on a fresh (or freshly reset)
+        // matcher is decided exactly ("does any subsequence match");
+        // subsequent calls depend on the previous match position, which is
+        // not modelled, so the matcher degrades to nondet afterwards.
+        if (cproverImprecise || cproverFindConsumed || cproverPattern == null
+            || cproverText == null || cproverPattern.flags() != 0) {
+            cproverFindConsumed = true;
+            return CProver.nondetBoolean();
+        }
+        cproverFindConsumed = true;
+        return cproverFind(cproverPattern.pattern(), cproverText);
+    }
+
+    // DIFFBLUE MODEL LIBRARY Intercepted by JBMC (lowered to the SMT regex
+    // machinery / the concrete matcher); the bodies are the sound fallback.
+    private static boolean cproverFind(String pattern, String text) {
+        return CProver.nondetBoolean();
+    }
+
+    // DIFFBLUE MODEL LIBRARY Intercepted by JBMC.
+    private static boolean cproverLookingAt(String pattern, String text) {
         return CProver.nondetBoolean();
     }
 
@@ -774,7 +832,9 @@ public final class Matcher implements MatchResult {
         //     throw new IndexOutOfBoundsException("Illegal start index");
         // reset();
         // return search(start);
-        CProver.notModelled();
+        // DIFFBLUE MODEL LIBRARY offset search is not modelled; the match
+        // POSITION is consumed (JLS: resets, then searches from `start`).
+        cproverFindConsumed = true;
         return CProver.nondetBoolean();
     }
 
@@ -796,9 +856,13 @@ public final class Matcher implements MatchResult {
      * @diffblue.noSupport
      */
     public boolean lookingAt() {
-        // return match(from, NOANCHOR);
-        CProver.notModelled();
-        return CProver.nondetBoolean();
+        // DIFFBLUE MODEL LIBRARY JLS: matches the input against the pattern
+        // anchored at the start only. Intercepted via cproverLookingAt.
+        if (cproverImprecise || cproverPattern == null || cproverText == null
+            || cproverPattern.flags() != 0) {
+            return CProver.nondetBoolean();
+        }
+        return cproverLookingAt(cproverPattern.pattern(), cproverText);
     }
 
     /**
@@ -1189,8 +1253,9 @@ public final class Matcher implements MatchResult {
         // from = start;
         // to = end;
         // return this;
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY region bounds are not modelled.
+        cproverImprecise = true;
+        return this;
     }
 
     /**
