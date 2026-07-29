@@ -95,6 +95,19 @@ public final class Class<T> {
 
     private Class() {}
 
+    // DIFFBLUE MODEL LIBRARY Internal factory for Class objects whose name
+    // is known to the model (primitive classes, the getSuperclass stub).
+    // Deliberately NOT forName: forName is notModelled() (its
+    // singleton/lookup semantics are unimplemented), and routing internal
+    // callers through it made EVERY boxed-primitive <clinit> -- i.e. any
+    // autoboxing -- fail with forName's AssertionError (e.g.
+    // Integer.<clinit> calls getPrimitiveClass("int")).
+    private static Class<?> cproverClassWithName(String className) {
+        Class<?> c = new Class<>();
+        c.name = className;
+        return c;
+    }
+
     private transient String name;
 
     // TODO: these boolean fields model the internal encoding of classes
@@ -391,33 +404,33 @@ public final class Class<T> {
 
     public Class getSuperclass(){
         // TODO: here we assume no superclass which may not be correct
-        return Class.forName(null);
+        return cproverClassWithName(null);
     }
 
     public static Class getPrimitiveClass(String s){
         if("boolean".equals(s))
-            return Class.forName("boolean");
+            return cproverClassWithName("boolean");
         if("char".equals(s))
-            return Class.forName("char");
+            return cproverClassWithName("char");
         if("byte".equals(s))
-            return Class.forName("byte");
+            return cproverClassWithName("byte");
         if("short".equals(s))
-            return Class.forName("short");
+            return cproverClassWithName("short");
         if("int".equals(s))
-            return Class.forName("int");
+            return cproverClassWithName("int");
         if("long".equals(s))
-            return Class.forName("long");
+            return cproverClassWithName("long");
         if("float".equals(s))
-            return Class.forName("float");
+            return cproverClassWithName("float");
         if("double".equals(s))
-            return Class.forName("double");
+            return cproverClassWithName("double");
         if("void".equals(s))
-            return Class.forName("void");
+            return cproverClassWithName("void");
         // TODO: we should throw an exception but this does not seem to work well
         // at the moment, so we will assume it does not happen instead.
         // throw new IllegalArgumentException("Not primitive type : " + s);
         CProver.assume(false);
-        return Class.forName("");
+        return cproverClassWithName("");
     }
 
     // This version is nicer for the symbolic execution as it knows how to
@@ -428,22 +441,22 @@ public final class Class<T> {
     // takes 8 seconds while the int version takes 3 seconds.
     static Class getPrimitiveClass(int i){
         if(i==0)
-            return Class.forName("boolean");
+            return cproverClassWithName("boolean");
         if(i==1)
-            return Class.forName("char");
+            return cproverClassWithName("char");
         if(i==2)
-            return Class.forName("byte");
+            return cproverClassWithName("byte");
         if(i==3)
-            return Class.forName("short");
+            return cproverClassWithName("short");
         if(i==4)
-            return Class.forName("int");
+            return cproverClassWithName("int");
         if(i==5)
-            return Class.forName("long");
+            return cproverClassWithName("long");
         if(i==6)
-            return Class.forName("float");
+            return cproverClassWithName("float");
         if(i==7)
-            return Class.forName("double");
-        return Class.forName("void");
+            return cproverClassWithName("double");
+        return cproverClassWithName("void");
     }
 
     Map<String, T> enumConstantDirectory() {
