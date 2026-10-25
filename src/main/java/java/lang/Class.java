@@ -428,22 +428,22 @@ public final class Class<T> {
     // takes 8 seconds while the int version takes 3 seconds.
     static Class getPrimitiveClass(int i){
         if(i==0)
-            return Class.forName("boolean");
+            return boolean.class;
         if(i==1)
-            return Class.forName("char");
+            return char.class;
         if(i==2)
-            return Class.forName("byte");
+            return byte.class;
         if(i==3)
-            return Class.forName("short");
+            return short.class;
         if(i==4)
-            return Class.forName("int");
+            return int.class;
         if(i==5)
-            return Class.forName("long");
+            return long.class;
         if(i==6)
-            return Class.forName("float");
+            return float.class;
         if(i==7)
-            return Class.forName("double");
-        return Class.forName("void");
+            return double.class;
+        return void.class;
     }
 
     Map<String, T> enumConstantDirectory() {

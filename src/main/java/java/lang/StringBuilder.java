@@ -346,6 +346,19 @@ public final class StringBuilder
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     * @diffblue.fullSupport
+     * @diffblue.untested Only exception support is tested.
+     * */
+    @Override
+    public char charAt(int index) {
+        if ((index < 0) || (index >= this.length()))
+            throw new StringIndexOutOfBoundsException(index);
+        String tmp = this.toString();
+        return CProverString.charAt(tmp, index);
+    }
+
+    /**
+     * @throws StringIndexOutOfBoundsException {@inheritDoc}
      *
      * @diffblue.fullSupport
      * @diffblue.untested Only exception throwing is tested.
