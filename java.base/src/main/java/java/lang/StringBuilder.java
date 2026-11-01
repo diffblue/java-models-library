@@ -575,7 +575,7 @@ public final class StringBuilder
     public StringBuilder repeat(int codePoint, int count) {
         if (!Character.isValidCodePoint(codePoint)) {
             throw new IllegalArgumentException(
-                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
         }
         if (count < 0) {
             throw new IllegalArgumentException("count is negative: " + count);

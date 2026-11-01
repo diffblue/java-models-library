@@ -450,19 +450,18 @@ public final class Integer extends Number
      *
      * @param   i   an integer to be converted.
      * @return  a string representation of the argument in base&nbsp;10.
+     *
+     * @cprover.fullSupport Composed from {@link
+     *   org.cprover.CProverString#toString(int)} rather than the real
+     *   byte-buffer-based implementation: the latter writes correct bytes
+     *   into a local buffer but then constructs the result via a {@code
+     *   String} constructor that does not communicate that content into
+     *   JBMC's string-refinement representation (which replaces {@code
+     *   String}'s fields wholesale; see {@code AbstractStringBuilder}'s
+     *   class Javadoc for the full explanation).
      */
-    @IntrinsicCandidate
     public static String toString(int i) {
-        int size = stringSize(i);
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[size];
-            getChars(i, size, buf);
-            return new String(buf, LATIN1);
-        } else {
-            byte[] buf = new byte[size * 2];
-            StringUTF16.getChars(i, size, buf);
-            return new String(buf, UTF16);
-        }
+        return org.cprover.CProverString.toString(i);
     }
 
     /**
@@ -832,8 +831,8 @@ public final class Integer extends Number
             char firstChar = s.charAt(0);
             if (firstChar == '-') {
                 throw new
-                    NumberFormatException(String.format("Illegal leading minus sign " +
-                                                       "on unsigned string %s.", s));
+                    NumberFormatException("Illegal leading minus sign " +
+                                         "on unsigned string " + s + ".");
             } else {
                 if (len <= 5 || // Integer.MAX_VALUE in Character.MAX_RADIX is 6 digits
                     (radix == 10 && len <= 9) ) { // Integer.MAX_VALUE in base 10 is 10 digits
@@ -844,8 +843,8 @@ public final class Integer extends Number
                         return (int) ell;
                     } else {
                         throw new
-                            NumberFormatException(String.format("String value %s exceeds " +
-                                                                "range of unsigned int.", s));
+                            NumberFormatException("String value " + s + " exceeds " +
+                                                 "range of unsigned int.");
                     }
                 }
             }
@@ -892,8 +891,8 @@ public final class Integer extends Number
             char firstChar = s.charAt(start);
             if (firstChar == '-') {
                 throw new
-                    NumberFormatException(String.format("Illegal leading minus sign " +
-                                                       "on unsigned string %s.", s));
+                    NumberFormatException("Illegal leading minus sign " +
+                                         "on unsigned string " + s + ".");
             } else {
                 if (len <= 5 || // Integer.MAX_VALUE in Character.MAX_RADIX is 6 digits
                         (radix == 10 && len <= 9)) { // Integer.MAX_VALUE in base 10 is 10 digits
@@ -904,8 +903,8 @@ public final class Integer extends Number
                         return (int) ell;
                     } else {
                         throw new
-                            NumberFormatException(String.format("String value %s exceeds " +
-                                                                "range of unsigned int.", s));
+                            NumberFormatException("String value " + s + " exceeds " +
+                                                 "range of unsigned int.");
                     }
                 }
             }

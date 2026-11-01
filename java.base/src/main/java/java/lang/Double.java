@@ -449,9 +449,15 @@ public final class Double extends Number
      *
      * @param   d   the {@code double} to be converted.
      * @return a string representation of the argument.
+     *
+     * @cprover.limitedSupport Composed from {@link
+     *   org.cprover.CProverString#toString(double)}, which approximates
+     *   the value, rather than the real decimal-conversion algorithm:
+     *   see {@link Integer#toString(int)} for why the real
+     *   implementation cannot be used as-is.
      */
     public static String toString(double d) {
-        return DoubleToDecimal.toString(d);
+        return org.cprover.CProverString.toString(d);
     }
 
     /**

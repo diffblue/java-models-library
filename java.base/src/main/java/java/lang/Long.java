@@ -487,18 +487,14 @@ public final class Long extends Number
      *
      * @param   i   a {@code long} to be converted.
      * @return  a string representation of the argument in base&nbsp;10.
+     *
+     * @cprover.fullSupport Composed from {@link
+     *   org.cprover.CProverString#toString(long)} rather than the real
+     *   byte-buffer-based implementation: see {@link
+     *   Integer#toString(int)}.
      */
     public static String toString(long i) {
-        int size = stringSize(i);
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[size];
-            getChars(i, size, buf);
-            return new String(buf, LATIN1);
-        } else {
-            byte[] buf = new byte[size * 2];
-            StringUTF16.getChars(i, size, buf);
-            return new String(buf, UTF16);
-        }
+        return org.cprover.CProverString.toString(i);
     }
 
     /**
@@ -886,8 +882,8 @@ public final class Long extends Number
             char firstChar = s.charAt(0);
             if (firstChar == '-') {
                 throw new
-                    NumberFormatException(String.format("Illegal leading minus sign " +
-                                                       "on unsigned string %s.", s));
+                    NumberFormatException("Illegal leading minus sign " +
+                                         "on unsigned string " + s + ".");
             } else {
                 if (len <= 12 || // Long.MAX_VALUE in Character.MAX_RADIX is 13 digits
                     (radix == 10 && len <= 18) ) { // Long.MAX_VALUE in base 10 is 19 digits
@@ -954,8 +950,8 @@ public final class Long extends Number
                      * signed long overflows to positive above 2^64 - 1. Hence
                      * result >= 0 implies overflow given C and D.
                      */
-                    throw new NumberFormatException(String.format("String value %s exceeds " +
-                                                                  "range of unsigned long.", s));
+                    throw new NumberFormatException("String value " + s + " exceeds " +
+                                                    "range of unsigned long.");
                 }
                 return result;
             }
@@ -1001,8 +997,8 @@ public final class Long extends Number
         if (len > 0) {
             char firstChar = s.charAt(start);
             if (firstChar == '-') {
-                throw new NumberFormatException(String.format("Illegal leading minus sign " +
-                        "on unsigned string %s.", s.subSequence(start, start + len)));
+                throw new NumberFormatException("Illegal leading minus sign " +
+                        "on unsigned string " + s.subSequence(start, start + len) + ".");
             } else {
                 if (len <= 12 || // Long.MAX_VALUE in Character.MAX_RADIX is 13 digits
                     (radix == 10 && len <= 18) ) { // Long.MAX_VALUE in base 10 is 19 digits
@@ -1070,8 +1066,9 @@ public final class Long extends Number
                      * signed long overflows to positive above 2^64 - 1. Hence
                      * result >= 0 implies overflow given C and D.
                      */
-                    throw new NumberFormatException(String.format("String value %s exceeds " +
-                            "range of unsigned long.", s.subSequence(start, start + len)));
+                    throw new NumberFormatException("String value " +
+                            s.subSequence(start, start + len) + " exceeds " +
+                            "range of unsigned long.");
                 }
                 return result;
             }

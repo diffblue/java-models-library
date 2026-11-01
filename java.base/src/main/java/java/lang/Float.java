@@ -303,9 +303,15 @@ public final class Float extends Number
      *
      * @param   f   the {@code float} to be converted.
      * @return a string representation of the argument.
+     *
+     * @cprover.limitedSupport Composed from {@link
+     *   org.cprover.CProverString#toString(float)}, which approximates
+     *   the value, rather than the real decimal-conversion algorithm:
+     *   see {@link Integer#toString(int)} for why the real
+     *   implementation cannot be used as-is.
      */
     public static String toString(float f) {
-        return FloatToDecimal.toString(f);
+        return org.cprover.CProverString.toString(f);
     }
 
     /**

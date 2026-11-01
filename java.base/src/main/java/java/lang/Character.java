@@ -4415,7 +4415,7 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
         public static UnicodeBlock of(int codePoint) {
             if (!isValidCodePoint(codePoint)) {
                 throw new IllegalArgumentException(
-                    String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                    "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
             }
 
             int top, bottom, current;
@@ -8890,7 +8890,7 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
         public static UnicodeScript of(int codePoint) {
             if (!isValidCodePoint(codePoint))
                 throw new IllegalArgumentException(
-                    String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                    "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
             int type = getType(codePoint);
             // leave SURROGATE and PRIVATE_USE for table lookup
             if (type == UNASSIGNED)
@@ -9599,7 +9599,7 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
             return 2;
         } else {
             throw new IllegalArgumentException(
-                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
         }
     }
 
@@ -9628,7 +9628,7 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
             return result;
         } else {
             throw new IllegalArgumentException(
-                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
         }
     }
 
@@ -11875,7 +11875,7 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
     public static String getName(int codePoint) {
         if (!isValidCodePoint(codePoint)) {
             throw new IllegalArgumentException(
-                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+                "Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
         }
         if (codePoint >= 'A' && codePoint <= 'Z') {
             return "LATIN CAPITAL LETTER " + (char) codePoint;

@@ -366,7 +366,7 @@ public abstract class Enum<E extends Enum<E>>
 
         @Override
         public String toString() {
-            return String.format("EnumDesc[%s.%s]", constantType().displayName(), constantName());
+            return "EnumDesc[" + constantType().displayName() + "." + constantName() + "]";
         }
     }
 }
