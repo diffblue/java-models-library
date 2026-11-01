@@ -3475,12 +3475,17 @@ public final class String
      * @since 9
      */
     /**
-     * @cprover.noSupport Streams are not modelled.
+     * @cprover.fullSupport Composed via {@link #charAt} into a materialized
+     *   array, rather than the real lazy byte-buffer-backed spliterator.
      */
     @Override
     public IntStream chars() {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        int len = length();
+        int[] result = new int[len];
+        for (int i = 0; i < len; i++) {
+            result[i] = charAt(i);
+        }
+        return Arrays.stream(result);
     }
 
 
@@ -3496,12 +3501,22 @@ public final class String
      * @since 9
      */
     /**
-     * @cprover.noSupport See {@link #chars}.
+     * @cprover.fullSupport Composed via {@link #codePointAt} into a
+     *   materialized array, rather than the real lazy
+     *   byte-buffer-backed spliterator.
      */
     @Override
     public IntStream codePoints() {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        int len = length();
+        int[] buf = new int[len];
+        int count = 0;
+        int i = 0;
+        while (i < len) {
+            int cp = codePointAt(i);
+            buf[count++] = cp;
+            i += Character.charCount(cp);
+        }
+        return Arrays.stream(buf, 0, count);
     }
 
     /**
