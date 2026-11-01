@@ -25,8 +25,9 @@
 
 package java.lang;
 
-import jdk.internal.misc.Blocker;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
+
+import org.cprover.CProver;
 
 /**
  * Class {@code Object} is the root of the class hierarchy.
@@ -37,6 +38,15 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
  * @since   1.0
  */
 public class Object {
+
+    /**
+     * Reentrancy counter for this object's monitor, read and updated by
+     * {@link #monitorenter} and {@link #monitorexit} below. Not part of the
+     * real {@code Object} class; required by JBMC's conversion of the
+     * {@code monitorenter}/{@code monitorexit} bytecodes and of
+     * {@code synchronized} methods.
+     */
+    public int cproverMonitorCount;
 
     /**
      * Constructs a new object.
@@ -62,9 +72,20 @@ public class Object {
      * @return The {@code Class} object that represents the runtime
      *         class of this object.
      * @jls 15.8.2 Class Literals
+     *
+     * @cprover.limitedSupport Relies on {@link Class#forName}, whose model
+     *   is only partial. {@code Class.forName} is only checked to throw
+     *   {@code ClassNotFoundException} for a class that genuinely does not
+     *   exist, which cannot happen here since we look up the class of
+     *   {@code this}.
      */
-    @IntrinsicCandidate
-    public final native Class<?> getClass();
+    public final Class<?> getClass() {
+        try {
+            return Class.forName(CProver.classIdentifier(this));
+        } catch (ClassNotFoundException e) {
+            throw new InternalError(e);
+        }
+    }
 
     /**
      * Returns a hash code value for the object. This method is
@@ -98,9 +119,17 @@ public class Object {
      * @return  a hash code value for this object.
      * @see     java.lang.Object#equals(java.lang.Object)
      * @see     java.lang.System#identityHashCode
+     *
+     * @cprover.limitedSupport Always returns {@code 0}. This satisfies the
+     *   required contract (equal objects, i.e. {@code x == x} under the
+     *   default {@link #equals}, have equal hash codes) but not the
+     *   {@code @implSpec} recommendation that distinct objects get distinct
+     *   hash codes, which is a hash-table performance concern rather than a
+     *   correctness one.
      */
-    @IntrinsicCandidate
-    public native int hashCode();
+    public int hashCode() {
+        return 0;
+    }
 
     /**
      * Indicates whether some other object is "equal to" this one.
@@ -224,9 +253,14 @@ public class Object {
      *               throw this exception to indicate that an instance cannot
      *               be cloned.
      * @see java.lang.Cloneable
+     *
+     * @cprover.noSupport Always throws. A generic shallow copy would need to
+     *   enumerate and copy the instance fields of an arbitrary runtime type
+     *   via reflection, which is not supported by the reflection model.
      */
-    @IntrinsicCandidate
-    protected native Object clone() throws CloneNotSupportedException;
+    protected Object clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException();
+    }
 
     /**
      * Returns a string representation of the object.
@@ -288,9 +322,16 @@ public class Object {
      *               the owner of this object's monitor.
      * @see        java.lang.Object#notifyAll()
      * @see        java.lang.Object#wait()
+     *
+     * @cprover.limitedSupport Checks the monitor-ownership precondition but
+     *   has no further effect: there is no model of a per-object wait set to
+     *   wake a thread from.
      */
-    @IntrinsicCandidate
-    public final native void notify();
+    public final void notify() {
+        if (cproverMonitorCount == 0) {
+            throw new IllegalMonitorStateException();
+        }
+    }
 
     /**
      * Wakes up all threads that are waiting on this object's monitor. A
@@ -313,9 +354,16 @@ public class Object {
      *               the owner of this object's monitor.
      * @see        java.lang.Object#notify()
      * @see        java.lang.Object#wait()
+     *
+     * @cprover.limitedSupport Checks the monitor-ownership precondition but
+     *   has no further effect: there is no model of a per-object wait set to
+     *   wake threads from.
      */
-    @IntrinsicCandidate
-    public final native void notifyAll();
+    public final void notifyAll() {
+        if (cproverMonitorCount == 0) {
+            throw new IllegalMonitorStateException();
+        }
+    }
 
     /**
      * Causes the current thread to wait until it is awakened, typically
@@ -359,23 +407,27 @@ public class Object {
      * @see    #notifyAll()
      * @see    #wait()
      * @see    #wait(long, int)
+     *
+     * @cprover.limitedSupport Checks the monitor-ownership and argument
+     *   preconditions, which are real/observable behaviour. The actual
+     *   blocking-until-notified-or-timed-out behaviour has no model, since
+     *   that would need a wait set tied into JBMC's thread scheduling; we
+     *   approximate it by nondeterministically choosing between the two
+     *   externally observable outcomes of a real wait: returning normally
+     *   (as if notified or timed out) or throwing
+     *   {@code InterruptedException}.
      */
     public final void wait(long timeoutMillis) throws InterruptedException {
-        long comp = Blocker.begin();
-        try {
-            wait0(timeoutMillis);
-        } catch (InterruptedException e) {
-            Thread thread = Thread.currentThread();
-            if (thread.isVirtual())
-                thread.getAndClearInterrupt();
-            throw e;
-        } finally {
-            Blocker.end(comp);
+        if (cproverMonitorCount == 0) {
+            throw new IllegalMonitorStateException();
+        }
+        if (timeoutMillis < 0) {
+            throw new IllegalArgumentException("timeoutMillis value is negative");
+        }
+        if (CProver.nondetBoolean()) {
+            throw new InterruptedException();
         }
     }
-
-    // final modifier so method not in vtable
-    private final native void wait0(long timeoutMillis) throws InterruptedException;
 
     /**
      * Causes the current thread to wait until it is awakened, typically
@@ -590,4 +642,37 @@ public class Object {
      */
     @Deprecated(since="9", forRemoval=true)
     protected void finalize() throws Throwable { }
+
+    /**
+     * Not part of the real {@code Object} class. Called by JBMC in place of
+     * the {@code monitorenter} bytecode and at the start of
+     * {@code synchronized} methods, to acquire {@code object}'s monitor.
+     *
+     * @cprover.limitedSupport The monitor is modelled as a plain counter, so
+     *   it does not support reentrancy: a thread re-acquiring a monitor it
+     *   already holds will block rather than proceed.
+     */
+    public static void monitorenter(Object object) {
+        if (object == null) {
+            throw new NullPointerException();
+        }
+        CProver.atomicBegin();
+        // Blocks this execution path until the monitor is free, simulating a
+        // thread having to wait for another thread to release it.
+        CProver.assume(object.cproverMonitorCount == 0);
+        object.cproverMonitorCount++;
+        CProver.atomicEnd();
+    }
+
+    /**
+     * Not part of the real {@code Object} class. Called by JBMC in place of
+     * the {@code monitorexit} bytecode and at the end of {@code synchronized}
+     * methods (including on exceptional return), to release {@code
+     * object}'s monitor.
+     */
+    public static void monitorexit(Object object) {
+        CProver.atomicBegin();
+        object.cproverMonitorCount--;
+        CProver.atomicEnd();
+    }
 }

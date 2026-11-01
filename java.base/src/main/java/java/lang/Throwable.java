@@ -813,6 +813,11 @@ public class Throwable implements Serializable {
      *
      * @return  a reference to this {@code Throwable} instance.
      * @see     java.lang.Throwable#printStackTrace()
+     *
+     * @cprover.limitedSupport The actual stack frames are not captured
+     *   (there is no model of the real call stack), so {@link #getStackTrace}
+     *   always returns a zero-length array. This is a legal JVM behaviour
+     *   documented on {@link #getStackTrace}, not a fabricated one.
      */
     public synchronized Throwable fillInStackTrace() {
         if (stackTrace != null ||
@@ -823,7 +828,9 @@ public class Throwable implements Serializable {
         return this;
     }
 
-    private native Throwable fillInStackTrace(int dummy);
+    private Throwable fillInStackTrace(int dummy) {
+        return this;
+    }
 
     /**
      * Provides programmatic access to the stack trace information printed by
