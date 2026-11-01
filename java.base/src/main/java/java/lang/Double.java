@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
@@ -1021,6 +1023,10 @@ public final class Double extends Number
      * </blockquote>
      *
      * @return  a {@code hash code} value for this object.
+     *
+     * @cprover.limitedSupport Always returns {@code 0} rather than
+     *   delegating to {@link #doubleToLongBits}: see {@link
+     *   #hashCode(double)}.
      */
     @Override
     public int hashCode() {
@@ -1034,9 +1040,15 @@ public final class Double extends Number
      * @param value the value to hash
      * @return a hash code value for a {@code double} value.
      * @since 1.8
+     *
+     * @cprover.limitedSupport Always returns {@code 0}, consistent with
+     *   {@link #equals} being redefined without reference to {@link
+     *   #doubleToLongBits} (which is unmodelled): a constant hash code
+     *   satisfies the required contract (equal values get equal hash
+     *   codes) without needing the real bit pattern.
      */
     public static int hashCode(double value) {
-        return Long.hashCode(doubleToLongBits(value));
+        return 0;
     }
 
     /**
@@ -1062,11 +1074,26 @@ public final class Double extends Number
      *
      * @see java.lang.Double#doubleToLongBits(double)
      * @jls 15.21.1 Numerical Equality Operators == and !=
+     *
+     * @cprover.limitedSupport Reimplemented without {@link
+     *   #doubleToLongBits}/{@link #doubleToRawLongBits} (which are
+     *   unmodelled), using the same NaN-equals-NaN and
+     *   +0.0-not-equal--0.0 semantics those methods are specified to give,
+     *   derived directly from arithmetic rather than from bit patterns.
      */
     public boolean equals(Object obj) {
-        return (obj instanceof Double)
-               && (doubleToLongBits(((Double)obj).value) ==
-                      doubleToLongBits(value));
+        if (!(obj instanceof Double d)) {
+            return false;
+        }
+        double dValue = d.value;
+        boolean bothAreNaN = (value != value) && (dValue != dValue);
+        if (bothAreNaN) {
+            return true;
+        }
+        if (value == 0.0 && dValue == 0.0) {
+            return (1 / value == POSITIVE_INFINITY) == (1 / dValue == POSITIVE_INFINITY);
+        }
+        return value == dValue;
     }
 
     /**
@@ -1144,9 +1171,15 @@ public final class Double extends Number
      * @param   value   a {@code double} precision floating-point number.
      * @return the bits that represent the floating-point number.
      * @since 1.3
+     *
+     * @cprover.noSupport Raw IEEE 754 bit reinterpretation crosses between
+     *   CBMC's floating-point and bit-vector theories in a way that isn't
+     *   modelled.
      */
-    @IntrinsicCandidate
-    public static native long doubleToRawLongBits(double value);
+    public static long doubleToRawLongBits(double value) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
 
     /**
      * Returns the {@code double} value corresponding to a given
@@ -1208,9 +1241,13 @@ public final class Double extends Number
      * @param   bits   any {@code long} integer.
      * @return  the {@code double} floating-point value with the same
      *          bit pattern.
+     *
+     * @cprover.noSupport See {@link #doubleToRawLongBits}.
      */
-    @IntrinsicCandidate
-    public static native double longBitsToDouble(long bits);
+    public static double longBitsToDouble(long bits) {
+        CProver.notModelled();
+        return CProver.nondetDouble();
+    }
 
     /**
      * Compares two {@code Double} objects numerically.

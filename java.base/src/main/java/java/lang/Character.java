@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import jdk.internal.misc.CDS;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
 import jdk.internal.vm.annotation.Stable;
@@ -11860,23 +11862,29 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
      *            code point.
      *
      * @since 1.7
+     *
+     * @cprover.limitedSupport The real implementation looks the name up in
+     *   a compressed Unicode character name database loaded as a binary
+     *   classpath resource ({@code CharacterName}'s {@code uniName.dat}),
+     *   which is not available to this model. Basic Latin letters
+     *   ({@code A-Z}, {@code a-z}) are modelled directly, since their names
+     *   follow a simple, fixed pattern; anything else falls back to {@link
+     *   CProver#notModelled}. The (real, checked) precondition on {@code
+     *   codePoint} is kept.
      */
     public static String getName(int codePoint) {
         if (!isValidCodePoint(codePoint)) {
             throw new IllegalArgumentException(
                 String.format("Not a valid Unicode code point: 0x%X", codePoint));
         }
-        String name = CharacterName.getInstance().getName(codePoint);
-        if (name != null)
-            return name;
-        if (getType(codePoint) == UNASSIGNED)
-            return null;
-        UnicodeBlock block = UnicodeBlock.of(codePoint);
-        if (block != null)
-            return block.toString().replace('_', ' ') + " "
-                   + Integer.toHexString(codePoint).toUpperCase(Locale.ROOT);
-        // should never come here
-        return Integer.toHexString(codePoint).toUpperCase(Locale.ROOT);
+        if (codePoint >= 'A' && codePoint <= 'Z') {
+            return "LATIN CAPITAL LETTER " + (char) codePoint;
+        }
+        if (codePoint >= 'a' && codePoint <= 'z') {
+            return "LATIN SMALL LETTER " + (char) (codePoint - 'a' + 'A');
+        }
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -11912,20 +11920,32 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
      * @throws NullPointerException if {@code name} is {@code null}
      *
      * @since 9
+     *
+     * @cprover.limitedSupport See {@link #getName(int)}: the real lookup
+     *   path depends on the same unavailable {@code CharacterName}
+     *   resource. Names matching {@link #getName(int)}'s Latin-letter
+     *   pattern are recognized directly; anything else falls back to
+     *   {@link CProver#notModelled}.
      */
     public static int codePointOf(String name) {
-        name = name.trim().toUpperCase(Locale.ROOT);
-        int cp = CharacterName.getInstance().getCodePoint(name);
-        if (cp != -1)
-            return cp;
-        try {
-            int off = name.lastIndexOf(' ');
-            if (off != -1) {
-                cp = Integer.parseInt(name, off + 1, name.length(), 16);
-                if (isValidCodePoint(cp) && name.equals(getName(cp)))
-                    return cp;
+        String normalized = name.trim().toUpperCase(Locale.ROOT);
+        String capitalPrefix = "LATIN CAPITAL LETTER ";
+        String smallPrefix = "LATIN SMALL LETTER ";
+        if (normalized.length() == capitalPrefix.length() + 1
+                && normalized.startsWith(capitalPrefix)) {
+            char c = normalized.charAt(capitalPrefix.length());
+            if (c >= 'A' && c <= 'Z') {
+                return c;
             }
-        } catch (Exception x) {}
-        throw new IllegalArgumentException("Unrecognized character name :" + name);
+        }
+        if (normalized.length() == smallPrefix.length() + 1
+                && normalized.startsWith(smallPrefix)) {
+            char c = normalized.charAt(smallPrefix.length());
+            if (c >= 'A' && c <= 'Z') {
+                return c - 'A' + 'a';
+            }
+        }
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 }

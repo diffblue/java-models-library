@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.math.BigDecimal;
 import java.util.Random;
 import jdk.internal.math.FloatConsts;
@@ -182,8 +184,14 @@ public final class Math {
      * @return  the sine of the argument.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport Transcendental functions cannot be computed
+     *   symbolically in a bounded model checker (they are irrational and
+     *   have no closed bit-vector/SMT representation).
+     */
     public static double sin(double a) {
-        return StrictMath.sin(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -200,8 +208,12 @@ public final class Math {
      * @return  the cosine of the argument.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double cos(double a) {
-        return StrictMath.cos(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -218,8 +230,12 @@ public final class Math {
      * @return  the tangent of the argument.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double tan(double a) {
-        return StrictMath.tan(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -236,8 +252,12 @@ public final class Math {
      * @param   a   the value whose arc sine is to be returned.
      * @return  the arc sine of the argument.
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double asin(double a) {
-        return StrictMath.asin(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -254,8 +274,12 @@ public final class Math {
      * @param   a   the value whose arc cosine is to be returned.
      * @return  the arc cosine of the argument.
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double acos(double a) {
-        return StrictMath.acos(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -275,8 +299,12 @@ public final class Math {
      * @param   a   the value whose arc tangent is to be returned.
      * @return  the arc tangent of the argument.
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double atan(double a) {
-        return StrictMath.atan(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -328,8 +356,12 @@ public final class Math {
      *          where <i>e</i> is the base of the natural logarithms.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double exp(double a) {
-        return StrictMath.exp(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -353,8 +385,12 @@ public final class Math {
      *          {@code a}.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double log(double a) {
-        return StrictMath.log(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -381,8 +417,12 @@ public final class Math {
      * @since 1.5
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double log10(double a) {
-        return StrictMath.log10(a); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -407,12 +447,26 @@ public final class Math {
      *          If the argument is NaN or less than zero, the result is NaN.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.limitedSupport Unlike the other transcendental functions
+     *   (see {@link #sin}), square root has a defining algebraic property
+     *   ({@code sqrt(a) * sqrt(a) == a}) that a solver can reason about
+     *   directly, so this is modelled via that property rather than left
+     *   unmodelled. Precision is limited near 0 and for very small values,
+     *   where the nondet result satisfying the property is not guaranteed
+     *   to equal the real {@code Math.sqrt}'s result.
+     */
     public static double sqrt(double a) {
-        return StrictMath.sqrt(a); // default impl. delegates to StrictMath
-                                   // Note that hardware sqrt instructions
-                                   // frequently can be directly used by JITs
-                                   // and should be much faster than doing
-                                   // Math.sqrt in software.
+        if (Double.isNaN(a) || a < 0.0) {
+            return Double.NaN;
+        }
+        if (a == Double.POSITIVE_INFINITY || a == 0.0) {
+            return a;
+        }
+        double sqrt = CProver.nondetDouble();
+        CProver.assume(sqrt >= 0);
+        CProver.assume(sqrt * sqrt == a);
+        return sqrt;
     }
 
 
@@ -442,8 +496,12 @@ public final class Math {
      * @return  the cube root of {@code a}.
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double cbrt(double a) {
-        return StrictMath.cbrt(a);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -468,8 +526,12 @@ public final class Math {
      * @return  the remainder when {@code f1} is divided by
      *          {@code f2}.
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double IEEEremainder(double f1, double f2) {
-        return StrictMath.IEEEremainder(f1, f2); // delegate to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -609,8 +671,12 @@ public final class Math {
      *          (<i>x</i>,&nbsp;<i>y</i>) in Cartesian coordinates.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double atan2(double y, double x) {
-        return StrictMath.atan2(y, x); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -747,8 +813,12 @@ public final class Math {
      * @return  the value {@code a}<sup>{@code b}</sup>.
      */
     @IntrinsicCandidate
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double pow(double a, double b) {
-        return StrictMath.pow(a, b); // default impl. delegates to StrictMath
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2666,8 +2736,12 @@ public final class Math {
      * @return  The hyperbolic sine of {@code x}.
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double sinh(double x) {
-        return StrictMath.sinh(x);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2694,8 +2768,12 @@ public final class Math {
      * @return  The hyperbolic cosine of {@code x}.
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double cosh(double x) {
-        return StrictMath.cosh(x);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2734,8 +2812,12 @@ public final class Math {
      * @return  The hyperbolic tangent of {@code x}.
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double tanh(double x) {
-        return StrictMath.tanh(x);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2764,8 +2846,12 @@ public final class Math {
      * without intermediate overflow or underflow
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double hypot(double x, double y) {
-        return StrictMath.hypot(x, y);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2802,8 +2888,12 @@ public final class Math {
      * @return  the value <i>e</i><sup>{@code x}</sup>&nbsp;-&nbsp;1.
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double expm1(double x) {
-        return StrictMath.expm1(x);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**
@@ -2839,8 +2929,12 @@ public final class Math {
      * log of {@code x}&nbsp;+&nbsp;1
      * @since 1.5
      */
+    /**
+     * @cprover.noSupport See {@link #sin}.
+     */
     public static double log1p(double x) {
-        return StrictMath.log1p(x);
+        CProver.notModelled();
+        return CProver.nondetDouble();
     }
 
     /**

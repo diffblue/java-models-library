@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDesc;
@@ -788,6 +790,9 @@ public final class Float extends Number
      * object.
      *
      * @return a hash code value for this object.
+     *
+     * @cprover.limitedSupport Always returns {@code 0} rather than
+     *   delegating to {@link #floatToIntBits}: see {@link #hashCode(float)}.
      */
     @Override
     public int hashCode() {
@@ -801,9 +806,15 @@ public final class Float extends Number
      * @param value the value to hash
      * @return a hash code value for a {@code float} value.
      * @since 1.8
+     *
+     * @cprover.limitedSupport Always returns {@code 0}, consistent with
+     *   {@link #equals} being redefined without reference to {@link
+     *   #floatToIntBits} (which is unmodelled): a constant hash code
+     *   satisfies the required contract (equal values get equal hash
+     *   codes) without needing the real bit pattern.
      */
     public static int hashCode(float value) {
-        return floatToIntBits(value);
+        return 0;
     }
 
     /**
@@ -832,10 +843,26 @@ public final class Float extends Number
      *          {@code false} otherwise.
      * @see java.lang.Float#floatToIntBits(float)
      * @jls 15.21.1 Numerical Equality Operators == and !=
+     *
+     * @cprover.limitedSupport Reimplemented without {@link
+     *   #floatToIntBits}/{@link #floatToRawIntBits} (which are unmodelled),
+     *   using the same NaN-equals-NaN and +0.0-not-equal--0.0 semantics
+     *   those methods are specified to give, derived directly from
+     *   arithmetic rather than from bit patterns.
      */
     public boolean equals(Object obj) {
-        return (obj instanceof Float)
-               && (floatToIntBits(((Float)obj).value) == floatToIntBits(value));
+        if (!(obj instanceof Float f)) {
+            return false;
+        }
+        float fValue = f.value;
+        boolean bothAreNaN = (value != value) && (fValue != fValue);
+        if (bothAreNaN) {
+            return true;
+        }
+        if (value == 0.0f && fValue == 0.0f) {
+            return (1 / value == POSITIVE_INFINITY) == (1 / fValue == POSITIVE_INFINITY);
+        }
+        return value == fValue;
     }
 
     /**
@@ -911,9 +938,15 @@ public final class Float extends Number
      * @param   value   a floating-point number.
      * @return the bits that represent the floating-point number.
      * @since 1.3
+     *
+     * @cprover.noSupport Raw IEEE 754 bit reinterpretation crosses between
+     *   CBMC's floating-point and bit-vector theories in a way that isn't
+     *   modelled.
      */
-    @IntrinsicCandidate
-    public static native int floatToRawIntBits(float value);
+    public static int floatToRawIntBits(float value) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
 
     /**
      * Returns the {@code float} value corresponding to a given
@@ -973,9 +1006,13 @@ public final class Float extends Number
      * @param   bits   an integer.
      * @return  the {@code float} floating-point value with the same bit
      *          pattern.
+     *
+     * @cprover.noSupport See {@link #floatToRawIntBits}.
      */
-    @IntrinsicCandidate
-    public static native float intBitsToFloat(int bits);
+    public static float intBitsToFloat(int bits) {
+        CProver.notModelled();
+        return CProver.nondetFloat();
+    }
 
     /**
      * {@return the {@code float} value closest to the numerical value
