@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.lang.annotation.Annotation;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
@@ -224,6 +226,16 @@ import sun.reflect.misc.ReflectUtil;
  * @see     java.lang.ClassLoader#defineClass(byte[], int, int)
  * @since   1.0
  * @jls 15.8.2 Class Literals
+ *
+ * @cprover.limitedSupport
+ * The real class hierarchy, module system, generics, annotations, and
+ * record/sealed/nestmate/hidden-class metadata are not modelled: this class
+ * only tracks a name plus the flags {@link #cproverInitializeClassLiteral}
+ * sets for class-literal expressions (such as {@code Foo.class}). Class
+ * objects obtained any other way (e.g. via {@link Object#getClass} or
+ * {@link #forName}) get a name but default (usually {@code false}/{@code
+ * null}/empty) values for everything else. See the individual methods'
+ * {@code @cprover.*} tags for specifics.
  */
 public final class Class<T> implements java.io.Serializable,
                               GenericDeclaration,
@@ -235,7 +247,7 @@ public final class Class<T> implements java.io.Serializable,
     private static final int ENUM      = 0x00004000;
     private static final int SYNTHETIC = 0x00001000;
 
-    private static native void registerNatives();
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
@@ -251,6 +263,40 @@ public final class Class<T> implements java.io.Serializable,
         classLoader = loader;
         componentType = arrayComponentType;
     }
+
+    /**
+     * Not part of the real {@code Class} class. Used internally by this
+     * model (e.g. {@link #forName0}) to create fresh {@code Class}
+     * instances that are not associated with a real class loader or
+     * component type.
+     */
+    private Class() {
+        this(null, null);
+    }
+
+    // These boolean fields model the subset of a class's nature that
+    // cproverInitializeClassLiteral (see below) is able to communicate for
+    // class-literal expressions (such as Foo.class). They are not set for
+    // Class objects obtained any other way (e.g. via Object.getClass() or
+    // forName()), and take priority over the real, native-backed logic
+    // below wherever both exist, since they are the only accurate
+    // information this model has access to.
+    private boolean cproverIsAnnotation;
+    private boolean cproverIsArray;
+    private boolean cproverIsInterface;
+    private boolean cproverIsSynthetic;
+    private boolean cproverIsLocalClass;
+    private boolean cproverIsMemberClass;
+    private boolean cproverIsEnum;
+
+    // Class objects obtained via Object.getClass() or forName(String) must
+    // be singletons per class name, the way the real Class objects are. We
+    // approximate the (unbounded, VM-wide) table the real JVM keeps with a
+    // fixed-size cache; forName() on a class name beyond this bound falls
+    // back to CProver.notModelled().
+    private static final int CPROVER_MAX_CLASS_CACHE = 8;
+    private static String[] cproverClassNames = new String[CPROVER_MAX_CLASS_CACHE];
+    private static Class<?>[] cproverClassInstances = new Class<?>[CPROVER_MAX_CLASS_CACHE];
 
     /**
      * Converts the object to a string. The string representation is the
@@ -536,11 +582,41 @@ public final class Class<T> implements java.io.Serializable,
         return forName0(name, initialize, loader, caller);
     }
 
-    /** Called after security check for system loader access checks have been made. */
-    private static native Class<?> forName0(String name, boolean initialize,
+    /**
+     * Called after security check for system loader access checks have been made.
+     *
+     * @cprover.limitedSupport Looks {@code name} up in, or adds it to, a
+     *   fixed-size cache of singleton {@code Class} instances, so repeated
+     *   lookups of the same name return the same object, the way the real
+     *   {@code Class.forName} does. {@code initialize}, {@code loader}, and
+     *   {@code caller} are ignored: this model does not run static
+     *   initializers or track class loaders. Supports at most {@value
+     *   #CPROVER_MAX_CLASS_CACHE} distinct class names across the whole
+     *   verification run; beyond that bound, the real singleton/lookup
+     *   semantics are too hard to model (it would need a VM-wide, unbounded
+     *   class table) and we give up by falling back to {@link
+     *   CProver#notModelled}.
+     */
+    private static Class<?> forName0(String name, boolean initialize,
                                             ClassLoader loader,
                                             Class<?> caller)
-        throws ClassNotFoundException;
+        throws ClassNotFoundException {
+        for (int i = 0; i < cproverClassNames.length; ++i) {
+            String currentName = cproverClassNames[i];
+            if (currentName == null) {
+                Class<?> c = new Class<>();
+                c.name = name;
+                cproverClassNames[i] = name;
+                cproverClassInstances[i] = c;
+                return c;
+            }
+            if (name.equals(currentName)) {
+                return cproverClassInstances[i];
+            }
+        }
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
+    }
 
 
     /**
@@ -763,9 +839,13 @@ public final class Class<T> implements java.io.Serializable,
      * @return  true if {@code obj} is an instance of this class
      *
      * @since 1.1
+     *
+     * @cprover.limitedSupport Approximated as an exact type match, since the
+     *   real class hierarchy (superclasses, interfaces) is not modelled.
      */
-    @IntrinsicCandidate
-    public native boolean isInstance(Object obj);
+    public boolean isInstance(Object obj) {
+        return obj != null && obj.getClass() == this;
+    }
 
 
     /**
@@ -792,9 +872,16 @@ public final class Class<T> implements java.io.Serializable,
      * @throws    NullPointerException if the specified Class parameter is
      *            null.
      * @since     1.1
+     *
+     * @cprover.limitedSupport Approximated as an exact type match, since the
+     *   real class hierarchy (superclasses, interfaces) is not modelled.
      */
-    @IntrinsicCandidate
-    public native boolean isAssignableFrom(Class<?> cls);
+    public boolean isAssignableFrom(Class<?> cls) {
+        if (cls == null) {
+            throw new NullPointerException();
+        }
+        return cls == this;
+    }
 
 
     /**
@@ -803,9 +890,15 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @return  {@code true} if this {@code Class} object represents an interface;
      *          {@code false} otherwise.
+     *
+     * @cprover.limitedSupport Only accurate for class-literal expressions
+     *   (such as {@code Foo.class}): see {@link #cproverInitializeClassLiteral}.
+     *   A {@code Class} object otherwise obtained (e.g. via {@link
+     *   Object#getClass}) always answers {@code false} here.
      */
-    @IntrinsicCandidate
-    public native boolean isInterface();
+    public boolean isInterface() {
+        return cproverIsInterface;
+    }
 
 
     /**
@@ -814,9 +907,15 @@ public final class Class<T> implements java.io.Serializable,
      * @return  {@code true} if this {@code Class} object represents an array class;
      *          {@code false} otherwise.
      * @since   1.1
+     *
+     * @cprover.limitedSupport Only accurate for class-literal expressions
+     *   (such as {@code Foo.class}): see {@link #cproverInitializeClassLiteral}.
+     *   A {@code Class} object otherwise obtained (e.g. via {@link
+     *   Object#getClass}) always answers {@code false} here.
      */
-    @IntrinsicCandidate
-    public native boolean isArray();
+    public boolean isArray() {
+        return cproverIsArray;
+    }
 
 
     /**
@@ -846,9 +945,24 @@ public final class Class<T> implements java.io.Serializable,
      * @see     java.lang.Double#TYPE
      * @see     java.lang.Void#TYPE
      * @since 1.1
+     *
+     * @cprover.limitedSupport Uses pointer equality rather than string
+     *   equality: this only gives the correct answer if {@code name} was
+     *   set from one of the string literals in {@link
+     *   #getPrimitiveClass(String)}, which holds for every primitive
+     *   {@code Class}.
      */
-    @IntrinsicCandidate
-    public native boolean isPrimitive();
+    public boolean isPrimitive() {
+        return name == "boolean" ||
+                name == "char" ||
+                name == "byte" ||
+                name == "short" ||
+                name == "int" ||
+                name == "long" ||
+                name == "float" ||
+                name == "double"||
+                name == "void";
+    }
 
     /**
      * Returns true if this {@code Class} object represents an annotation
@@ -953,7 +1067,18 @@ public final class Class<T> implements java.io.Serializable,
     // Cache the name to reduce the number of calls into the VM.
     // This field would be set by VM itself during initClassName call.
     private transient String name;
-    private native String initClassName();
+
+    /**
+     * @cprover.noSupport Should be unreachable: every {@code Class} object
+     *   this model creates ({@link #forName0}, {@link
+     *   #cproverInitializeClassLiteral}) sets {@link #name} directly, and
+     *   {@link #cproverNondetInitialize} assumes it is non-null for
+     *   nondeterministically created instances too.
+     */
+    private String initClassName() {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     /**
      * Returns the class loader for the class.  Some implementations may use
@@ -1064,9 +1189,17 @@ public final class Class<T> implements java.io.Serializable,
      * returned.
      *
      * @return the direct superclass of the class represented by this {@code Class} object
+     *
+     * @cprover.noSupport The real class hierarchy is not modelled: the only
+     *   information {@link #cproverInitializeClassLiteral} carries for a
+     *   class literal is its name and a handful of boolean flags, not its
+     *   superclass. Correctly supporting this would need a change to how
+     *   JBMC initializes class literals, not just to this model.
      */
-    @IntrinsicCandidate
-    public native Class<? super T> getSuperclass();
+    public Class<? super T> getSuperclass() {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
 
     /**
@@ -1243,7 +1376,13 @@ public final class Class<T> implements java.io.Serializable,
         }
     }
 
-    private native Class<?>[] getInterfaces0();
+    /**
+     * @cprover.limitedSupport Always empty: the real interface list is not
+     *   modelled, for the same reason as {@link #getSuperclass}.
+     */
+    private Class<?>[] getInterfaces0() {
+        return new Class<?>[0];
+    }
 
     /**
      * Returns the {@code Type}s representing the interfaces
@@ -1372,9 +1511,28 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.1.1 Class Modifiers
      * @jls 9.1.1. Interface Modifiers
      * @jvms 4.1 The {@code ClassFile} Structure
+     *
+     * @cprover.limitedSupport Synthesized from the flags {@link
+     *   #cproverInitializeClassLiteral} sets (only accurate for
+     *   class-literal expressions), plus always {@code PUBLIC}: the real
+     *   visibility/finality/etc. modifiers are not tracked.
      */
-    @IntrinsicCandidate
-    public native int getModifiers();
+    public int getModifiers() {
+        int m = Modifier.PUBLIC;
+        if (cproverIsInterface) {
+            m |= Modifier.INTERFACE | Modifier.ABSTRACT;
+        }
+        if (cproverIsAnnotation) {
+            m |= ANNOTATION;
+        }
+        if (cproverIsSynthetic) {
+            m |= SYNTHETIC;
+        }
+        if (cproverIsEnum) {
+            m |= ENUM;
+        }
+        return m;
+    }
 
     /**
      * {@return an unmodifiable set of the {@linkplain AccessFlag access
@@ -1421,14 +1579,21 @@ public final class Class<T> implements java.io.Serializable,
      *          particular, this method returns null if this {@code Class} object represents
      *          a primitive type or void.
      * @since   1.1
+     *
+     * @cprover.limitedSupport Code signing is not modelled; always behaves
+     *   as "no signers".
      */
-    public native Object[] getSigners();
+    public Object[] getSigners() {
+        return null;
+    }
 
 
     /**
      * Set the signers of this class.
+     *
+     * @cprover.limitedSupport Code signing is not modelled; a no-op.
      */
-    native void setSigners(Object[] signers);
+    void setSigners(Object[] signers) {}
 
 
     /**
@@ -1521,7 +1686,17 @@ public final class Class<T> implements java.io.Serializable,
         }
     }
 
-    private native Object[] getEnclosingMethod0();
+    /**
+     * @cprover.limitedSupport Always {@code null} ("no enclosing method"),
+     *   the correct answer for top-level, nested, and member classes but
+     *   not for local/anonymous classes, which this model cannot
+     *   distinguish (see {@link #cproverInitializeClassLiteral}): every
+     *   {@code Class} ends up looking top-level to {@link
+     *   #isLocalOrAnonymousClass}.
+     */
+    private Object[] getEnclosingMethod0() {
+        return null;
+    }
 
     private EnclosingMethodInfo getEnclosingMethodInfo() {
         Object[] enclosingInfo = getEnclosingMethod0();
@@ -1706,7 +1881,15 @@ public final class Class<T> implements java.io.Serializable,
         return candidate;
     }
 
-    private native Class<?> getDeclaringClass0();
+    /**
+     * @cprover.limitedSupport Always {@code null} ("no declaring class"):
+     *   this model does not track which class, if any, this one is
+     *   declared inside (see {@link #cproverIsMemberClass}, which is used
+     *   instead by the public {@link #isMemberClass}).
+     */
+    private Class<?> getDeclaringClass0() {
+        return null;
+    }
 
 
     /**
@@ -1930,10 +2113,17 @@ public final class Class<T> implements java.io.Serializable,
      * @return {@code true} if and only if this class is a local class.
      * @since 1.5
      * @jls 14.3 Local Class Declarations
+     *
+     * @cprover.limitedSupport Only accurate for class-literal expressions
+     *   (such as {@code Foo.class}): see {@link #cproverInitializeClassLiteral}.
+     *   A {@code Class} object otherwise obtained (e.g. via {@link
+     *   Object#getClass}) always answers {@code false} here. Uses {@link
+     *   #cproverIsLocalClass} directly rather than the real derivation via
+     *   {@link #getEnclosingMethod0}, since that always answers {@code
+     *   null} in this model.
      */
     public boolean isLocalClass() {
-        return isLocalOrAnonymousClass() &&
-                (isArray() || getSimpleBinaryName0() != null);
+        return cproverIsLocalClass;
     }
 
     /**
@@ -1943,9 +2133,17 @@ public final class Class<T> implements java.io.Serializable,
      * @return {@code true} if and only if this class is a member class.
      * @since 1.5
      * @jls 8.5 Member Type Declarations
+     *
+     * @cprover.limitedSupport Only accurate for class-literal expressions
+     *   (such as {@code Foo.class}): see {@link #cproverInitializeClassLiteral}.
+     *   A {@code Class} object otherwise obtained (e.g. via {@link
+     *   Object#getClass}) always answers {@code false} here. Uses {@link
+     *   #cproverIsMemberClass} directly rather than the real derivation via
+     *   {@link #getDeclaringClass0}, since that always answers {@code null}
+     *   in this model.
      */
     public boolean isMemberClass() {
-        return !isLocalOrAnonymousClass() && getDeclaringClass0() != null;
+        return cproverIsMemberClass;
     }
 
     /**
@@ -1963,7 +2161,15 @@ public final class Class<T> implements java.io.Serializable,
         return name;
     }
 
-    private native String getSimpleBinaryName0();
+    /**
+     * @cprover.limitedSupport Always {@code null}: only reached via {@link
+     *   #isTopLevelClass}'s callers once {@link #getDeclaringClass0} and
+     *   {@link #getEnclosingMethod0} have already both answered {@code
+     *   null} (i.e. this model always treats classes as top-level).
+     */
+    private String getSimpleBinaryName0() {
+        return null;
+    }
 
     /**
      * Returns {@code true} if this is a top level class.  Returns {@code false}
@@ -2271,6 +2477,12 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.1
      * @jls 8.2 Class Members
      * @jls 8.3 Field Declarations
+     *
+     * @cprover.limitedSupport Always throws {@code NoSuchFieldException}:
+     *   declared-member enumeration is not modelled (see {@link
+     *   #getDeclaredFields0}), so the lookup this delegates to never finds
+     *   anything. Revisit together with {@code java.lang.reflect.Field}'s
+     *   own model, which needs more than a name to construct.
      */
     @CallerSensitive
     public Field getField(String name)
@@ -3195,14 +3407,49 @@ public final class Class<T> implements java.io.Serializable,
 
     /**
      * Returns the ProtectionDomain of this class.
+     *
+     * @cprover.limitedSupport Security/protection domains are not modelled;
+     *   always {@code null}, which the caller {@link #protectionDomain}
+     *   already treats as "no restrictions".
      */
-    private native ProtectionDomain getProtectionDomain0();
+    private ProtectionDomain getProtectionDomain0() {
+        return null;
+    }
 
     /*
      * Return the Virtual Machine's Class object for the named
      * primitive type.
+     *
+     * @cprover.limitedSupport Returns the class-literal expression for the
+     *   matching primitive type directly, rather than going through {@link
+     *   #forName0}: literals are initialized as singletons by JBMC (see
+     *   {@link #cproverInitializeClassLiteral}), so this also avoids the
+     *   bug this had via forName0 in the JDK 8 models, where every
+     *   boxed-primitive class's static initializer (e.g. {@code
+     *   Integer.TYPE}) ended up going through forName0's {@code
+     *   CProver.notModelled()} fallback.
      */
-    static native Class<?> getPrimitiveClass(String name);
+    static Class<?> getPrimitiveClass(String name) {
+        if ("boolean".equals(name))
+            return boolean.class;
+        if ("char".equals(name))
+            return char.class;
+        if ("byte".equals(name))
+            return byte.class;
+        if ("short".equals(name))
+            return short.class;
+        if ("int".equals(name))
+            return int.class;
+        if ("long".equals(name))
+            return long.class;
+        if ("float".equals(name))
+            return float.class;
+        if ("double".equals(name))
+            return double.class;
+        if ("void".equals(name))
+            return void.class;
+        throw new IllegalArgumentException("Not primitive type: " + name);
+    }
 
     /*
      * Check if client is allowed to access members.  If access is denied,
@@ -3417,8 +3664,17 @@ public final class Class<T> implements java.io.Serializable,
         }
     }
 
-    // Generic signature handling
-    private native String getGenericSignature0();
+    /**
+     * Generic signature handling.
+     *
+     * @cprover.limitedSupport Always {@code null} ("no generic signature"):
+     *   generics reflection is not modelled, so this class always looks
+     *   non-generic to {@link #getGenericInfo}'s callers (e.g. {@link
+     *   #getTypeParameters}, {@link #getGenericSuperclass}).
+     */
+    private String getGenericSignature0() {
+        return null;
+    }
 
     // Generic info repository; lazily initialized
     private transient volatile ClassRepository genericInfo;
@@ -3445,15 +3701,35 @@ public final class Class<T> implements java.io.Serializable,
         return (genericInfo != ClassRepository.NONE) ? genericInfo : null;
     }
 
-    // Annotations handling
-    native byte[] getRawAnnotations();
+    /**
+     * Annotations handling.
+     *
+     * @cprover.limitedSupport Always empty ("no annotations"): annotation
+     *   reflection is not modelled.
+     */
+    byte[] getRawAnnotations() {
+        return new byte[0];
+    }
     // Since 1.8
-    native byte[] getRawTypeAnnotations();
+    /**
+     * @cprover.limitedSupport Always empty ("no type annotations"): see
+     *   {@link #getRawAnnotations}.
+     */
+    byte[] getRawTypeAnnotations() {
+        return new byte[0];
+    }
     static byte[] getExecutableTypeAnnotationBytes(Executable ex) {
         return getReflectionFactory().getExecutableTypeAnnotationBytes(ex);
     }
 
-    native ConstantPool getConstantPool();
+    /**
+     * @cprover.noSupport Classfile constant-pool introspection is not
+     *   modelled.
+     */
+    ConstantPool getConstantPool() {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     //
     //
@@ -3816,10 +4092,36 @@ public final class Class<T> implements java.io.Serializable,
         return out;
     }
 
-    private native Field[]       getDeclaredFields0(boolean publicOnly);
-    private native Method[]      getDeclaredMethods0(boolean publicOnly);
-    private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
-    private native Class<?>[]    getDeclaredClasses0();
+    /**
+     * @cprover.limitedSupport Always empty: the declared-fields enumeration
+     *   is not modelled. {@link #getField}/{@link #getDeclaredField} do not
+     *   go through this, so they are unaffected.
+     */
+    private Field[] getDeclaredFields0(boolean publicOnly) {
+        return new Field[0];
+    }
+    /**
+     * @cprover.limitedSupport Always empty: the declared-methods
+     *   enumeration is not modelled. {@link #getMethod}/{@link
+     *   #getDeclaredMethod} do not go through this, so they are unaffected.
+     */
+    private Method[] getDeclaredMethods0(boolean publicOnly) {
+        return new Method[0];
+    }
+    /**
+     * @cprover.limitedSupport Always empty: the declared-constructors
+     *   enumeration is not modelled.
+     */
+    private Constructor<T>[] getDeclaredConstructors0(boolean publicOnly) {
+        return new Constructor[0];
+    }
+    /**
+     * @cprover.limitedSupport Always empty: the declared-member-classes
+     *   enumeration is not modelled.
+     */
+    private Class<?>[] getDeclaredClasses0() {
+        return new Class<?>[0];
+    }
 
     /*
      * Returns an array containing the components of the Record attribute,
@@ -3828,8 +4130,23 @@ public final class Class<T> implements java.io.Serializable,
      * Note that this method returns non-null array on a class with
      * the Record attribute even if this class is not a record.
      */
-    private native RecordComponent[] getRecordComponents0();
-    private native boolean       isRecord0();
+    /**
+     * @cprover.noSupport Unreachable: only called once {@link #isRecord0}
+     *   (which always answers {@code false} in this model) has already
+     *   confirmed the class is a record.
+     */
+    private RecordComponent[] getRecordComponents0() {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
+    /**
+     * @cprover.limitedSupport Always {@code false}: record classes are not
+     *   distinguished by this model (there is no corresponding flag in
+     *   {@link #cproverInitializeClassLiteral}).
+     */
+    private boolean isRecord0() {
+        return false;
+    }
 
     /**
      * Helper method to get the method name from arguments.
@@ -3910,8 +4227,14 @@ public final class Class<T> implements java.io.Serializable,
         return desiredAssertionStatus0(this);
     }
 
-    // Retrieves the desired assertion status of this class from the VM
-    private static native boolean desiredAssertionStatus0(Class<?> clazz);
+    /**
+     * Retrieves the desired assertion status of this class from the VM.
+     *
+     * @cprover.limitedSupport Always {@code true}.
+     */
+    private static boolean desiredAssertionStatus0(Class<?> clazz) {
+        return true;
+    }
 
     /**
      * Returns true if and only if this class was declared as an enum in the
@@ -3930,13 +4253,16 @@ public final class Class<T> implements java.io.Serializable,
      *     source code
      * @since 1.5
      * @jls 8.9.1 Enum Constants
+     *
+     * @cprover.limitedSupport Drops the real check that this class
+     *   directly extends {@code java.lang.Enum}, since the real class
+     *   hierarchy is not modelled (see {@link #getSuperclass}); relies
+     *   solely on the {@code ENUM} modifier bit, which {@link #getModifiers}
+     *   sets from {@link #cproverInitializeClassLiteral}'s {@code isEnum}
+     *   flag.
      */
     public boolean isEnum() {
-        // An enum must both directly extend java.lang.Enum and have
-        // the ENUM bit set; classes for specialized enum constants
-        // don't do the former.
-        return (this.getModifiers() & ENUM) != 0 &&
-        this.getSuperclass() == java.lang.Enum.class;
+        return (this.getModifiers() & ENUM) != 0;
     }
 
     /**
@@ -4363,7 +4689,15 @@ public final class Class<T> implements java.io.Serializable,
          return TypeAnnotationParser.buildAnnotatedInterfaces(getRawTypeAnnotations(), getConstantPool(), this);
     }
 
-    private native Class<?> getNestHost0();
+    /**
+     * @cprover.limitedSupport Always {@code this}: the real default (a
+     *   class not listed as a member of another class's nest is its own
+     *   nest host), and the only answer this model can give since nest
+     *   membership is not tracked.
+     */
+    private Class<?> getNestHost0() {
+        return this;
+    }
 
     /**
      * Returns the nest host of the <a href=#nest>nest</a> to which the class
@@ -4443,7 +4777,14 @@ public final class Class<T> implements java.io.Serializable,
         return getNestHost() == c.getNestHost();
     }
 
-    private native Class<?>[] getNestMembers0();
+    /**
+     * @cprover.limitedSupport Always {@code {this}}: the real default for
+     *   a class with no other nest members, consistent with {@link
+     *   #getNestHost0} always answering {@code this}.
+     */
+    private Class<?>[] getNestMembers0() {
+        return new Class<?>[] { this };
+    }
 
     /**
      * Returns an array containing {@code Class} objects representing all the
@@ -4649,9 +4990,15 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @since 15
      * @see MethodHandles.Lookup#defineHiddenClass
+     *
+     * @cprover.limitedSupport Always {@code false}: hidden classes (defined
+     *   via {@code MethodHandles.Lookup#defineHiddenClass}) are not
+     *   modelled, since {@code java.lang.invoke} is out of scope (JBMC
+     *   synthesizes lambdas/invokedynamic itself; see lambda_synthesis.cpp).
      */
-    @IntrinsicCandidate
-    public native boolean isHidden();
+    public boolean isHidden() {
+        return false;
+    }
 
     /**
      * Returns an array containing {@code Class} objects representing the
@@ -4750,7 +5097,16 @@ public final class Class<T> implements java.io.Serializable,
         return getPermittedSubclasses() != null;
     }
 
-    private native Class<?>[] getPermittedSubclasses0();
+    /**
+     * @cprover.limitedSupport Always {@code null}: sealed classes are not
+     *   modelled (there is no corresponding flag in {@link
+     *   #cproverInitializeClassLiteral}), so {@link #isSealed} always
+     *   answers {@code false}, the correct answer for the (vast majority
+     *   of) non-sealed classes.
+     */
+    private Class<?>[] getPermittedSubclasses0() {
+        return null;
+    }
 
     /*
      * Return the class's major and minor class file version packed into an int.
@@ -4766,7 +5122,13 @@ public final class Class<T> implements java.io.Serializable,
         return c.getClassFileVersion0();
     }
 
-    private native int getClassFileVersion0();
+    /**
+     * @cprover.limitedSupport Always the JDK 21 classfile version (major
+     *   65, minor 0): the real per-class classfile version is not tracked.
+     */
+    private int getClassFileVersion0() {
+        return 65;
+    }
 
     /*
      * Return the access flags as they were in the class's bytecode, including
@@ -4780,5 +5142,52 @@ public final class Class<T> implements java.io.Serializable,
         return c.getClassAccessFlagsRaw0();
     }
 
-    private native int getClassAccessFlagsRaw0();
+    /**
+     * @cprover.limitedSupport Approximated by {@link #getModifiers}: the
+     *   original {@code ACC_SUPER} bit is not tracked.
+     */
+    private int getClassAccessFlagsRaw0() {
+        return getModifiers();
+    }
+
+    /**
+     * Called by JBMC immediately after nondeterministic object creation of a
+     * {@code Class} instance, to establish the invariants the rest of this
+     * model relies on. Not part of the real {@code Class} class; the generic
+     * mechanism that calls this is in
+     * ci_lazy_methods_needed.cpp/java_object_factory.cpp.
+     */
+    @org.cprover.MustNotThrow
+    protected void cproverNondetInitialize() {
+        CProver.assume(name != null);
+        CProver.assume(genericInfo == null);
+        CProver.assume(packageName == null);
+    }
+
+    /**
+     * Initializes the fields of a class-literal expression's {@code Class}
+     * object (such as {@code Foo.class}). Not part of the real {@code
+     * Class} class; this exact name and signature is hardcoded in
+     * java_entry_point.cpp, which calls it once at program start for every
+     * class-literal symbol JBMC generates.
+     */
+    @org.cprover.MustNotThrow
+    public void cproverInitializeClassLiteral(
+            String name,
+            boolean isAnnotation,
+            boolean isArray,
+            boolean isInterface,
+            boolean isSynthetic,
+            boolean isLocalClass,
+            boolean isMemberClass,
+            boolean isEnum) {
+        this.name = name;
+        this.cproverIsAnnotation = isAnnotation;
+        this.cproverIsArray = isArray;
+        this.cproverIsInterface = isInterface;
+        this.cproverIsSynthetic = isSynthetic;
+        this.cproverIsLocalClass = isLocalClass;
+        this.cproverIsMemberClass = isMemberClass;
+        this.cproverIsEnum = isEnum;
+    }
 }

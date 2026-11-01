@@ -1005,18 +1005,22 @@ public class Throwable implements Serializable {
         // UNASSIGNED_STACK.
     }
 
+    /**
+     * @cprover.limitedSupport The real implementation also checks that
+     *   {@code deserSuppressedExceptions} is an instance of a class from the
+     *   same module as {@code Object}, as a defence against a maliciously
+     *   crafted serialization stream supplying a hostile {@code List}
+     *   implementation; {@code Class.getModule()} is not modelled (the
+     *   {@code java.lang.Module} system is out of scope), so that check is
+     *   skipped here.
+     */
     private int validateSuppressedExceptionsList(List<Throwable> deserSuppressedExceptions)
         throws IOException {
-        if (!Object.class.getModule().
-            equals(deserSuppressedExceptions.getClass().getModule())) {
-            throw new StreamCorruptedException("List implementation not in base module.");
-        } else {
-            int size = deserSuppressedExceptions.size();
-            if (size < 0) {
-                throw new StreamCorruptedException("Negative list size reported.");
-            }
-            return size;
+        int size = deserSuppressedExceptions.size();
+        if (size < 0) {
+            throw new StreamCorruptedException("Negative list size reported.");
         }
+        return size;
     }
 
     /**
