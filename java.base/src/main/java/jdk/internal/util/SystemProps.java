@@ -111,6 +111,7 @@ public final class SystemProps {
 
         customTmpdir = props.get("java.io.tmpdir");
         putIfAbsent(props, "java.io.tmpdir", raw.propDefault(Raw._java_io_tmpdir_NDX));
+        putIfAbsent(props, "java.awt.headless", raw.propDefault(Raw._java_awt_headless_NDX));
         putIfAbsent(props, "http.proxyHost", raw.propDefault(Raw._http_proxyHost_NDX));
         putIfAbsent(props, "http.proxyPort", raw.propDefault(Raw._http_proxyPort_NDX));
         putIfAbsent(props, "https.proxyHost", raw.propDefault(Raw._https_proxyHost_NDX));
@@ -232,7 +233,8 @@ public final class SystemProps {
         @Native private static final int _http_proxyPort_NDX = 1 + _http_proxyHost_NDX;
         @Native private static final int _https_proxyHost_NDX = 1 + _http_proxyPort_NDX;
         @Native private static final int _https_proxyPort_NDX = 1 + _https_proxyHost_NDX;
-        @Native private static final int _java_io_tmpdir_NDX = 1 + _https_proxyPort_NDX;
+        @Native private static final int _java_awt_headless_NDX = 1 + _https_proxyPort_NDX;
+        @Native private static final int _java_io_tmpdir_NDX = 1 + _java_awt_headless_NDX;
         @Native private static final int _line_separator_NDX = 1 + _java_io_tmpdir_NDX;
         @Native private static final int _os_arch_NDX = 1 + _line_separator_NDX;
         @Native private static final int _os_name_NDX = 1 + _os_arch_NDX;

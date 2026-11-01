@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -393,10 +393,11 @@ extends KeyAgreementSpi {
             throw new NoSuchAlgorithmException("null algorithm");
         }
 
-        if (!KeyUtil.isSupportedKeyAgreementOutputAlgorithm(algorithm) &&
-                !AllowKDF.VALUE) {
-            throw new NoSuchAlgorithmException(
-                    "Unsupported secret key algorithm: " + algorithm);
+        if (!algorithm.equalsIgnoreCase("TlsPremasterSecret") &&
+            !AllowKDF.VALUE) {
+
+            throw new NoSuchAlgorithmException("Unsupported secret key "
+                                               + "algorithm: " + algorithm);
         }
 
         byte[] secret = engineGenerateSecret();
@@ -434,17 +435,13 @@ extends KeyAgreementSpi {
                 throw new InvalidKeyException("Key material is too short");
             }
             return skey;
-        } else if (KeyUtil.isSupportedKeyAgreementOutputAlgorithm(algorithm)) {
-            if (algorithm.equalsIgnoreCase("TlsPremasterSecret")) {
-                // remove leading zero bytes per RFC 5246 Section 8.1.2
-                return new SecretKeySpec(
+        } else if (algorithm.equals("TlsPremasterSecret")) {
+            // remove leading zero bytes per RFC 5246 Section 8.1.2
+            return new SecretKeySpec(
                         KeyUtil.trimZeroes(secret), "TlsPremasterSecret");
-            } else {
-                return new SecretKeySpec(secret, algorithm);
-            }
         } else {
-            throw new NoSuchAlgorithmException(
-                    "Unsupported secret key algorithm: " + algorithm);
+            throw new NoSuchAlgorithmException("Unsupported secret key "
+                                               + "algorithm: "+ algorithm);
         }
     }
 }

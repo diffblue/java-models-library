@@ -113,11 +113,57 @@ public final class ModuleLoaderMap {
     private static class Modules {
         // list of boot modules is generated at build time.
         private static final Set<String> bootModules =
-                Set.of(new String[] { "@@BOOT_MODULE_NAMES@@" });
+                Set.of(new String[] { "java.base",
+            "java.datatransfer",
+            "java.desktop",
+            "java.instrument",
+            "java.logging",
+            "java.management",
+            "java.management.rmi",
+            "java.naming",
+            "java.prefs",
+            "java.rmi",
+            "java.security.sasl",
+            "java.xml",
+            "jdk.incubator.vector",
+            "jdk.internal.vm.ci",
+            "jdk.jfr",
+            "jdk.management",
+            "jdk.management.agent",
+            "jdk.management.jfr",
+            "jdk.naming.rmi",
+            "jdk.net",
+            "jdk.nio.mapmode",
+            "jdk.sctp",
+            "jdk.unsupported" });
 
         // list of platform modules is generated at build time.
         private static final Set<String> platformModules =
-                Set.of(new String[] { "@@PLATFORM_MODULE_NAMES@@" });
+                Set.of(new String[] { "java.compiler",
+            "java.net.http",
+            "java.scripting",
+            "java.se",
+            "java.security.jgss",
+            "java.smartcardio",
+            "java.sql",
+            "java.sql.rowset",
+            "java.transaction.xa",
+            "java.xml.crypto",
+            "jdk.accessibility",
+            "jdk.charsets",
+            "jdk.crypto.cryptoki",
+            "jdk.crypto.ec",
+            "jdk.dynalink",
+            "jdk.httpserver",
+            "jdk.internal.vm.compiler",
+            "jdk.internal.vm.compiler.management",
+            "jdk.jsobject",
+            "jdk.localedata",
+            "jdk.naming.dns",
+            "jdk.security.auth",
+            "jdk.security.jgss",
+            "jdk.xml.dom",
+            "jdk.zipfs" });
     }
 
     /**
