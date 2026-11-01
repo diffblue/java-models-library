@@ -25,7 +25,8 @@
 
 package java.lang;
 
-import jdk.internal.vm.annotation.IntrinsicCandidate;
+import org.cprover.CProver;
+import org.cprover.CProverString;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -87,6 +88,16 @@ import java.io.StreamCorruptedException;
  * @see         java.lang.StringBuffer
  * @see         java.lang.String
  * @since       1.5
+ *
+ * @cprover.limitedSupport
+ * Unlike the real class, this one must explicitly re-declare every method
+ * that JBMC's string-refinement intercepts by exact class+signature
+ * (length, charAt, codePointAt/Before/Count, substring), since real JDK 21
+ * leaves those inherited from {@link AbstractStringBuilder}, but JBMC's
+ * interception is keyed on the symbol actually invoked, which for an
+ * inherited method is {@code AbstractStringBuilder}'s (unmodelled) one, not
+ * {@code StringBuilder}'s. See {@link AbstractStringBuilder}'s class
+ * Javadoc for the full explanation.
  */
 public final class StringBuilder
     extends AbstractStringBuilder
@@ -101,7 +112,6 @@ public final class StringBuilder
      * Constructs a string builder with no characters in it and an
      * initial capacity of 16 characters.
      */
-    @IntrinsicCandidate
     public StringBuilder() {
         super(16);
     }
@@ -114,7 +124,6 @@ public final class StringBuilder
      * @throws     NegativeArraySizeException  if the {@code capacity}
      *               argument is less than {@code 0}.
      */
-    @IntrinsicCandidate
     public StringBuilder(int capacity) {
         super(capacity);
     }
@@ -126,7 +135,6 @@ public final class StringBuilder
      *
      * @param   str   the initial contents of the buffer.
      */
-    @IntrinsicCandidate
     public StringBuilder(String str) {
         super(str);
     }
@@ -162,22 +170,36 @@ public final class StringBuilder
      * is lexicographically greater than the {@code StringBuilder} argument.
      *
      * @since 11
+     *
+     * @cprover.fullSupport
      */
     @Override
     public int compareTo(StringBuilder another) {
-        return super.compareTo(another);
+        int len1 = length();
+        int len2 = another.length();
+        int lim = Math.min(len1, len2);
+        for (int i = 0; i < lim; i++) {
+            char c1 = charAt(i);
+            char c2 = another.charAt(i);
+            if (c1 != c2) {
+                return c1 - c2;
+            }
+        }
+        return len1 - len2;
     }
 
     @Override
     public StringBuilder append(Object obj) {
-        return append(String.valueOf(obj));
+        String temp = (obj == null) ? "null" : obj.toString();
+        return append(temp);
     }
 
     @Override
-    @IntrinsicCandidate
     public StringBuilder append(String str) {
-        super.append(str);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -198,78 +220,103 @@ public final class StringBuilder
      *
      * @param   sb   the {@code StringBuffer} to append.
      * @return  a reference to this object.
+     *
+     * @cprover.fullSupport
      */
     public StringBuilder append(StringBuffer sb) {
-        super.append(sb);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     @Override
     public StringBuilder append(CharSequence s) {
-        super.append(s);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @throws     IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder append(CharSequence s, int start, int end) {
-        super.append(s, start, end);
-        return this;
+        if ((start < 0) || (start > end) || (end > s.length())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return CProverString.append(this, s, start, end);
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public StringBuilder append(char[] str) {
-        super.append(str);
-        return this;
+        return append(CProverString.ofCharArray(str, 0, str.length));
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder append(char[] str, int offset, int len) {
-        super.append(str, offset, len);
-        return this;
+        return append(CProverString.ofCharArray(str, offset, len));
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public StringBuilder append(boolean b) {
-        super.append(b);
-        return this;
+        return append(String.valueOf(b));
     }
 
     @Override
-    @IntrinsicCandidate
     public StringBuilder append(char c) {
-        super.append(c);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
-    @IntrinsicCandidate
     public StringBuilder append(int i) {
-        super.append(i);
-        return this;
+        return append(CProverString.toString(i));
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public StringBuilder append(long lng) {
-        super.append(lng);
-        return this;
+        return append(CProverString.toString(lng));
     }
 
+    /**
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(float)}.
+     */
     @Override
     public StringBuilder append(float f) {
-        super.append(f);
-        return this;
+        return append(CProverString.toString(f));
     }
 
+    /**
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(double)}.
+     */
     @Override
     public StringBuilder append(double d) {
-        super.append(d);
-        return this;
+        return append(CProverString.toString(d));
     }
 
     /**
@@ -277,172 +324,243 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder appendCodePoint(int codePoint) {
-        super.appendCodePoint(codePoint);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder delete(int start, int end) {
-        super.delete(start, end);
-        return this;
+        if (start < 0) {
+            throw new StringIndexOutOfBoundsException(start);
+        }
+        if (end > this.length()) {
+            end = this.length();
+        }
+        if (start > end) {
+            throw new StringIndexOutOfBoundsException();
+        }
+        return CProverString.delete(this, start, end);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder deleteCharAt(int index) {
-        super.deleteCharAt(index);
-        return this;
+        if ((index < 0) || (index >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
+        return CProverString.deleteCharAt(this, index);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.noSupport There is no primitive to build a replace operation
+     *   from.
      */
     @Override
     public StringBuilder replace(int start, int end, String str) {
-        super.replace(start, end, str);
-        return this;
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int index, char[] str, int offset,
                                 int len)
     {
-        super.insert(index, str, offset, len);
-        return this;
+        return insert(index, CProverString.ofCharArray(str, offset, len));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, Object obj) {
-            super.insert(offset, obj);
-            return this;
+        return insert(offset, String.valueOf(obj));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, String str) {
-        super.insert(offset, str);
-        return this;
+        if ((offset < 0) || (offset > length())) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        return CProverString.insert(this, offset, str);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, char[] str) {
-        super.insert(offset, str);
-        return this;
+        return insert(offset, CProverString.ofCharArray(str, 0, str.length));
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int dstOffset, CharSequence s) {
-            super.insert(dstOffset, s);
-            return this;
+        return insert(dstOffset, s == null ? "null" : s.toString());
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int dstOffset, CharSequence s,
                                 int start, int end)
     {
-        super.insert(dstOffset, s, start, end);
-        return this;
+        if (s == null) {
+            s = "null";
+        }
+        if ((start < 0) || (end < 0) || (start > end) || (end > s.length())
+                || (dstOffset < 0) || (dstOffset > length())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return insert(dstOffset, CProverString.substring(s.toString(), start, end));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, boolean b) {
-        super.insert(offset, b);
-        return this;
+        return insert(offset, String.valueOf(b));
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, char c) {
-        super.insert(offset, c);
-        return this;
+        return insert(offset, CProverString.ofCharArray(new char[] {c}, 0, 1));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, int i) {
-        super.insert(offset, i);
-        return this;
+        return insert(offset, CProverString.toString(i));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder insert(int offset, long l) {
-        super.insert(offset, l);
-        return this;
+        return insert(offset, CProverString.toString(l));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(float)}.
      */
     @Override
     public StringBuilder insert(int offset, float f) {
-        super.insert(offset, f);
-        return this;
+        return insert(offset, CProverString.toString(f));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(double)}.
      */
     @Override
     public StringBuilder insert(int offset, double d) {
-        super.insert(offset, d);
-        return this;
+        return insert(offset, CProverString.toString(d));
     }
 
+    /**
+     * @cprover.noSupport There is no primitive to build an indexOf
+     *   operation from.
+     */
     @Override
     public int indexOf(String str) {
-        return super.indexOf(str);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
+    /**
+     * @cprover.noSupport See {@link #indexOf(String)}.
+     */
     @Override
     public int indexOf(String str, int fromIndex) {
-        return super.indexOf(str, fromIndex);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
+    /**
+     * @cprover.noSupport See {@link #indexOf(String)}.
+     */
     @Override
     public int lastIndexOf(String str) {
-        return super.lastIndexOf(str);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
+    /**
+     * @cprover.noSupport See {@link #indexOf(String)}.
+     */
     @Override
     public int lastIndexOf(String str, int fromIndex) {
-        return super.lastIndexOf(str, fromIndex);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public StringBuilder reverse() {
-        super.reverse();
+        int size = this.length();
+        if (size < 2) {
+            return this;
+        }
+        String tmp = this.toString();
+        CProverString.delete(this, 0, size);
+        for (int i = size - 1; i >= 0; --i) {
+            this.append(CProverString.charAt(tmp, i));
+        }
         return this;
     }
 
@@ -450,10 +568,21 @@ public final class StringBuilder
      * @throws IllegalArgumentException {@inheritDoc}
      *
      * @since 21
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder repeat(int codePoint, int count) {
-        super.repeat(codePoint, count);
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException(
+                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+        }
+        if (count < 0) {
+            throw new IllegalArgumentException("count is negative: " + count);
+        }
+        for (int i = 0; i < count; i++) {
+            appendCodePoint(codePoint);
+        }
         return this;
     }
 
@@ -461,18 +590,200 @@ public final class StringBuilder
      * @throws IllegalArgumentException {@inheritDoc}
      *
      * @since 21
+     *
+     * @cprover.fullSupport
      */
     @Override
     public StringBuilder repeat(CharSequence cs, int count) {
-        super.repeat(cs, count);
+        if (count < 0) {
+            throw new IllegalArgumentException("count is negative: " + count);
+        }
+        for (int i = 0; i < count; i++) {
+            append(cs);
+        }
         return this;
     }
 
     @Override
-    @IntrinsicCandidate
     public String toString() {
-        // Create a copy, don't share the array
-        return new String(this);
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public int length() {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public char charAt(int index) {
+        CProver.notModelled();
+        return CProver.nondetChar();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public int codePointAt(int index) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public int codePointBefore(int index) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public int codePointCount(int beginIndex, int endIndex) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}); no StringBuilder-specific primitive exists
+     * for this, so it is composed from {@link #toString} (intercepted) and
+     * {@link CProverString#offsetByCodePoints(String, int, int)}.
+     *
+     * @cprover.fullSupport
+     */
+    @Override
+    public int offsetByCodePoints(int index, int codePointOffset) {
+        return CProverString.offsetByCodePoints(this.toString(), index, codePointOffset);
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public String substring(int start) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}), but must be re-declared here: see this
+     * class's Javadoc.
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
+     */
+    @Override
+    public String substring(int start, int end) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}); composed from {@link #substring(int, int)}.
+     *
+     * @cprover.fullSupport
+     */
+    @Override
+    public CharSequence subSequence(int start, int end) {
+        return substring(start, end);
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}); no primitive exists for this, so it is
+     * composed from {@link #charAt} (intercepted).
+     *
+     * @cprover.fullSupport
+     */
+    public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
+        if (srcBegin < 0 || srcEnd > length() || srcBegin > srcEnd) {
+            throw new IndexOutOfBoundsException();
+        }
+        for (int i = srcBegin; i < srcEnd; i++) {
+            dst[dstBegin + i - srcBegin] = charAt(i);
+        }
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}); composed from {@link
+     * CProverString#setCharAt(StringBuilder, int, char)}.
+     *
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @see    #length()
+     *
+     * @cprover.fullSupport
+     */
+    @Override
+    public void setCharAt(int index, char ch) {
+        if ((index < 0) || (index >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
+        CProverString.setCharAt(this, index, ch);
+    }
+
+    /**
+     * Not declared by real JDK 21 (inherited from {@link
+     * AbstractStringBuilder}); composed from {@link
+     * CProverString#setLength(StringBuilder, int)}.
+     *
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @see    #length()
+     *
+     * @cprover.fullSupport
+     */
+    @Override
+    public void setLength(int newLength) {
+        if (newLength < 0) {
+            throw new StringIndexOutOfBoundsException(newLength);
+        }
+        CProverString.setLength(this, newLength);
     }
 
     /**

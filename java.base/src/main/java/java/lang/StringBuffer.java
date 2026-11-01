@@ -25,6 +25,9 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+import org.cprover.CProverString;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -32,7 +35,6 @@ import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
 import java.io.StreamCorruptedException;
-import jdk.internal.vm.annotation.IntrinsicCandidate;
 
 /**
  * A thread-safe, mutable sequence of characters.
@@ -108,17 +110,21 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
  * @see     java.lang.StringBuilder
  * @see     java.lang.String
  * @since   1.0
+ *
+ * @cprover.limitedSupport
+ * Unlike the real class, several methods here must avoid the real
+ * inherited {@code super.xxx()} logic and instead be composed directly
+ * from {@code org.cprover.CProverString} helpers or other already-correct
+ * methods on this class: the real bodies delegate to {@link
+ * AbstractStringBuilder}, which cannot be made correct here (see its
+ * class Javadoc). The dropped {@code toStringCache} field/bookkeeping is
+ * moot either way since {@link #toString} is always replaced wholesale by
+ * JBMC's string-refinement.
  */
  public final class StringBuffer
     extends AbstractStringBuilder
     implements Appendable, Serializable, Comparable<StringBuffer>, CharSequence
 {
-
-    /**
-     * A cache of the last value returned by toString. Cleared
-     * whenever the StringBuffer is modified.
-     */
-    private transient String toStringCache;
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
     @Serial
@@ -128,7 +134,6 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * Constructs a string buffer with no characters in it and an
      * initial capacity of 16 characters.
      */
-    @IntrinsicCandidate
     public StringBuffer() {
         super(16);
     }
@@ -140,10 +145,14 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * @param      capacity  the initial capacity.
      * @throws     NegativeArraySizeException  if the {@code capacity}
      *             argument is less than {@code 0}.
+     *
+     * @cprover.limitedSupport {@code capacity} is a pure pre-allocation
+     *   performance hint with no observable effect, so it is discarded:
+     *   this delegates to the no-arg constructor, which is directly
+     *   intercepted (unlike this one).
      */
-    @IntrinsicCandidate
     public StringBuffer(int capacity) {
-        super(capacity);
+        this();
     }
 
     /**
@@ -153,7 +162,6 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      *
      * @param   str   the initial contents of the buffer.
      */
-    @IntrinsicCandidate
     public StringBuffer(String str) {
         super(str);
     }
@@ -166,9 +174,12 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      *
      * @param      seq   the sequence to copy.
      * @since 1.5
+     *
+     * @cprover.fullSupport Delegates to the {@code String}-arg constructor,
+     *   which is directly intercepted (unlike this one).
      */
     public StringBuffer(CharSequence seq) {
-        super(seq);
+        this(seq == null ? "null" : seq.toString());
     }
 
     /**
@@ -194,124 +205,188 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * is lexicographically greater than the {@code StringBuffer} argument.
      *
      * @since 11
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized int compareTo(StringBuffer another) {
-        return super.compareTo(another);
+        int len1 = length();
+        int len2 = another.length();
+        int lim = Math.min(len1, len2);
+        for (int i = 0; i < lim; i++) {
+            char c1 = charAt(i);
+            char c2 = another.charAt(i);
+            if (c1 != c2) {
+                return c1 - c2;
+            }
+        }
+        return len1 - len2;
     }
 
     @Override
     public synchronized int length() {
-        return count;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
+    /**
+     * @cprover.noSupport There is no primitive to query the true capacity.
+     */
     @Override
     public synchronized int capacity() {
-        return super.capacity();
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
-
+    /**
+     * @cprover.noSupport See {@link #capacity()}.
+     */
     @Override
     public synchronized void ensureCapacity(int minimumCapacity) {
-        super.ensureCapacity(minimumCapacity);
+        CProver.notModelled();
     }
 
     /**
      * @since      1.5
+     *
+     * @cprover.noSupport See {@link #capacity()}.
      */
     @Override
     public synchronized void trimToSize() {
-        super.trimToSize();
+        CProver.notModelled();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @see        #length()
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized void setLength(int newLength) {
-        toStringCache = null;
-        super.setLength(newLength);
+        if (newLength < 0) {
+            throw new StringIndexOutOfBoundsException(newLength);
+        }
+        CProverString.setLength(this, newLength);
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @see        #length()
+     *
+     * @cprover.fullSupport Not directly intercepted for this class (unlike
+     *   {@code StringBuilder.charAt}); composed from {@link
+     *   CProverString#charAt(StringBuffer, int)}.
      */
     @Override
     public synchronized char charAt(int index) {
-        return super.charAt(index);
+        if ((index < 0) || (index >= length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
+        return CProverString.charAt(this, index);
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since      1.5
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
      */
     @Override
     public synchronized int codePointAt(int index) {
-        return super.codePointAt(index);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since     1.5
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
      */
     @Override
     public synchronized int codePointBefore(int index) {
-        return super.codePointBefore(index);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since     1.5
+     *
+     * @cprover.noSupport Handled by JBMC's string-refinement (exact
+     *   signature match); this body is never executed.
      */
     @Override
     public synchronized int codePointCount(int beginIndex, int endIndex) {
-        return super.codePointCount(beginIndex, endIndex);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since     1.5
+     *
+     * @cprover.fullSupport No StringBuffer-specific primitive exists for
+     *   this; composed from {@link #toString} (intercepted) and {@link
+     *   CProverString#offsetByCodePoints(String, int, int)}.
      */
     @Override
     public synchronized int offsetByCodePoints(int index, int codePointOffset) {
-        return super.offsetByCodePoints(index, codePointOffset);
+        return CProverString.offsetByCodePoints(this.toString(), index, codePointOffset);
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport No primitive exists for this; composed from
+     *   {@link #charAt} (which routes through {@link
+     *   CProverString#charAt(StringBuffer, int)}).
      */
     @Override
     public synchronized void getChars(int srcBegin, int srcEnd, char[] dst,
                                       int dstBegin)
     {
-        super.getChars(srcBegin, srcEnd, dst, dstBegin);
+        if (srcBegin < 0 || srcEnd > length() || srcBegin > srcEnd) {
+            throw new IndexOutOfBoundsException();
+        }
+        for (int i = srcBegin; i < srcEnd; i++) {
+            dst[dstBegin + i - srcBegin] = charAt(i);
+        }
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @see        #length()
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized void setCharAt(int index, char ch) {
-        toStringCache = null;
-        super.setCharAt(index, ch);
+        if ((index < 0) || (index >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
+        CProverString.setCharAt(this, index, ch);
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public synchronized StringBuffer append(Object obj) {
-        toStringCache = null;
-        super.append(String.valueOf(obj));
-        return this;
+        return append(obj == null ? "null" : obj.toString());
     }
 
     @Override
-    @IntrinsicCandidate
     public synchronized StringBuffer append(String str) {
-        toStringCache = null;
-        super.append(str);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -339,19 +414,22 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * @since 1.4
      */
     public synchronized StringBuffer append(StringBuffer sb) {
-        toStringCache = null;
-        super.append(sb);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @since 1.8
+     *
+     * @cprover.noSupport There is no primitive to build an arbitrary
+     *   AbstractStringBuilder append from.
      */
     @Override
     synchronized StringBuffer append(AbstractStringBuilder asb) {
-        toStringCache = null;
-        super.append(asb);
-        return this;
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -377,61 +455,70 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      */
     @Override
     public synchronized StringBuffer append(CharSequence s) {
-        toStringCache = null;
-        super.append(s);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since      1.5
+     *
+     * @cprover.fullSupport No primitive exists for a range-limited append
+     *   to this class (only to {@code StringBuilder}); composed via {@link
+     *   #toString} on {@code s} and {@link
+     *   CProverString#substring(String, int, int)}.
      */
     @Override
     public synchronized StringBuffer append(CharSequence s, int start, int end)
     {
-        toStringCache = null;
-        super.append(s, start, end);
-        return this;
+        if ((start < 0) || (start > end) || (end > s.length())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return append(CProverString.substring(s.toString(), start, end));
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public synchronized StringBuffer append(char[] str) {
-        toStringCache = null;
-        super.append(str);
-        return this;
+        return append(CProverString.ofCharArray(str, 0, str.length));
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer append(char[] str, int offset, int len) {
-        toStringCache = null;
-        super.append(str, offset, len);
-        return this;
+        return append(CProverString.ofCharArray(str, offset, len));
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public synchronized StringBuffer append(boolean b) {
-        toStringCache = null;
-        super.append(b);
-        return this;
+        return append(String.valueOf(b));
     }
 
     @Override
-    @IntrinsicCandidate
     public synchronized StringBuffer append(char c) {
-        toStringCache = null;
-        super.append(c);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
-    @IntrinsicCandidate
     public synchronized StringBuffer append(int i) {
-        toStringCache = null;
-        super.append(i);
-        return this;
+        return append(CProverString.toString(i));
     }
 
     /**
@@ -439,63 +526,83 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      */
     @Override
     public synchronized StringBuffer appendCodePoint(int codePoint) {
-        toStringCache = null;
-        super.appendCodePoint(codePoint);
-        return this;
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
+    /**
+     * @cprover.fullSupport
+     */
     @Override
     public synchronized StringBuffer append(long lng) {
-        toStringCache = null;
-        super.append(lng);
-        return this;
+        return append(CProverString.toString(lng));
     }
 
+    /**
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(float)}.
+     */
     @Override
     public synchronized StringBuffer append(float f) {
-        toStringCache = null;
-        super.append(f);
-        return this;
+        return append(CProverString.toString(f));
     }
 
+    /**
+     * @cprover.limitedSupport Result string approximates the value: see
+     *   {@link CProverString#toString(double)}.
+     */
     @Override
     public synchronized StringBuffer append(double d) {
-        toStringCache = null;
-        super.append(d);
-        return this;
+        return append(CProverString.toString(d));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
      * @since      1.2
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer delete(int start, int end) {
-        toStringCache = null;
-        super.delete(start, end);
-        return this;
+        if (start < 0) {
+            throw new StringIndexOutOfBoundsException(start);
+        }
+        if (end > this.length()) {
+            end = this.length();
+        }
+        if (start > end) {
+            throw new StringIndexOutOfBoundsException();
+        }
+        return CProverString.delete(this, start, end);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
      * @since      1.2
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer deleteCharAt(int index) {
-        toStringCache = null;
-        super.deleteCharAt(index);
-        return this;
+        if ((index < 0) || (index >= this.length())) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
+        return CProverString.deleteCharAt(this, index);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
      * @since      1.2
+     *
+     * @cprover.noSupport There is no primitive to build a replace
+     *   operation from.
      */
     @Override
     public synchronized StringBuffer replace(int start, int end, String str) {
-        toStringCache = null;
-        super.replace(start, end, str);
-        return this;
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -504,207 +611,251 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      */
     @Override
     public synchronized String substring(int start) {
-        return substring(start, count);
+        return substring(start, length());
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since      1.4
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized CharSequence subSequence(int start, int end) {
-        return super.substring(start, end);
+        return substring(start, end);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
      * @since      1.2
+     *
+     * @cprover.fullSupport No {@code substring(II)} table entry exists
+     *   for this class (unlike {@code substring(I)}); composed from {@link
+     *   CProverString#substring(StringBuffer, int, int)}.
      */
     @Override
     public synchronized String substring(int start, int end) {
-        return super.substring(start, end);
+        return CProverString.substring(this, start, end);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
      * @since      1.2
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer insert(int index, char[] str, int offset,
                                             int len)
     {
-        toStringCache = null;
-        super.insert(index, str, offset, len);
-        return this;
+        return insert(index, CProverString.ofCharArray(str, offset, len));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer insert(int offset, Object obj) {
-        toStringCache = null;
-        super.insert(offset, String.valueOf(obj));
-        return this;
+        return insert(offset, String.valueOf(obj));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer insert(int offset, String str) {
-        toStringCache = null;
-        super.insert(offset, str);
-        return this;
+        if ((offset < 0) || (offset > length())) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        return CProverString.insert(this, offset, str);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer insert(int offset, char[] str) {
-        toStringCache = null;
-        super.insert(offset, str);
-        return this;
+        return insert(offset, CProverString.ofCharArray(str, 0, str.length));
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since      1.5
+     *
+     * @cprover.fullSupport
      */
     @Override
-    public StringBuffer insert(int dstOffset, CharSequence s) {
-        // Note, synchronization achieved via invocations of other StringBuffer methods
-        // after narrowing of s to specific type
-        // Ditto for toStringCache clearing
-        super.insert(dstOffset, s);
-        return this;
+    public synchronized StringBuffer insert(int dstOffset, CharSequence s) {
+        return insert(dstOffset, s == null ? "null" : s.toString());
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @since      1.5
+     *
+     * @cprover.fullSupport No primitive exists for a range-limited
+     *   CharSequence insert; composed from {@link #toString} on {@code s}
+     *   and {@link CProverString#substring(String, int, int)}.
      */
     @Override
     public synchronized StringBuffer insert(int dstOffset, CharSequence s,
             int start, int end)
     {
-        toStringCache = null;
-        super.insert(dstOffset, s, start, end);
-        return this;
+        if (s == null) {
+            s = "null";
+        }
+        if ((start < 0) || (end < 0) || (start > end) || (end > s.length())
+                || (dstOffset < 0) || (dstOffset > length())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return insert(dstOffset, CProverString.substring(s.toString(), start, end));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
-    public  StringBuffer insert(int offset, boolean b) {
-        // Note, synchronization achieved via invocation of StringBuffer insert(int, String)
-        // after conversion of b to String by super class method
-        // Ditto for toStringCache clearing
-        super.insert(offset, b);
-        return this;
+    public synchronized StringBuffer insert(int offset, boolean b) {
+        if ((offset < 0) || (offset > length())) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        return CProverString.insert(this, offset, b);
     }
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer insert(int offset, char c) {
-        toStringCache = null;
-        super.insert(offset, c);
-        return this;
+        if ((offset < 0) || (offset > length())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return CProverString.insert(this, offset, c);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
-    public StringBuffer insert(int offset, int i) {
-        // Note, synchronization achieved via invocation of StringBuffer insert(int, String)
-        // after conversion of i to String by super class method
-        // Ditto for toStringCache clearing
-        super.insert(offset, i);
-        return this;
+    public synchronized StringBuffer insert(int offset, int i) {
+        if ((offset < 0) || (offset > length())) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        return CProverString.insert(this, offset, i);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.fullSupport
      */
     @Override
-    public StringBuffer insert(int offset, long l) {
-        // Note, synchronization achieved via invocation of StringBuffer insert(int, String)
-        // after conversion of l to String by super class method
-        // Ditto for toStringCache clearing
-        super.insert(offset, l);
-        return this;
+    public synchronized StringBuffer insert(int offset, long l) {
+        if ((offset < 0) || (offset > length())) {
+            throw new StringIndexOutOfBoundsException(offset);
+        }
+        return CProverString.insert(this, offset, l);
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.limitedSupport No {@code insert(StringBuffer,int,float)}
+     *   primitive exists; converts via {@link
+     *   CProverString#toString(float)} (which approximates the value) and
+     *   then inserts the resulting String.
      */
     @Override
-    public StringBuffer insert(int offset, float f) {
-        // Note, synchronization achieved via invocation of StringBuffer insert(int, String)
-        // after conversion of f to String by super class method
-        // Ditto for toStringCache clearing
-        super.insert(offset, f);
-        return this;
+    public synchronized StringBuffer insert(int offset, float f) {
+        return insert(offset, CProverString.toString(f));
     }
 
     /**
      * @throws StringIndexOutOfBoundsException {@inheritDoc}
+     *
+     * @cprover.limitedSupport No {@code insert(StringBuffer,int,double)}
+     *   primitive exists; converts via {@link
+     *   CProverString#toString(double)} (which approximates the value) and
+     *   then inserts the resulting String.
      */
     @Override
-    public StringBuffer insert(int offset, double d) {
-        // Note, synchronization achieved via invocation of StringBuffer insert(int, String)
-        // after conversion of d to String by super class method
-        // Ditto for toStringCache clearing
-        super.insert(offset, d);
-        return this;
+    public synchronized StringBuffer insert(int offset, double d) {
+        return insert(offset, CProverString.toString(d));
     }
 
     /**
      * @since      1.4
+     *
+     * @cprover.noSupport There is no primitive to build an indexOf
+     *   operation from.
      */
     @Override
-    public int indexOf(String str) {
-        // Note, synchronization achieved via invocations of other StringBuffer methods
-        return super.indexOf(str);
+    public synchronized int indexOf(String str) {
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @since      1.4
+     *
+     * @cprover.noSupport See {@link #indexOf(String)}.
      */
     @Override
     public synchronized int indexOf(String str, int fromIndex) {
-        return super.indexOf(str, fromIndex);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @since      1.4
+     *
+     * @cprover.noSupport See {@link #indexOf(String)}.
      */
     @Override
-    public int lastIndexOf(String str) {
-        // Note, synchronization achieved via invocations of other StringBuffer methods
-        return lastIndexOf(str, count);
+    public synchronized int lastIndexOf(String str) {
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @since      1.4
+     *
+     * @cprover.noSupport See {@link #indexOf(String)}.
      */
     @Override
     public synchronized int lastIndexOf(String str, int fromIndex) {
-        return super.lastIndexOf(str, fromIndex);
+        CProver.notModelled();
+        return CProver.nondetInt();
     }
 
     /**
      * @since   1.0.2
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer reverse() {
-        toStringCache = null;
-        super.reverse();
+        int size = this.length();
+        if (size < 2) {
+            return this;
+        }
+        String tmp = this.toString();
+        CProverString.delete(this, 0, size);
+        for (int i = size - 1; i >= 0; --i) {
+            this.append(CProverString.charAt(tmp, i));
+        }
         return this;
     }
 
@@ -712,11 +863,21 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * @throws IllegalArgumentException {@inheritDoc}
      *
      * @since 21
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer repeat(int codePoint, int count) {
-        toStringCache = null;
-        super.repeat(codePoint, count);
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException(
+                String.format("Not a valid Unicode code point: 0x%X", codePoint));
+        }
+        if (count < 0) {
+            throw new IllegalArgumentException("count is negative: " + count);
+        }
+        for (int i = 0; i < count; i++) {
+            appendCodePoint(codePoint);
+        }
         return this;
     }
 
@@ -724,21 +885,26 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
      * @throws IllegalArgumentException {@inheritDoc}
      *
      * @since 21
+     *
+     * @cprover.fullSupport
      */
     @Override
     public synchronized StringBuffer repeat(CharSequence cs, int count) {
-        toStringCache = null;
-        super.repeat(cs, count);
+        if (count < 0) {
+            throw new IllegalArgumentException("count is negative: " + count);
+        }
+        for (int i = 0; i < count; i++) {
+            append(cs);
+        }
         return this;
     }
 
     @Override
-    @IntrinsicCandidate
     public synchronized String toString() {
-        if (toStringCache == null) {
-            return toStringCache = new String(this, null);
-        }
-        return new String(toStringCache);
+        // Handled by JBMC's string-refinement (exact signature match);
+        // this body is never executed.
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
