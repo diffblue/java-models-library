@@ -1,0 +1,86 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.cprover.models</groupId>
+    <artifactId>models</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>java.base</artifactId>
+  <packaging>jar</packaging>
+
+  <name>CProver JDK Models - java.base</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cprover.util</groupId>
+      <artifactId>cprover-api</artifactId>
+      <version>1.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!--
+      This is the only module, so build straight into the top-level
+      target/ directory: other build systems (jbmc/CMakeLists.txt,
+      jbmc/src/Makefile) expect core-models.jar and cprover-api.jar at
+      java-models-library/target/, not java-models-library/java.base/target/.
+    -->
+    <directory>${project.basedir}/../target</directory>
+    <finalName>core-models</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>21</release>
+          <!--
+            These sources replace/extend the java.base module itself, so
+            they must be compiled as a patch to java.base rather than as
+            ordinary classpath sources (javac otherwise rejects user code
+            in java.*/javax.*/jdk.* packages with "package exists in
+            another module").
+          -->
+          <compilerArgs>
+            <arg>--patch-module</arg>
+            <arg>java.base=${project.basedir}/src/main/java</arg>
+            <arg>--add-reads</arg>
+            <arg>java.base=ALL-UNNAMED</arg>
+          </compilerArgs>
+          <excludes>
+            <!-- Javadoc @snippet example sources, not meant to be compiled -->
+            <exclude>**/snippet-files/**</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>copy-cprover-api</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.cprover.util</groupId>
+                  <artifactId>cprover-api</artifactId>
+                  <outputDirectory>${project.build.directory}</outputDirectory>
+                  <destFileName>cprover-api.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
