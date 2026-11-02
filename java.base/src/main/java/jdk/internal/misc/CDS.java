@@ -75,10 +75,28 @@ public class CDS {
         return isSharingEnabled;
     }
 
-    private static native boolean isDumpingClassList0();
-    private static native boolean isDumpingArchive0();
-    private static native boolean isSharingEnabled0();
-    private static native void logLambdaFormInvoker(String line);
+    /**
+     * @cprover.fullSupport Class Data Sharing is a JVM startup-time
+     *   caching optimization, irrelevant under JBMC: there is no
+     *   archive to dump to or share from.
+     */
+    private static boolean isDumpingClassList0() { return false; }
+
+    /**
+     * @cprover.fullSupport See {@link #isDumpingClassList0}.
+     */
+    private static boolean isDumpingArchive0() { return false; }
+
+    /**
+     * @cprover.fullSupport See {@link #isDumpingClassList0}.
+     */
+    private static boolean isSharingEnabled0() { return false; }
+
+    /**
+     * @cprover.fullSupport Only called while dumping a class list (see
+     *   {@link #isDumpingClassList0}), which never happens here.
+     */
+    private static void logLambdaFormInvoker(String line) {}
 
     /**
      * Initialize archived static fields in the given Class using archived
@@ -89,20 +107,31 @@ public class CDS {
      * java heap data or there is any error during initialization of the
      * object class in the archived graph.
      */
-    public static native void initializeFromArchive(Class<?> c);
+    /**
+     * @cprover.fullSupport No-op: there is no archive to initialize
+     *   from (see {@link #isDumpingClassList0}), so callers' fallback
+     *   (uninitialized/default-computed static fields) applies.
+     */
+    public static void initializeFromArchive(Class<?> c) {}
 
     /**
      * Ensure that the native representation of all archived java.lang.Module objects
      * are properly restored.
+     *
+     * @cprover.fullSupport No-op: see {@link #initializeFromArchive}.
      */
-    public static native void defineArchivedModules(ClassLoader platformLoader, ClassLoader systemLoader);
+    public static void defineArchivedModules(ClassLoader platformLoader, ClassLoader systemLoader) {}
 
     /**
      * Returns a predictable "random" seed derived from the VM's build ID and version,
      * to be used by java.util.ImmutableCollections to ensure that archived
      * ImmutableCollections are always sorted the same order for the same VM build.
+     *
+     * @cprover.fullSupport Always 0 (no archive build ID to derive a
+     *   seed from); callers fall back to a real random/time-based seed
+     *   in that case.
      */
-    public static native long getRandomSeedForDumping();
+    public static long getRandomSeedForDumping() { return 0; }
 
     /**
      * log lambda form invoker holder, name and method type
