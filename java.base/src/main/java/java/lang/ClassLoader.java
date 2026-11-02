@@ -231,7 +231,12 @@ import sun.security.util.SecurityConstants;
  */
 public abstract class ClassLoader {
 
-    private static native void registerNatives();
+    /**
+     * @cprover.fullSupport No-op, matching Class/System/Thread/Unsafe's
+     *   registerNatives(): real JNI method registration is irrelevant
+     *   under JBMC.
+     */
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
@@ -1635,9 +1640,18 @@ public abstract class ClassLoader {
      *
      * @since   1.7
      */
+    /**
+     * @cprover.fullSupport Always true: whether a class loader allows
+     *   concurrent class loading across threads is a pure performance
+     *   detail, irrelevant to verification. Does not go through
+     *   {@link Reflection#getCallerClass}, since that cannot identify
+     *   the real calling subclass (see {@link #registerAsParallelCapable(Class)}'s
+     *   check, which this call pattern - very common in a ClassLoader
+     *   subclass's own static initializer - would otherwise always fail.
+     */
     @CallerSensitive
     protected static boolean registerAsParallelCapable() {
-        return registerAsParallelCapable(Reflection.getCallerClass());
+        return true;
     }
 
     // Caller-sensitive adapter method for reflective invocation
