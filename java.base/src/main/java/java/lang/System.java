@@ -529,8 +529,12 @@ public final class System {
      *          the current time and midnight, January 1, 1970 UTC.
      * @see     java.util.Date
      */
+    /**
+     * @cprover.fullSupport Nondet: wall-clock time is inherently
+     *   unconstrained from a verification standpoint.
+     */
     @IntrinsicCandidate
-    public static native long currentTimeMillis();
+    public static long currentTimeMillis() { return org.cprover.CProver.nondetLong(); }
 
     /**
      * Returns the current value of the running Java Virtual Machine's
@@ -573,8 +577,11 @@ public final class System {
      *         high-resolution time source, in nanoseconds
      * @since 1.5
      */
+    /**
+     * @cprover.fullSupport Nondet: see {@link #currentTimeMillis}.
+     */
     @IntrinsicCandidate
-    public static native long nanoTime();
+    public static long nanoTime() { return org.cprover.CProver.nondetLong(); }
 
     /**
      * Copies an array from the specified source array, beginning at the
