@@ -159,47 +159,25 @@ public final class Integer extends Number
             return toString(i);
         }
 
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[33];
-            boolean negative = (i < 0);
-            int charPos = 32;
-
-            if (!negative) {
-                i = -i;
-            }
-
-            while (i <= -radix) {
-                buf[charPos--] = (byte)digits[-(i % radix)];
-                i = i / radix;
-            }
-            buf[charPos] = (byte)digits[-i];
-
-            if (negative) {
-                buf[--charPos] = '-';
-            }
-
-            return StringLatin1.newString(buf, charPos, (33 - charPos));
-        }
-        return toStringUTF16(i, radix);
-    }
-
-    private static String toStringUTF16(int i, int radix) {
-        byte[] buf = new byte[33 * 2];
+        char[] buf = new char[33];
         boolean negative = (i < 0);
         int charPos = 32;
+
         if (!negative) {
             i = -i;
         }
+
         while (i <= -radix) {
-            StringUTF16.putChar(buf, charPos--, digits[-(i % radix)]);
+            buf[charPos--] = digits[-(i % radix)];
             i = i / radix;
         }
-        StringUTF16.putChar(buf, charPos, digits[-i]);
+        buf[charPos] = digits[-i];
 
         if (negative) {
-            StringUTF16.putChar(buf, --charPos, '-');
+            buf[--charPos] = '-';
         }
-        return StringUTF16.newString(buf, charPos, (33 - charPos));
+
+        return org.cprover.CProverString.ofCharArray(buf, charPos, (33 - charPos));
     }
 
     /**
@@ -363,53 +341,27 @@ public final class Integer extends Number
         // assert shift > 0 && shift <=5 : "Illegal shift value";
         int mag = Integer.SIZE - Integer.numberOfLeadingZeros(val);
         int chars = Math.max(((mag + (shift - 1)) / shift), 1);
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[chars];
-            formatUnsignedInt(val, shift, buf, chars);
-            return new String(buf, LATIN1);
-        } else {
-            byte[] buf = new byte[chars * 2];
-            formatUnsignedIntUTF16(val, shift, buf, chars);
-            return new String(buf, UTF16);
-        }
+        char[] buf = new char[chars];
+        formatUnsignedInt(val, shift, buf, chars);
+        return org.cprover.CProverString.ofCharArray(buf, 0, chars);
     }
 
     /**
-     * Format an {@code int} (treated as unsigned) into a byte buffer (LATIN1 version). If
+     * Format an {@code int} (treated as unsigned) into a char buffer. If
      * {@code len} exceeds the formatted ASCII representation of {@code val},
      * {@code buf} will be padded with leading zeroes.
      *
      * @param val the unsigned int to format
      * @param shift the log2 of the base to format in (4 for hex, 3 for octal, 1 for binary)
-     * @param buf the byte buffer to write to
+     * @param buf the char buffer to write to
      * @param len the number of characters to write
      */
-    private static void formatUnsignedInt(int val, int shift, byte[] buf, int len) {
+    private static void formatUnsignedInt(int val, int shift, char[] buf, int len) {
         int charPos = len;
         int radix = 1 << shift;
         int mask = radix - 1;
         do {
-            buf[--charPos] = (byte)Integer.digits[val & mask];
-            val >>>= shift;
-        } while (charPos > 0);
-    }
-
-    /**
-     * Format an {@code int} (treated as unsigned) into a byte buffer (UTF16 version). If
-     * {@code len} exceeds the formatted ASCII representation of {@code val},
-     * {@code buf} will be padded with leading zeroes.
-     *
-     * @param val the unsigned int to format
-     * @param shift the log2 of the base to format in (4 for hex, 3 for octal, 1 for binary)
-     * @param buf the byte buffer to write to
-     * @param len the number of characters to write
-     */
-    private static void formatUnsignedIntUTF16(int val, int shift, byte[] buf, int len) {
-        int charPos = len;
-        int radix = 1 << shift;
-        int mask = radix - 1;
-        do {
-            StringUTF16.putChar(buf, --charPos, Integer.digits[val & mask]);
+            buf[--charPos] = Integer.digits[val & mask];
             val >>>= shift;
         } while (charPos > 0);
     }

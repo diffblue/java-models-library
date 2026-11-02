@@ -144,45 +144,24 @@ public final class Long extends Number
         if (radix == 10)
             return toString(i);
 
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[65];
-            int charPos = 64;
-            boolean negative = (i < 0);
-
-            if (!negative) {
-                i = -i;
-            }
-
-            while (i <= -radix) {
-                buf[charPos--] = (byte)Integer.digits[(int)(-(i % radix))];
-                i = i / radix;
-            }
-            buf[charPos] = (byte)Integer.digits[(int)(-i)];
-
-            if (negative) {
-                buf[--charPos] = '-';
-            }
-            return StringLatin1.newString(buf, charPos, (65 - charPos));
-        }
-        return toStringUTF16(i, radix);
-    }
-
-    private static String toStringUTF16(long i, int radix) {
-        byte[] buf = new byte[65 * 2];
+        char[] buf = new char[65];
         int charPos = 64;
         boolean negative = (i < 0);
+
         if (!negative) {
             i = -i;
         }
+
         while (i <= -radix) {
-            StringUTF16.putChar(buf, charPos--, Integer.digits[(int)(-(i % radix))]);
+            buf[charPos--] = Integer.digits[(int)(-(i % radix))];
             i = i / radix;
         }
-        StringUTF16.putChar(buf, charPos, Integer.digits[(int)(-i)]);
+        buf[charPos] = Integer.digits[(int)(-i)];
+
         if (negative) {
-            StringUTF16.putChar(buf, --charPos, '-');
+            buf[--charPos] = '-';
         }
-        return StringUTF16.newString(buf, charPos, (65 - charPos));
+        return org.cprover.CProverString.ofCharArray(buf, charPos, (65 - charPos));
     }
 
     /**
@@ -392,90 +371,46 @@ public final class Long extends Number
         // assert shift > 0 && shift <=5 : "Illegal shift value";
         int mag = Long.SIZE - Long.numberOfLeadingZeros(val);
         int chars = Math.max(((mag + (shift - 1)) / shift), 1);
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[chars];
-            formatUnsignedLong0(val, shift, buf, 0, chars);
-            return new String(buf, LATIN1);
-        } else {
-            byte[] buf = new byte[chars * 2];
-            formatUnsignedLong0UTF16(val, shift, buf, 0, chars);
-            return new String(buf, UTF16);
-        }
+        char[] buf = new char[chars];
+        formatUnsignedLong0(val, shift, buf, 0, chars);
+        return org.cprover.CProverString.ofCharArray(buf, 0, chars);
     }
 
     /**
-     * Format a long (treated as unsigned) into a byte buffer (LATIN1 version). If
+     * Format a long (treated as unsigned) into a char buffer. If
      * {@code len} exceeds the formatted ASCII representation of {@code val},
      * {@code buf} will be padded with leading zeroes.
      *
      * @param val the unsigned long to format
      * @param shift the log2 of the base to format in (4 for hex, 3 for octal, 1 for binary)
-     * @param buf the byte buffer to write to
+     * @param buf the char buffer to write to
      * @param offset the offset in the destination buffer to start at
      * @param len the number of characters to write
      */
-    private static void formatUnsignedLong0(long val, int shift, byte[] buf, int offset, int len) {
+    private static void formatUnsignedLong0(long val, int shift, char[] buf, int offset, int len) {
         int charPos = offset + len;
         int radix = 1 << shift;
         int mask = radix - 1;
         do {
-            buf[--charPos] = (byte)Integer.digits[((int) val) & mask];
-            val >>>= shift;
-        } while (charPos > offset);
-    }
-
-    /**
-     * Format a long (treated as unsigned) into a byte buffer (UTF16 version). If
-     * {@code len} exceeds the formatted ASCII representation of {@code val},
-     * {@code buf} will be padded with leading zeroes.
-     *
-     * @param val the unsigned long to format
-     * @param shift the log2 of the base to format in (4 for hex, 3 for octal, 1 for binary)
-     * @param buf the byte buffer to write to
-     * @param offset the offset in the destination buffer to start at
-     * @param len the number of characters to write
-     */
-    private static void formatUnsignedLong0UTF16(long val, int shift, byte[] buf, int offset, int len) {
-        int charPos = offset + len;
-        int radix = 1 << shift;
-        int mask = radix - 1;
-        do {
-            StringUTF16.putChar(buf, --charPos, Integer.digits[((int) val) & mask]);
+            buf[--charPos] = Integer.digits[((int) val) & mask];
             val >>>= shift;
         } while (charPos > offset);
     }
 
     static String fastUUID(long lsb, long msb) {
-        if (COMPACT_STRINGS) {
-            byte[] buf = new byte[36];
-            formatUnsignedLong0(lsb,        4, buf, 24, 12);
-            formatUnsignedLong0(lsb >>> 48, 4, buf, 19, 4);
-            formatUnsignedLong0(msb,        4, buf, 14, 4);
-            formatUnsignedLong0(msb >>> 16, 4, buf, 9,  4);
-            formatUnsignedLong0(msb >>> 32, 4, buf, 0,  8);
+        char[] buf = new char[36];
+        formatUnsignedLong0(lsb,        4, buf, 24, 12);
+        formatUnsignedLong0(lsb >>> 48, 4, buf, 19, 4);
+        formatUnsignedLong0(msb,        4, buf, 14, 4);
+        formatUnsignedLong0(msb >>> 16, 4, buf, 9,  4);
+        formatUnsignedLong0(msb >>> 32, 4, buf, 0,  8);
 
-            buf[23] = '-';
-            buf[18] = '-';
-            buf[13] = '-';
-            buf[8]  = '-';
+        buf[23] = '-';
+        buf[18] = '-';
+        buf[13] = '-';
+        buf[8]  = '-';
 
-            return new String(buf, LATIN1);
-        } else {
-            byte[] buf = new byte[72];
-
-            formatUnsignedLong0UTF16(lsb,        4, buf, 24, 12);
-            formatUnsignedLong0UTF16(lsb >>> 48, 4, buf, 19, 4);
-            formatUnsignedLong0UTF16(msb,        4, buf, 14, 4);
-            formatUnsignedLong0UTF16(msb >>> 16, 4, buf, 9,  4);
-            formatUnsignedLong0UTF16(msb >>> 32, 4, buf, 0,  8);
-
-            StringUTF16.putChar(buf, 23, '-');
-            StringUTF16.putChar(buf, 18, '-');
-            StringUTF16.putChar(buf, 13, '-');
-            StringUTF16.putChar(buf,  8, '-');
-
-            return new String(buf, UTF16);
-        }
+        return org.cprover.CProverString.ofCharArray(buf, 0, 36);
     }
 
     /**

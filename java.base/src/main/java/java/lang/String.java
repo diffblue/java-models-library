@@ -150,7 +150,7 @@ public final class String
      * {@link Stable} is safe here, because value is never null.
      */
     @Stable
-    private final byte[] value;
+    private byte[] value;
 
     /**
      * The identifier of the encoding used to encode the bytes in
@@ -163,7 +163,7 @@ public final class String
      * constant folding if String instance is constant. Overwriting this
      * field after construction will cause problems.
      */
-    private final byte coder;
+    private byte coder;
 
     /** Cache the hash code for the string */
     private int hash; // Default to 0
@@ -239,12 +239,8 @@ public final class String
      */
     public String() {
         // Handled by JBMC's string-refinement (exact signature match);
-        // this body is never executed. The field assignments below are
-        // only to satisfy Java's definite-assignment check for the
-        // (final, otherwise unused) value/coder fields.
+        // this body is never executed.
         CProver.notModelled();
-        this.value = "".value;
-        this.coder = "".coder;
     }
 
     /**
@@ -259,12 +255,8 @@ public final class String
      */
     public String(String original) {
         // Handled by JBMC's string-refinement (exact signature match);
-        // this body is never executed. The field assignments below are
-        // only to satisfy Java's definite-assignment check for the
-        // (final, otherwise unused) value/coder fields.
+        // this body is never executed.
         CProver.notModelled();
-        this.value = "".value;
-        this.coder = "".coder;
     }
 
     /**
@@ -543,8 +535,6 @@ public final class String
      */
     private String(Charset charset, byte[] bytes, int offset, int length) {
         CProver.notModelled();
-        this.value = "".value;
-        this.coder = "".coder;
     }
 
     /*
@@ -3915,19 +3905,19 @@ public final class String
      * Invoker guarantees: dst is in UTF16 (inflate itself for asb), if two
      * coders are different, and dst is big enough (range check)
      *
-     * @cprover.untested Only called from {@link StringConcatHelper}, which
+     * @cprover.noSupport Only called from {@link StringConcatHelper}, which
      *   in turn is only reachable from javac's invokedynamic-based string
-     *   concatenation; see {@code String(byte[], byte)}.
+     *   concatenation; see {@code String(byte[], byte)}. Must not touch
+     *   the real value/coder fields directly: any getfield/putfield on
+     *   them anywhere in this class, reachable or not, crashes JBMC's
+     *   infer_opaque_type_fields check once CBMC's string-refinement has
+     *   replaced String's field layout.
      *
      * @param dstBegin  the char index, not offset of byte[]
      * @param coder     the coder of dst[]
      */
     void getBytes(byte[] dst, int dstBegin, byte coder) {
-        if (coder() == coder) {
-            System.arraycopy(value, 0, dst, dstBegin << coder, value.length);
-        } else {    // this.coder == LATIN && coder == UTF16
-            StringLatin1.inflate(value, 0, dst, dstBegin, value.length);
-        }
+        CProver.notModelled();
     }
 
     /**
@@ -3937,17 +3927,15 @@ public final class String
      * Invoker guarantees: dst is in UTF16 (inflate itself for asb), if two
      * coders are different, and dst is big enough (range check)
      *
+     * @cprover.noSupport See {@link #getBytes(byte[], int, byte)}.
+     *
      * @param srcPos    the char index, not offset of byte[]
      * @param dstBegin  the char index to start from
      * @param coder     the coder of dst[]
      * @param length    the amount of copied chars
      */
     void getBytes(byte[] dst, int srcPos, int dstBegin, byte coder, int length) {
-        if (coder() == coder) {
-            System.arraycopy(value, srcPos << coder, dst, dstBegin << coder, length << coder);
-        } else {    // this.coder == LATIN && coder == UTF16
-            StringLatin1.inflate(value, srcPos, dst, dstBegin, length);
-        }
+        CProver.notModelled();
     }
 
     /*
@@ -3981,31 +3969,35 @@ public final class String
      */
     String(AbstractStringBuilder asb, Void sig) {
         CProver.notModelled();
-        this.value = "".value;
-        this.coder = "".coder;
     }
 
-   /*
-    * Package private constructor which shares value array for speed.
-    *
-    * Reachable only via StringConcatHelper#newString, which in turn is
-    * only reachable from javac's invokedynamic-based string
-    * concatenation (JDK 9+ default). JBMC does not currently resolve
-    * java.lang.invoke.StringConcatFactory invokedynamic call sites, so
-    * this constructor is real code with a real caller, but that caller
-    * is not presently exercised under JBMC.
-    */
+    /**
+     * @cprover.noSupport Package private constructor which shares value
+     *   array for speed. Reachable only via StringConcatHelper#newString,
+     *   which in turn is only reachable from javac's invokedynamic-based
+     *   string concatenation (JDK 9+ default); JBMC does not currently
+     *   resolve java.lang.invoke.StringConcatFactory invokedynamic call
+     *   sites. Must not touch the real value/coder fields directly: see
+     *   {@link #getBytes(byte[], int, byte)}.
+     */
     String(byte[] value, byte coder) {
-        this.value = value;
-        this.coder = coder;
+        CProver.notModelled();
     }
 
+    /**
+     * @cprover.noSupport See {@code String(byte[], byte)}.
+     */
     byte coder() {
-        return COMPACT_STRINGS ? coder : UTF16;
+        CProver.notModelled();
+        return CProver.nondetByte();
     }
 
+    /**
+     * @cprover.noSupport See {@code String(byte[], byte)}.
+     */
     byte[] value() {
-        return value;
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     @Native static final byte LATIN1 = 0;
