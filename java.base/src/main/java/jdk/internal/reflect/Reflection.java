@@ -69,9 +69,22 @@ public class Reflection {
     /** Returns the class of the caller of the method calling this method,
         ignoring frames associated with java.lang.reflect.Method.invoke()
         and its implementation. */
+    /**
+     * @cprover.noSupport There is no real Java call stack to introspect
+     *   under symbolic execution. Returns the fixed {@code Object.class}
+     *   rather than a freshly synthesized nondet {@code Class} object,
+     *   since this is called from a great many call sites throughout
+     *   class loading/initialization (it is {@code @CallerSensitive})
+     *   and a fresh nondet object at each one is prohibitively
+     *   expensive; the caller's exact identity being wrong either way
+     *   is an accepted limitation.
+     */
     @CallerSensitive
     @IntrinsicCandidate
-    public static native Class<?> getCallerClass();
+    public static Class<?> getCallerClass() {
+        org.cprover.CProver.notModelled();
+        return Object.class;
+    }
 
     /** Retrieves the access flags written to the class file. For
         inner classes these flags may differ from those returned by
