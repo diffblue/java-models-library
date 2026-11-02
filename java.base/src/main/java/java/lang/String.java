@@ -3568,13 +3568,26 @@ public final class String
      * @since  1.5
      */
     /**
-     * @cprover.noSupport Full {@code java.util.Formatter} printf-style
-     *   parsing (flags, width, precision, per-conversion-type handling) is
-     *   not modelled.
+     * @cprover.fullSupport Delegates to {@link
+     *   org.cprover.CProverString#format}, which is backed by CBMC's
+     *   string-refinement solver's own format-specifier support, rather
+     *   than the real {@link java.util.Formatter}. Only the first 10
+     *   varargs are passed through (the maximum {@code CProverString.format}
+     *   accepts); any further arguments are ignored.
      */
     public static String format(String format, Object... args) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        String s0 = args.length > 0 ? String.valueOf(args[0]) : "";
+        String s1 = args.length > 1 ? String.valueOf(args[1]) : "";
+        String s2 = args.length > 2 ? String.valueOf(args[2]) : "";
+        String s3 = args.length > 3 ? String.valueOf(args[3]) : "";
+        String s4 = args.length > 4 ? String.valueOf(args[4]) : "";
+        String s5 = args.length > 5 ? String.valueOf(args[5]) : "";
+        String s6 = args.length > 6 ? String.valueOf(args[6]) : "";
+        String s7 = args.length > 7 ? String.valueOf(args[7]) : "";
+        String s8 = args.length > 8 ? String.valueOf(args[8]) : "";
+        String s9 = args.length > 9 ? String.valueOf(args[9]) : "";
+        return org.cprover.CProverString.format(
+            format, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9);
     }
 
     /**
@@ -3615,11 +3628,12 @@ public final class String
      * @since  1.5
      */
     /**
-     * @cprover.noSupport See {@link #format(String, Object...)}.
+     * @cprover.fullSupport Delegates to {@link #format(String, Object...)},
+     *   ignoring the locale: locale-sensitive formatting (e.g. decimal
+     *   separators) is not modelled.
      */
     public static String format(Locale l, String format, Object... args) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return format(format, args);
     }
 
     /**
@@ -3640,11 +3654,10 @@ public final class String
      *
      */
     /**
-     * @cprover.noSupport See {@link #format(String, Object...)}.
+     * @cprover.fullSupport Delegates to {@link #format(String, Object...)}.
      */
     public String formatted(Object... args) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return format(this, args);
     }
 
     /**
