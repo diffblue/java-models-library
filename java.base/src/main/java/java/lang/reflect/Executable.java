@@ -468,8 +468,20 @@ public abstract sealed class Executable extends AccessibleObject
 
     record ParameterData(@Stable Parameter[] parameters, boolean isReal) {}
 
-    private native Parameter[] getParameters0();
-    native byte[] getTypeAnnotationBytes0();
+    /**
+     * @cprover.fullSupport Always {@code null} ("no MethodParameters
+     *   class-file attribute"): parameter-name/modifier metadata is not
+     *   modelled. The one caller already handles this case correctly,
+     *   falling back to synthesized arg0/arg1/... parameters derived
+     *   from {@link #getParameterTypes}.
+     */
+    private Parameter[] getParameters0() { return null; }
+
+    /**
+     * @cprover.limitedSupport Always empty ("no type annotations"): see
+     *   {@link Class#getRawAnnotations}.
+     */
+    byte[] getTypeAnnotationBytes0() { return new byte[0]; }
 
     // Needed by reflectaccess
     byte[] getTypeAnnotationBytes() {
