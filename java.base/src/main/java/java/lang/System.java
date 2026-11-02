@@ -115,7 +115,11 @@ public final class System {
      * The VM will invoke the initPhase1 method to complete the initialization
      * of this class separate from <clinit>.
      */
-    private static native void registerNatives();
+    /**
+     * @cprover.fullSupport No-op, matching Class's registerNatives: real
+     *   JNI method registration is irrelevant under JBMC.
+     */
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
