@@ -529,12 +529,20 @@ public final class System {
      *          the current time and midnight, January 1, 1970 UTC.
      * @see     java.util.Date
      */
+    private static long cproverCurrentTimeMillis;
+
     /**
-     * @cprover.fullSupport Nondet: wall-clock time is inherently
-     *   unconstrained from a verification standpoint.
+     * @cprover.fullSupport Nondeterministically non-decreasing: the
+     *   exact value is unconstrained from a verification standpoint,
+     *   but code that measures elapsed time via two calls (end - start)
+     *   relies on time only moving forward.
      */
     @IntrinsicCandidate
-    public static long currentTimeMillis() { return org.cprover.CProver.nondetLong(); }
+    public static long currentTimeMillis() {
+        long delta = org.cprover.CProver.nondetLong();
+        org.cprover.CProver.assume(delta >= 0);
+        return cproverCurrentTimeMillis += delta;
+    }
 
     /**
      * Returns the current value of the running Java Virtual Machine's
@@ -577,11 +585,21 @@ public final class System {
      *         high-resolution time source, in nanoseconds
      * @since 1.5
      */
+    private static long cproverNanoTime;
+
     /**
-     * @cprover.fullSupport Nondet: see {@link #currentTimeMillis}.
+     * @cprover.fullSupport Nondeterministically non-decreasing: see
+     *   {@link #currentTimeMillis}. Monotonicity specifically matters
+     *   here, since nanoTime's documented contract is to measure
+     *   elapsed time via two calls (end - start), which must not be
+     *   negative.
      */
     @IntrinsicCandidate
-    public static long nanoTime() { return org.cprover.CProver.nondetLong(); }
+    public static long nanoTime() {
+        long delta = org.cprover.CProver.nondetLong();
+        org.cprover.CProver.assume(delta >= 0);
+        return cproverNanoTime += delta;
+    }
 
     /**
      * Copies an array from the specified source array, beginning at the
@@ -693,15 +711,27 @@ public final class System {
      * @see Object#hashCode
      * @see java.util.Objects#hashCode(Object)
      */
+    /**
+     * @cprover.fullSupport Always 0, matching Object#hashCode: the
+     *   real identity hash code's value is never meant to be
+     *   meaningful beyond hash-bucketing (a pure performance concern).
+     */
     @IntrinsicCandidate
-    public static native int identityHashCode(Object x);
+    public static int identityHashCode(Object x) { return 0; }
 
     /**
      * System properties.
      *
      * See {@linkplain #getProperties getProperties} for details.
+     *
+     * @cprover.fullSupport Initialized directly to an empty Properties
+     *   rather than relying on initPhase1() (see below) to populate it
+     *   from the real OS/JVM environment: there is no real VM startup
+     *   sequence driving initPhase1/2/3 under JBMC, so it is never
+     *   called, and getProperty/getProperties would otherwise always
+     *   NullPointerException.
      */
-    private static Properties props;
+    private static Properties props = new Properties();
 
     /**
      * Determines the current system properties.
