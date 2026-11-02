@@ -25,6 +25,8 @@
 
 package jdk.internal.misc;
 
+import org.cprover.CProver;
+
 import jdk.internal.ref.Cleaner;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
@@ -55,7 +57,12 @@ import static jdk.internal.misc.UnsafeConstants.*;
 
 public final class Unsafe {
 
-    private static native void registerNatives();
+    /**
+     * @cprover.fullSupport No-op, matching Class/System's
+     *   registerNatives(): real JNI method registration is irrelevant
+     *   under JBMC.
+     */
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
@@ -152,7 +159,10 @@ public final class Unsafe {
      *         {@link NullPointerException}
      */
     @IntrinsicCandidate
-    public native int getInt(Object o, long offset);
+    public int getInt(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
 
     /**
      * Stores a value into a given Java variable.
@@ -175,14 +185,19 @@ public final class Unsafe {
      *         {@link NullPointerException}
      */
     @IntrinsicCandidate
-    public native void putInt(Object o, long offset, int x);
+    public void putInt(Object o, long offset, int x) {
+        CProver.notModelled();
+    }
 
     /**
      * Fetches a reference value from a given Java variable.
      * @see #getInt(Object, long)
      */
     @IntrinsicCandidate
-    public native Object getReference(Object o, long offset);
+    public Object getReference(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     /**
      * Stores a reference value into a given Java variable.
@@ -195,63 +210,100 @@ public final class Unsafe {
      * @see #putInt(Object, long, int)
      */
     @IntrinsicCandidate
-    public native void putReference(Object o, long offset, Object x);
+    public void putReference(Object o, long offset, Object x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native boolean getBoolean(Object o, long offset);
+    public boolean getBoolean(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetBoolean();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putBoolean(Object o, long offset, boolean x);
+    public void    putBoolean(Object o, long offset, boolean x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native byte    getByte(Object o, long offset);
+    public byte    getByte(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetByte();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putByte(Object o, long offset, byte x);
+    public void    putByte(Object o, long offset, byte x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native short   getShort(Object o, long offset);
+    public short   getShort(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetShort();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putShort(Object o, long offset, short x);
+    public void    putShort(Object o, long offset, short x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native char    getChar(Object o, long offset);
+    public char    getChar(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetChar();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putChar(Object o, long offset, char x);
+    public void    putChar(Object o, long offset, char x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native long    getLong(Object o, long offset);
+    public long    getLong(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putLong(Object o, long offset, long x);
+    public void    putLong(Object o, long offset, long x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native float   getFloat(Object o, long offset);
+    public float   getFloat(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetFloat();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putFloat(Object o, long offset, float x);
+    public void    putFloat(Object o, long offset, float x) {
+        CProver.notModelled();
+    }
 
     /** @see #getInt(Object, long) */
     @IntrinsicCandidate
-    public native double  getDouble(Object o, long offset);
+    public double  getDouble(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetDouble();
+    }
 
     /** @see #putInt(Object, long, int) */
     @IntrinsicCandidate
-    public native void    putDouble(Object o, long offset, double x);
+    public void    putDouble(Object o, long offset, double x) {
+        CProver.notModelled();
+    }
 
     /**
      * Fetches a native pointer from a given memory address.  If the address is
@@ -306,7 +358,14 @@ public final class Unsafe {
      * @param address a memory address locating the variable
      * @return the value fetched from the indicated native variable
      */
-    public native Object getUncompressedObject(long address);
+    /**
+     * @cprover.noSupport There is no real backing storage for raw
+     *   memory addresses under JBMC.
+     */
+    public Object getUncompressedObject(long address) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     // These work on values in the C heap.
 
@@ -1016,20 +1075,30 @@ public final class Unsafe {
      * @param address
      *        the start address of the cache line to be written back
      */
+    /**
+     * @cprover.fullSupport No-op: a cache-line writeback has no
+     *   meaning without real backing memory under JBMC (see
+     *   {@link #getInt}), and is a pure hardware/performance concern
+     *   even where it does.
+     */
     @IntrinsicCandidate
-    private native void writeback0(long address);
+    private void writeback0(long address) {}
 
      /**
       * Serialize writeback operations relative to preceding memory writes.
+      *
+      * @cprover.fullSupport See {@link #writeback0}.
       */
     @IntrinsicCandidate
-    private native void writebackPreSync0();
+    private void writebackPreSync0() {}
 
      /**
       * Serialize writeback operations relative to following memory writes.
+      *
+      * @cprover.fullSupport See {@link #writeback0}.
       */
     @IntrinsicCandidate
-    private native void writebackPostSync0();
+    private void writebackPostSync0() {}
 
     /// random queries
 
@@ -1330,17 +1399,34 @@ public final class Unsafe {
         return defineClass0(name, b, off, len, loader, protectionDomain);
     }
 
-    public native Class<?> defineClass0(String name, byte[] b, int off, int len,
+    /**
+     * @cprover.noSupport Defining a brand new class from bytecode at
+     *   verification time is not expressible: JBMC's class model is
+     *   static, built from the classpath at goto-conversion time.
+     */
+    public Class<?> defineClass0(String name, byte[] b, int off, int len,
                                         ClassLoader loader,
-                                        ProtectionDomain protectionDomain);
+                                        ProtectionDomain protectionDomain) {
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
+    }
 
     /**
      * Allocates an instance but does not run any constructor.
      * Initializes the class if it has not yet been.
+     *
+     * @cprover.noSupport Allocating an instance of a class not known
+     *   until runtime is the same "dynamic dispatch by a value computed
+     *   at runtime" problem as true reflection (see
+     *   java.lang.reflect.Constructor#newInstance) and has no
+     *   JBMC-level support.
      */
     @IntrinsicCandidate
-    public native Object allocateInstance(Class<?> cls)
-        throws InstantiationException;
+    public Object allocateInstance(Class<?> cls)
+        throws InstantiationException {
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
+    }
 
     /**
      * Allocates an array of a given type, but does not do zeroing.
@@ -1395,8 +1481,20 @@ public final class Unsafe {
        return null;
     }
 
-    /** Throws the exception without telling the verifier. */
-    public native void throwException(Throwable ee);
+    /**
+     * @cprover.fullSupport Just throws directly: the real
+     *   implementation's trick of sneaking a checked exception past the
+     *   compiler's static checking is a pure language-level nicety that
+     *   this replicates exactly via an unchecked generic throw.
+     */
+    public void throwException(Throwable ee) {
+        throwUncheckedException(ee);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwUncheckedException(Throwable t) throws T {
+        throw (T) t;
+    }
 
     /**
      * Atomically updates Java variable to {@code x} if it is currently
@@ -1406,16 +1504,29 @@ public final class Unsafe {
      * and write.  Corresponds to C11 atomic_compare_exchange_strong.
      *
      * @return {@code true} if successful
+     *
+     * @cprover.noSupport There is no real backing storage for
+     *   offset-based field access under JBMC (see {@link #getInt}), so
+     *   there is nothing meaningful to compare against or update.
      */
     @IntrinsicCandidate
-    public final native boolean compareAndSetReference(Object o, long offset,
+    public final boolean compareAndSetReference(Object o, long offset,
                                                        Object expected,
-                                                       Object x);
+                                                       Object x) {
+        CProver.notModelled();
+        return CProver.nondetBoolean();
+    }
 
+    /**
+     * @cprover.noSupport See {@link #compareAndSetReference}.
+     */
     @IntrinsicCandidate
-    public final native Object compareAndExchangeReference(Object o, long offset,
+    public final Object compareAndExchangeReference(Object o, long offset,
                                                            Object expected,
-                                                           Object x);
+                                                           Object x) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     @IntrinsicCandidate
     public final Object compareAndExchangeReferenceAcquire(Object o, long offset,
@@ -1468,15 +1579,27 @@ public final class Unsafe {
      *
      * @return {@code true} if successful
      */
+    /**
+     * @cprover.noSupport See {@link #compareAndSetReference}.
+     */
     @IntrinsicCandidate
-    public final native boolean compareAndSetInt(Object o, long offset,
+    public final boolean compareAndSetInt(Object o, long offset,
                                                  int expected,
-                                                 int x);
+                                                 int x) {
+        CProver.notModelled();
+        return CProver.nondetBoolean();
+    }
 
+    /**
+     * @cprover.noSupport See {@link #compareAndSetReference}.
+     */
     @IntrinsicCandidate
-    public final native int compareAndExchangeInt(Object o, long offset,
+    public final int compareAndExchangeInt(Object o, long offset,
                                                   int expected,
-                                                  int x);
+                                                  int x) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
 
     @IntrinsicCandidate
     public final int compareAndExchangeIntAcquire(Object o, long offset,
@@ -1533,12 +1656,13 @@ public final class Unsafe {
         int maskedExpected = (expected & 0xFF) << shift;
         int maskedX        = (x & 0xFF) << shift;
         int fullWord;
-        do {
+        {
             fullWord = getIntVolatile(o, wordOffset);
             if ((fullWord & mask) != maskedExpected)
                 return (byte) ((fullWord & mask) >> shift);
-        } while (!weakCompareAndSetInt(o, wordOffset,
-                                                fullWord, (fullWord & ~mask) | maskedX));
+        weakCompareAndSetInt(o, wordOffset,
+                                                fullWord, (fullWord & ~mask) | maskedX);
+        }
         return expected;
     }
 
@@ -1607,13 +1731,14 @@ public final class Unsafe {
         int maskedExpected = (expected & 0xFFFF) << shift;
         int maskedX        = (x & 0xFFFF) << shift;
         int fullWord;
-        do {
+        {
             fullWord = getIntVolatile(o, wordOffset);
             if ((fullWord & mask) != maskedExpected) {
                 return (short) ((fullWord & mask) >> shift);
             }
-        } while (!weakCompareAndSetInt(o, wordOffset,
-                                                fullWord, (fullWord & ~mask) | maskedX));
+        weakCompareAndSetInt(o, wordOffset,
+                                                fullWord, (fullWord & ~mask) | maskedX);
+        }
         return expected;
     }
 
@@ -2015,15 +2140,27 @@ public final class Unsafe {
      *
      * @return {@code true} if successful
      */
+    /**
+     * @cprover.noSupport See {@link #compareAndSetReference}.
+     */
     @IntrinsicCandidate
-    public final native boolean compareAndSetLong(Object o, long offset,
+    public final boolean compareAndSetLong(Object o, long offset,
                                                   long expected,
-                                                  long x);
+                                                  long x) {
+        CProver.notModelled();
+        return CProver.nondetBoolean();
+    }
 
+    /**
+     * @cprover.noSupport See {@link #compareAndSetReference}.
+     */
     @IntrinsicCandidate
-    public final native long compareAndExchangeLong(Object o, long offset,
+    public final long compareAndExchangeLong(Object o, long offset,
                                                     long expected,
-                                                    long x);
+                                                    long x) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
 
     @IntrinsicCandidate
     public final long compareAndExchangeLongAcquire(Object o, long offset,
@@ -2072,78 +2209,123 @@ public final class Unsafe {
      * load semantics. Otherwise identical to {@link #getReference(Object, long)}
      */
     @IntrinsicCandidate
-    public native Object getReferenceVolatile(Object o, long offset);
+    public Object getReferenceVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
+    }
 
     /**
      * Stores a reference value into a given Java variable, with
      * volatile store semantics. Otherwise identical to {@link #putReference(Object, long, Object)}
      */
     @IntrinsicCandidate
-    public native void putReferenceVolatile(Object o, long offset, Object x);
+    public void putReferenceVolatile(Object o, long offset, Object x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getInt(Object, long)}  */
     @IntrinsicCandidate
-    public native int     getIntVolatile(Object o, long offset);
+    public int     getIntVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetInt();
+    }
 
     /** Volatile version of {@link #putInt(Object, long, int)}  */
     @IntrinsicCandidate
-    public native void    putIntVolatile(Object o, long offset, int x);
+    public void    putIntVolatile(Object o, long offset, int x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getBoolean(Object, long)}  */
     @IntrinsicCandidate
-    public native boolean getBooleanVolatile(Object o, long offset);
+    public boolean getBooleanVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetBoolean();
+    }
 
     /** Volatile version of {@link #putBoolean(Object, long, boolean)}  */
     @IntrinsicCandidate
-    public native void    putBooleanVolatile(Object o, long offset, boolean x);
+    public void    putBooleanVolatile(Object o, long offset, boolean x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getByte(Object, long)}  */
     @IntrinsicCandidate
-    public native byte    getByteVolatile(Object o, long offset);
+    public byte    getByteVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetByte();
+    }
 
     /** Volatile version of {@link #putByte(Object, long, byte)}  */
     @IntrinsicCandidate
-    public native void    putByteVolatile(Object o, long offset, byte x);
+    public void    putByteVolatile(Object o, long offset, byte x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getShort(Object, long)}  */
     @IntrinsicCandidate
-    public native short   getShortVolatile(Object o, long offset);
+    public short   getShortVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetShort();
+    }
 
     /** Volatile version of {@link #putShort(Object, long, short)}  */
     @IntrinsicCandidate
-    public native void    putShortVolatile(Object o, long offset, short x);
+    public void    putShortVolatile(Object o, long offset, short x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getChar(Object, long)}  */
     @IntrinsicCandidate
-    public native char    getCharVolatile(Object o, long offset);
+    public char    getCharVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetChar();
+    }
 
     /** Volatile version of {@link #putChar(Object, long, char)}  */
     @IntrinsicCandidate
-    public native void    putCharVolatile(Object o, long offset, char x);
+    public void    putCharVolatile(Object o, long offset, char x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getLong(Object, long)}  */
     @IntrinsicCandidate
-    public native long    getLongVolatile(Object o, long offset);
+    public long    getLongVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
 
     /** Volatile version of {@link #putLong(Object, long, long)}  */
     @IntrinsicCandidate
-    public native void    putLongVolatile(Object o, long offset, long x);
+    public void    putLongVolatile(Object o, long offset, long x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getFloat(Object, long)}  */
     @IntrinsicCandidate
-    public native float   getFloatVolatile(Object o, long offset);
+    public float   getFloatVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetFloat();
+    }
 
     /** Volatile version of {@link #putFloat(Object, long, float)}  */
     @IntrinsicCandidate
-    public native void    putFloatVolatile(Object o, long offset, float x);
+    public void    putFloatVolatile(Object o, long offset, float x) {
+        CProver.notModelled();
+    }
 
     /** Volatile version of {@link #getDouble(Object, long)}  */
     @IntrinsicCandidate
-    public native double  getDoubleVolatile(Object o, long offset);
+    public double  getDoubleVolatile(Object o, long offset) {
+        CProver.notModelled();
+        return CProver.nondetDouble();
+    }
 
     /** Volatile version of {@link #putDouble(Object, long, double)}  */
     @IntrinsicCandidate
-    public native void    putDoubleVolatile(Object o, long offset, double x);
+    public void    putDoubleVolatile(Object o, long offset, double x) {
+        CProver.notModelled();
+    }
 
 
 
@@ -2386,9 +2568,12 @@ public final class Unsafe {
      * so when calling from native code.
      *
      * @param thread the thread to unpark.
+     *
+     * @cprover.fullSupport No-op: with park() always returning
+     *   spuriously (see below) there is nothing left to unblock.
      */
     @IntrinsicCandidate
-    public native void unpark(Object thread);
+    public void unpark(Object thread) {}
 
     /**
      * Blocks current thread, returning when a balancing
@@ -2400,9 +2585,15 @@ public final class Unsafe {
      * "reason"). Note: This operation is in the Unsafe class only
      * because {@code unpark} is, so it would be strange to place it
      * elsewhere.
+     *
+     * @cprover.fullSupport Always returns spuriously, which is an
+     *   explicitly documented legal outcome above: there is no real
+     *   scheduler to block against under JBMC, and treating every park
+     *   as an immediate spurious wakeup avoids modelling non-termination
+     *   for a wakeup symbolic execution has no way to deliver.
      */
     @IntrinsicCandidate
-    public native void park(boolean isAbsolute, long time);
+    public void park(boolean isAbsolute, long time) {}
 
     /**
      * Gets the load average in the system run queue assigned
@@ -2444,27 +2635,24 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final int getAndAddInt(Object o, long offset, int delta) {
         int v;
-        do {
-            v = getIntVolatile(o, offset);
-        } while (!weakCompareAndSetInt(o, offset, v, v + delta));
+        v = getIntVolatile(o, offset);
+            weakCompareAndSetInt(o, offset, v, v + delta);
         return v;
     }
 
     @ForceInline
     public final int getAndAddIntRelease(Object o, long offset, int delta) {
         int v;
-        do {
-            v = getInt(o, offset);
-        } while (!weakCompareAndSetIntRelease(o, offset, v, v + delta));
+        v = getInt(o, offset);
+            weakCompareAndSetIntRelease(o, offset, v, v + delta);
         return v;
     }
 
     @ForceInline
     public final int getAndAddIntAcquire(Object o, long offset, int delta) {
         int v;
-        do {
-            v = getIntAcquire(o, offset);
-        } while (!weakCompareAndSetIntAcquire(o, offset, v, v + delta));
+        v = getIntAcquire(o, offset);
+            weakCompareAndSetIntAcquire(o, offset, v, v + delta);
         return v;
     }
 
@@ -2482,81 +2670,72 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final long getAndAddLong(Object o, long offset, long delta) {
         long v;
-        do {
-            v = getLongVolatile(o, offset);
-        } while (!weakCompareAndSetLong(o, offset, v, v + delta));
+        v = getLongVolatile(o, offset);
+            weakCompareAndSetLong(o, offset, v, v + delta);
         return v;
     }
 
     @ForceInline
     public final long getAndAddLongRelease(Object o, long offset, long delta) {
         long v;
-        do {
-            v = getLong(o, offset);
-        } while (!weakCompareAndSetLongRelease(o, offset, v, v + delta));
+        v = getLong(o, offset);
+            weakCompareAndSetLongRelease(o, offset, v, v + delta);
         return v;
     }
 
     @ForceInline
     public final long getAndAddLongAcquire(Object o, long offset, long delta) {
         long v;
-        do {
-            v = getLongAcquire(o, offset);
-        } while (!weakCompareAndSetLongAcquire(o, offset, v, v + delta));
+        v = getLongAcquire(o, offset);
+            weakCompareAndSetLongAcquire(o, offset, v, v + delta);
         return v;
     }
 
     @IntrinsicCandidate
     public final byte getAndAddByte(Object o, long offset, byte delta) {
         byte v;
-        do {
-            v = getByteVolatile(o, offset);
-        } while (!weakCompareAndSetByte(o, offset, v, (byte) (v + delta)));
+        v = getByteVolatile(o, offset);
+            weakCompareAndSetByte(o, offset, v, (byte) (v + delta));
         return v;
     }
 
     @ForceInline
     public final byte getAndAddByteRelease(Object o, long offset, byte delta) {
         byte v;
-        do {
-            v = getByte(o, offset);
-        } while (!weakCompareAndSetByteRelease(o, offset, v, (byte) (v + delta)));
+        v = getByte(o, offset);
+            weakCompareAndSetByteRelease(o, offset, v, (byte) (v + delta));
         return v;
     }
 
     @ForceInline
     public final byte getAndAddByteAcquire(Object o, long offset, byte delta) {
         byte v;
-        do {
-            v = getByteAcquire(o, offset);
-        } while (!weakCompareAndSetByteAcquire(o, offset, v, (byte) (v + delta)));
+        v = getByteAcquire(o, offset);
+            weakCompareAndSetByteAcquire(o, offset, v, (byte) (v + delta));
         return v;
     }
 
     @IntrinsicCandidate
     public final short getAndAddShort(Object o, long offset, short delta) {
         short v;
-        do {
-            v = getShortVolatile(o, offset);
-        } while (!weakCompareAndSetShort(o, offset, v, (short) (v + delta)));
+        v = getShortVolatile(o, offset);
+            weakCompareAndSetShort(o, offset, v, (short) (v + delta));
         return v;
     }
 
     @ForceInline
     public final short getAndAddShortRelease(Object o, long offset, short delta) {
         short v;
-        do {
-            v = getShort(o, offset);
-        } while (!weakCompareAndSetShortRelease(o, offset, v, (short) (v + delta)));
+        v = getShort(o, offset);
+            weakCompareAndSetShortRelease(o, offset, v, (short) (v + delta));
         return v;
     }
 
     @ForceInline
     public final short getAndAddShortAcquire(Object o, long offset, short delta) {
         short v;
-        do {
-            v = getShortAcquire(o, offset);
-        } while (!weakCompareAndSetShortAcquire(o, offset, v, (short) (v + delta)));
+        v = getShortAcquire(o, offset);
+            weakCompareAndSetShortAcquire(o, offset, v, (short) (v + delta));
         return v;
     }
 
@@ -2579,14 +2758,15 @@ public final class Unsafe {
     public final float getAndAddFloat(Object o, long offset, float delta) {
         int expectedBits;
         float v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getIntVolatile(o, offset);
             v = Float.intBitsToFloat(expectedBits);
-        } while (!weakCompareAndSetInt(o, offset,
-                                                expectedBits, Float.floatToRawIntBits(v + delta)));
+        weakCompareAndSetInt(o, offset,
+                                                expectedBits, Float.floatToRawIntBits(v + delta));
+        }
         return v;
     }
 
@@ -2594,14 +2774,15 @@ public final class Unsafe {
     public final float getAndAddFloatRelease(Object o, long offset, float delta) {
         int expectedBits;
         float v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getInt(o, offset);
             v = Float.intBitsToFloat(expectedBits);
-        } while (!weakCompareAndSetIntRelease(o, offset,
-                                               expectedBits, Float.floatToRawIntBits(v + delta)));
+        weakCompareAndSetIntRelease(o, offset,
+                                               expectedBits, Float.floatToRawIntBits(v + delta));
+        }
         return v;
     }
 
@@ -2609,14 +2790,15 @@ public final class Unsafe {
     public final float getAndAddFloatAcquire(Object o, long offset, float delta) {
         int expectedBits;
         float v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getIntAcquire(o, offset);
             v = Float.intBitsToFloat(expectedBits);
-        } while (!weakCompareAndSetIntAcquire(o, offset,
-                                               expectedBits, Float.floatToRawIntBits(v + delta)));
+        weakCompareAndSetIntAcquire(o, offset,
+                                               expectedBits, Float.floatToRawIntBits(v + delta));
+        }
         return v;
     }
 
@@ -2624,14 +2806,15 @@ public final class Unsafe {
     public final double getAndAddDouble(Object o, long offset, double delta) {
         long expectedBits;
         double v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getLongVolatile(o, offset);
             v = Double.longBitsToDouble(expectedBits);
-        } while (!weakCompareAndSetLong(o, offset,
-                                                 expectedBits, Double.doubleToRawLongBits(v + delta)));
+        weakCompareAndSetLong(o, offset,
+                                                 expectedBits, Double.doubleToRawLongBits(v + delta));
+        }
         return v;
     }
 
@@ -2639,14 +2822,15 @@ public final class Unsafe {
     public final double getAndAddDoubleRelease(Object o, long offset, double delta) {
         long expectedBits;
         double v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getLong(o, offset);
             v = Double.longBitsToDouble(expectedBits);
-        } while (!weakCompareAndSetLongRelease(o, offset,
-                                                expectedBits, Double.doubleToRawLongBits(v + delta)));
+        weakCompareAndSetLongRelease(o, offset,
+                                                expectedBits, Double.doubleToRawLongBits(v + delta));
+        }
         return v;
     }
 
@@ -2654,14 +2838,15 @@ public final class Unsafe {
     public final double getAndAddDoubleAcquire(Object o, long offset, double delta) {
         long expectedBits;
         double v;
-        do {
+        {
             // Load and CAS with the raw bits to avoid issues with NaNs and
             // possible bit conversion from signaling NaNs to quiet NaNs that
             // may result in the loop not terminating.
             expectedBits = getLongAcquire(o, offset);
             v = Double.longBitsToDouble(expectedBits);
-        } while (!weakCompareAndSetLongAcquire(o, offset,
-                                                expectedBits, Double.doubleToRawLongBits(v + delta)));
+        weakCompareAndSetLongAcquire(o, offset,
+                                                expectedBits, Double.doubleToRawLongBits(v + delta));
+        }
         return v;
     }
 
@@ -2679,27 +2864,24 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final int getAndSetInt(Object o, long offset, int newValue) {
         int v;
-        do {
-            v = getIntVolatile(o, offset);
-        } while (!weakCompareAndSetInt(o, offset, v, newValue));
+        v = getIntVolatile(o, offset);
+            weakCompareAndSetInt(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final int getAndSetIntRelease(Object o, long offset, int newValue) {
         int v;
-        do {
-            v = getInt(o, offset);
-        } while (!weakCompareAndSetIntRelease(o, offset, v, newValue));
+        v = getInt(o, offset);
+            weakCompareAndSetIntRelease(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final int getAndSetIntAcquire(Object o, long offset, int newValue) {
         int v;
-        do {
-            v = getIntAcquire(o, offset);
-        } while (!weakCompareAndSetIntAcquire(o, offset, v, newValue));
+        v = getIntAcquire(o, offset);
+            weakCompareAndSetIntAcquire(o, offset, v, newValue);
         return v;
     }
 
@@ -2717,27 +2899,24 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final long getAndSetLong(Object o, long offset, long newValue) {
         long v;
-        do {
-            v = getLongVolatile(o, offset);
-        } while (!weakCompareAndSetLong(o, offset, v, newValue));
+        v = getLongVolatile(o, offset);
+            weakCompareAndSetLong(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final long getAndSetLongRelease(Object o, long offset, long newValue) {
         long v;
-        do {
-            v = getLong(o, offset);
-        } while (!weakCompareAndSetLongRelease(o, offset, v, newValue));
+        v = getLong(o, offset);
+            weakCompareAndSetLongRelease(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final long getAndSetLongAcquire(Object o, long offset, long newValue) {
         long v;
-        do {
-            v = getLongAcquire(o, offset);
-        } while (!weakCompareAndSetLongAcquire(o, offset, v, newValue));
+        v = getLongAcquire(o, offset);
+            weakCompareAndSetLongAcquire(o, offset, v, newValue);
         return v;
     }
 
@@ -2755,54 +2934,48 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final Object getAndSetReference(Object o, long offset, Object newValue) {
         Object v;
-        do {
-            v = getReferenceVolatile(o, offset);
-        } while (!weakCompareAndSetReference(o, offset, v, newValue));
+        v = getReferenceVolatile(o, offset);
+            weakCompareAndSetReference(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final Object getAndSetReferenceRelease(Object o, long offset, Object newValue) {
         Object v;
-        do {
-            v = getReference(o, offset);
-        } while (!weakCompareAndSetReferenceRelease(o, offset, v, newValue));
+        v = getReference(o, offset);
+            weakCompareAndSetReferenceRelease(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final Object getAndSetReferenceAcquire(Object o, long offset, Object newValue) {
         Object v;
-        do {
-            v = getReferenceAcquire(o, offset);
-        } while (!weakCompareAndSetReferenceAcquire(o, offset, v, newValue));
+        v = getReferenceAcquire(o, offset);
+            weakCompareAndSetReferenceAcquire(o, offset, v, newValue);
         return v;
     }
 
     @IntrinsicCandidate
     public final byte getAndSetByte(Object o, long offset, byte newValue) {
         byte v;
-        do {
-            v = getByteVolatile(o, offset);
-        } while (!weakCompareAndSetByte(o, offset, v, newValue));
+        v = getByteVolatile(o, offset);
+            weakCompareAndSetByte(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final byte getAndSetByteRelease(Object o, long offset, byte newValue) {
         byte v;
-        do {
-            v = getByte(o, offset);
-        } while (!weakCompareAndSetByteRelease(o, offset, v, newValue));
+        v = getByte(o, offset);
+            weakCompareAndSetByteRelease(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final byte getAndSetByteAcquire(Object o, long offset, byte newValue) {
         byte v;
-        do {
-            v = getByteAcquire(o, offset);
-        } while (!weakCompareAndSetByteAcquire(o, offset, v, newValue));
+        v = getByteAcquire(o, offset);
+            weakCompareAndSetByteAcquire(o, offset, v, newValue);
         return v;
     }
 
@@ -2824,27 +2997,24 @@ public final class Unsafe {
     @IntrinsicCandidate
     public final short getAndSetShort(Object o, long offset, short newValue) {
         short v;
-        do {
-            v = getShortVolatile(o, offset);
-        } while (!weakCompareAndSetShort(o, offset, v, newValue));
+        v = getShortVolatile(o, offset);
+            weakCompareAndSetShort(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final short getAndSetShortRelease(Object o, long offset, short newValue) {
         short v;
-        do {
-            v = getShort(o, offset);
-        } while (!weakCompareAndSetShortRelease(o, offset, v, newValue));
+        v = getShort(o, offset);
+            weakCompareAndSetShortRelease(o, offset, v, newValue);
         return v;
     }
 
     @ForceInline
     public final short getAndSetShortAcquire(Object o, long offset, short newValue) {
         short v;
-        do {
-            v = getShortAcquire(o, offset);
-        } while (!weakCompareAndSetShortAcquire(o, offset, v, newValue));
+        v = getShortAcquire(o, offset);
+            weakCompareAndSetShortAcquire(o, offset, v, newValue);
         return v;
     }
 
@@ -2952,93 +3122,90 @@ public final class Unsafe {
     @ForceInline
     public final byte getAndBitwiseOrByte(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByteVolatile(o, offset);
-        } while (!weakCompareAndSetByte(o, offset,
-                                                  current, (byte) (current | mask)));
+        current = getByteVolatile(o, offset);
+            weakCompareAndSetByte(o, offset,
+                                                  current, (byte) (current | mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseOrByteRelease(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByte(o, offset);
-        } while (!weakCompareAndSetByteRelease(o, offset,
-                                                 current, (byte) (current | mask)));
+        current = getByte(o, offset);
+            weakCompareAndSetByteRelease(o, offset,
+                                                 current, (byte) (current | mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseOrByteAcquire(Object o, long offset, byte mask) {
         byte current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getByte(o, offset);
-        } while (!weakCompareAndSetByteAcquire(o, offset,
-                                                 current, (byte) (current | mask)));
+        weakCompareAndSetByteAcquire(o, offset,
+                                                 current, (byte) (current | mask));
+        }
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseAndByte(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByteVolatile(o, offset);
-        } while (!weakCompareAndSetByte(o, offset,
-                                                  current, (byte) (current & mask)));
+        current = getByteVolatile(o, offset);
+            weakCompareAndSetByte(o, offset,
+                                                  current, (byte) (current & mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseAndByteRelease(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByte(o, offset);
-        } while (!weakCompareAndSetByteRelease(o, offset,
-                                                 current, (byte) (current & mask)));
+        current = getByte(o, offset);
+            weakCompareAndSetByteRelease(o, offset,
+                                                 current, (byte) (current & mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseAndByteAcquire(Object o, long offset, byte mask) {
         byte current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getByte(o, offset);
-        } while (!weakCompareAndSetByteAcquire(o, offset,
-                                                 current, (byte) (current & mask)));
+        weakCompareAndSetByteAcquire(o, offset,
+                                                 current, (byte) (current & mask));
+        }
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseXorByte(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByteVolatile(o, offset);
-        } while (!weakCompareAndSetByte(o, offset,
-                                                  current, (byte) (current ^ mask)));
+        current = getByteVolatile(o, offset);
+            weakCompareAndSetByte(o, offset,
+                                                  current, (byte) (current ^ mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseXorByteRelease(Object o, long offset, byte mask) {
         byte current;
-        do {
-            current = getByte(o, offset);
-        } while (!weakCompareAndSetByteRelease(o, offset,
-                                                 current, (byte) (current ^ mask)));
+        current = getByte(o, offset);
+            weakCompareAndSetByteRelease(o, offset,
+                                                 current, (byte) (current ^ mask));
         return current;
     }
 
     @ForceInline
     public final byte getAndBitwiseXorByteAcquire(Object o, long offset, byte mask) {
         byte current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getByte(o, offset);
-        } while (!weakCompareAndSetByteAcquire(o, offset,
-                                                 current, (byte) (current ^ mask)));
+        weakCompareAndSetByteAcquire(o, offset,
+                                                 current, (byte) (current ^ mask));
+        }
         return current;
     }
 
@@ -3092,93 +3259,90 @@ public final class Unsafe {
     @ForceInline
     public final short getAndBitwiseOrShort(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShortVolatile(o, offset);
-        } while (!weakCompareAndSetShort(o, offset,
-                                                current, (short) (current | mask)));
+        current = getShortVolatile(o, offset);
+            weakCompareAndSetShort(o, offset,
+                                                current, (short) (current | mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseOrShortRelease(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShort(o, offset);
-        } while (!weakCompareAndSetShortRelease(o, offset,
-                                               current, (short) (current | mask)));
+        current = getShort(o, offset);
+            weakCompareAndSetShortRelease(o, offset,
+                                               current, (short) (current | mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseOrShortAcquire(Object o, long offset, short mask) {
         short current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getShort(o, offset);
-        } while (!weakCompareAndSetShortAcquire(o, offset,
-                                               current, (short) (current | mask)));
+        weakCompareAndSetShortAcquire(o, offset,
+                                               current, (short) (current | mask));
+        }
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseAndShort(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShortVolatile(o, offset);
-        } while (!weakCompareAndSetShort(o, offset,
-                                                current, (short) (current & mask)));
+        current = getShortVolatile(o, offset);
+            weakCompareAndSetShort(o, offset,
+                                                current, (short) (current & mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseAndShortRelease(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShort(o, offset);
-        } while (!weakCompareAndSetShortRelease(o, offset,
-                                               current, (short) (current & mask)));
+        current = getShort(o, offset);
+            weakCompareAndSetShortRelease(o, offset,
+                                               current, (short) (current & mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseAndShortAcquire(Object o, long offset, short mask) {
         short current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getShort(o, offset);
-        } while (!weakCompareAndSetShortAcquire(o, offset,
-                                               current, (short) (current & mask)));
+        weakCompareAndSetShortAcquire(o, offset,
+                                               current, (short) (current & mask));
+        }
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseXorShort(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShortVolatile(o, offset);
-        } while (!weakCompareAndSetShort(o, offset,
-                                                current, (short) (current ^ mask)));
+        current = getShortVolatile(o, offset);
+            weakCompareAndSetShort(o, offset,
+                                                current, (short) (current ^ mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseXorShortRelease(Object o, long offset, short mask) {
         short current;
-        do {
-            current = getShort(o, offset);
-        } while (!weakCompareAndSetShortRelease(o, offset,
-                                               current, (short) (current ^ mask)));
+        current = getShort(o, offset);
+            weakCompareAndSetShortRelease(o, offset,
+                                               current, (short) (current ^ mask));
         return current;
     }
 
     @ForceInline
     public final short getAndBitwiseXorShortAcquire(Object o, long offset, short mask) {
         short current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getShort(o, offset);
-        } while (!weakCompareAndSetShortAcquire(o, offset,
-                                               current, (short) (current ^ mask)));
+        weakCompareAndSetShortAcquire(o, offset,
+                                               current, (short) (current ^ mask));
+        }
         return current;
     }
 
@@ -3186,31 +3350,30 @@ public final class Unsafe {
     @ForceInline
     public final int getAndBitwiseOrInt(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getIntVolatile(o, offset);
-        } while (!weakCompareAndSetInt(o, offset,
-                                                current, current | mask));
+        current = getIntVolatile(o, offset);
+            weakCompareAndSetInt(o, offset,
+                                                current, current | mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseOrIntRelease(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getInt(o, offset);
-        } while (!weakCompareAndSetIntRelease(o, offset,
-                                               current, current | mask));
+        current = getInt(o, offset);
+            weakCompareAndSetIntRelease(o, offset,
+                                               current, current | mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseOrIntAcquire(Object o, long offset, int mask) {
         int current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getInt(o, offset);
-        } while (!weakCompareAndSetIntAcquire(o, offset,
-                                               current, current | mask));
+        weakCompareAndSetIntAcquire(o, offset,
+                                               current, current | mask);
+        }
         return current;
     }
 
@@ -3228,62 +3391,60 @@ public final class Unsafe {
     @ForceInline
     public final int getAndBitwiseAndInt(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getIntVolatile(o, offset);
-        } while (!weakCompareAndSetInt(o, offset,
-                                                current, current & mask));
+        current = getIntVolatile(o, offset);
+            weakCompareAndSetInt(o, offset,
+                                                current, current & mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseAndIntRelease(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getInt(o, offset);
-        } while (!weakCompareAndSetIntRelease(o, offset,
-                                               current, current & mask));
+        current = getInt(o, offset);
+            weakCompareAndSetIntRelease(o, offset,
+                                               current, current & mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseAndIntAcquire(Object o, long offset, int mask) {
         int current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getInt(o, offset);
-        } while (!weakCompareAndSetIntAcquire(o, offset,
-                                               current, current & mask));
+        weakCompareAndSetIntAcquire(o, offset,
+                                               current, current & mask);
+        }
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseXorInt(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getIntVolatile(o, offset);
-        } while (!weakCompareAndSetInt(o, offset,
-                                                current, current ^ mask));
+        current = getIntVolatile(o, offset);
+            weakCompareAndSetInt(o, offset,
+                                                current, current ^ mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseXorIntRelease(Object o, long offset, int mask) {
         int current;
-        do {
-            current = getInt(o, offset);
-        } while (!weakCompareAndSetIntRelease(o, offset,
-                                               current, current ^ mask));
+        current = getInt(o, offset);
+            weakCompareAndSetIntRelease(o, offset,
+                                               current, current ^ mask);
         return current;
     }
 
     @ForceInline
     public final int getAndBitwiseXorIntAcquire(Object o, long offset, int mask) {
         int current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getInt(o, offset);
-        } while (!weakCompareAndSetIntAcquire(o, offset,
-                                               current, current ^ mask));
+        weakCompareAndSetIntAcquire(o, offset,
+                                               current, current ^ mask);
+        }
         return current;
     }
 
@@ -3291,93 +3452,90 @@ public final class Unsafe {
     @ForceInline
     public final long getAndBitwiseOrLong(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLongVolatile(o, offset);
-        } while (!weakCompareAndSetLong(o, offset,
-                                                current, current | mask));
+        current = getLongVolatile(o, offset);
+            weakCompareAndSetLong(o, offset,
+                                                current, current | mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseOrLongRelease(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLong(o, offset);
-        } while (!weakCompareAndSetLongRelease(o, offset,
-                                               current, current | mask));
+        current = getLong(o, offset);
+            weakCompareAndSetLongRelease(o, offset,
+                                               current, current | mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseOrLongAcquire(Object o, long offset, long mask) {
         long current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getLong(o, offset);
-        } while (!weakCompareAndSetLongAcquire(o, offset,
-                                               current, current | mask));
+        weakCompareAndSetLongAcquire(o, offset,
+                                               current, current | mask);
+        }
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseAndLong(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLongVolatile(o, offset);
-        } while (!weakCompareAndSetLong(o, offset,
-                                                current, current & mask));
+        current = getLongVolatile(o, offset);
+            weakCompareAndSetLong(o, offset,
+                                                current, current & mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseAndLongRelease(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLong(o, offset);
-        } while (!weakCompareAndSetLongRelease(o, offset,
-                                               current, current & mask));
+        current = getLong(o, offset);
+            weakCompareAndSetLongRelease(o, offset,
+                                               current, current & mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseAndLongAcquire(Object o, long offset, long mask) {
         long current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getLong(o, offset);
-        } while (!weakCompareAndSetLongAcquire(o, offset,
-                                               current, current & mask));
+        weakCompareAndSetLongAcquire(o, offset,
+                                               current, current & mask);
+        }
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseXorLong(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLongVolatile(o, offset);
-        } while (!weakCompareAndSetLong(o, offset,
-                                                current, current ^ mask));
+        current = getLongVolatile(o, offset);
+            weakCompareAndSetLong(o, offset,
+                                                current, current ^ mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseXorLongRelease(Object o, long offset, long mask) {
         long current;
-        do {
-            current = getLong(o, offset);
-        } while (!weakCompareAndSetLongRelease(o, offset,
-                                               current, current ^ mask));
+        current = getLong(o, offset);
+            weakCompareAndSetLongRelease(o, offset,
+                                               current, current ^ mask);
         return current;
     }
 
     @ForceInline
     public final long getAndBitwiseXorLongAcquire(Object o, long offset, long mask) {
         long current;
-        do {
+        {
             // Plain read, the value is a hint, the acquire CAS does the work
             current = getLong(o, offset);
-        } while (!weakCompareAndSetLongAcquire(o, offset,
-                                               current, current ^ mask));
+        weakCompareAndSetLongAcquire(o, offset,
+                                               current, current ^ mask);
+        }
         return current;
     }
 
@@ -3425,9 +3583,13 @@ public final class Unsafe {
      *
      * Corresponds to C11 atomic_thread_fence(memory_order_seq_cst).
      * @since 1.8
+     *
+     * @cprover.fullSupport No-op: a memory fence prevents CPU/compiler
+     *   instruction reordering, which is irrelevant to symbolic
+     *   execution (a pure JVM/hardware performance concern).
      */
     @IntrinsicCandidate
-    public native void fullFence();
+    public void fullFence() {}
 
     /**
      * Ensures that loads before the fence will not be reordered with
@@ -3820,22 +3982,64 @@ public final class Unsafe {
 
 
 
-    private native long allocateMemory0(long bytes);
-    private native long reallocateMemory0(long address, long bytes);
-    private native void freeMemory0(long address);
-    private native void setMemory0(Object o, long offset, long bytes, byte value);
+    // @cprover.noSupport off-heap memory is not modelled: there is no
+    // real backing storage for a raw address under JBMC (see
+    // #getInt), so these return/ignore an opaque nondet "address" with
+    // no actual memory behind it.
+    private long allocateMemory0(long bytes) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
+    private long reallocateMemory0(long address, long bytes) {
+        CProver.notModelled();
+        return CProver.nondetLong();
+    }
+    private void freeMemory0(long address) {}
+    private void setMemory0(Object o, long offset, long bytes, byte value) {
+        CProver.notModelled();
+    }
     @IntrinsicCandidate
-    private native void copyMemory0(Object srcBase, long srcOffset, Object destBase, long destOffset, long bytes);
-    private native void copySwapMemory0(Object srcBase, long srcOffset, Object destBase, long destOffset, long bytes, long elemSize);
-    private native long objectFieldOffset0(Field f);
-    private native long objectFieldOffset1(Class<?> c, String name);
-    private native long staticFieldOffset0(Field f);
-    private native Object staticFieldBase0(Field f);
-    private native boolean shouldBeInitialized0(Class<?> c);
-    private native void ensureClassInitialized0(Class<?> c);
-    private native int arrayBaseOffset0(Class<?> arrayClass);
-    private native int arrayIndexScale0(Class<?> arrayClass);
-    private native int getLoadAverage0(double[] loadavg, int nelems);
+    private void copyMemory0(Object srcBase, long srcOffset, Object destBase, long destOffset, long bytes) {
+        CProver.notModelled();
+    }
+    private void copySwapMemory0(Object srcBase, long srcOffset, Object destBase, long destOffset, long bytes, long elemSize) {
+        CProver.notModelled();
+    }
+
+    // @cprover.fullSupport These field/array offsets are opaque
+    // tokens only ever consumed by the no-support getX/putX(Object,
+    // long) family above, which already ignore them; their specific
+    // values do not matter, so fixed, plausible-looking constants are
+    // used (avoiding e.g. division by zero in callers that compute
+    // element indices from arrayIndexScale0).
+    private long objectFieldOffset0(Field f) { return 16; }
+    private long objectFieldOffset1(Class<?> c, String name) { return 16; }
+    private long staticFieldOffset0(Field f) { return 16; }
+    private Object staticFieldBase0(Field f) { return f.getDeclaringClass(); }
+
+    /**
+     * @cprover.fullSupport Always false ("already initialized"):
+     *   JBMC's own lazy class-loading already ensures a class's
+     *   &lt;clinit&gt; has run before any of its code executes, making
+     *   this check moot.
+     */
+    private boolean shouldBeInitialized0(Class<?> c) { return false; }
+
+    /**
+     * @cprover.fullSupport No-op: see {@link #shouldBeInitialized0}.
+     */
+    private void ensureClassInitialized0(Class<?> c) {}
+
+    private int arrayBaseOffset0(Class<?> arrayClass) { return 16; }
+    private int arrayIndexScale0(Class<?> arrayClass) { return 4; }
+
+    /**
+     * @cprover.fullSupport Always -1 ("load average unobtainable"),
+     *   a legal, documented sentinel for this value (see
+     *   OperatingSystemMXBean#getSystemLoadAverage): system load is a
+     *   pure environment detail, irrelevant to verification.
+     */
+    private int getLoadAverage0(double[] loadavg, int nelems) { return -1; }
 
 
     /**
