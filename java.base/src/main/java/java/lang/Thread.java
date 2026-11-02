@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.security.AccessController;
@@ -218,7 +220,12 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  */
 public class Thread implements Runnable {
     /* Make sure registerNatives is the first thing <clinit> does. */
-    private static native void registerNatives();
+    /**
+     * @cprover.fullSupport No-op, matching Class/System/Unsafe's
+     *   registerNatives(): real JNI method registration is irrelevant
+     *   under JBMC.
+     */
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
@@ -305,9 +312,13 @@ public class Thread implements Runnable {
 
     /**
      * Search the stack for the most recent scoped-value bindings.
+     *
+     * @cprover.limitedSupport Always null ("nothing found by walking
+     *   the stack", a case the one caller already handles): there is
+     *   no real Java call stack to introspect under symbolic execution.
      */
     @IntrinsicCandidate
-    static native Object findScopedValueBindings();
+    static Object findScopedValueBindings() { return null; }
 
     /**
      * Inherit the scoped-value bindings from the given container.
@@ -392,35 +403,82 @@ public class Thread implements Runnable {
     }
 
     /**
+     * The singleton returned by currentThread()/currentCarrierThread(),
+     * lazily bootstrapped on first use. Platform vs. carrier vs. virtual
+     * thread distinctions are pure JVM scheduling details (how virtual
+     * threads are multiplexed onto carrier threads) that are not
+     * modelled; both methods return the same object.
+     */
+    private static Thread cproverCurrentThread;
+
+    /**
      * Returns the Thread object for the current platform thread. If the
      * current thread is a virtual thread then this method returns the carrier.
+     *
+     * @cprover.fullSupport See {@link #currentThread}.
      */
     @IntrinsicCandidate
-    static native Thread currentCarrierThread();
+    static Thread currentCarrierThread() {
+        return currentThread();
+    }
 
     /**
      * Returns the Thread object for the current thread.
      * @return  the current thread
+     *
+     * @cprover.fullSupport Lazily bootstraps a single "main thread"
+     *   singleton rather than a fresh object per call: a fresh nondet
+     *   Thread (or, worse, VirtualThread, whose carrierThread field can
+     *   alias back into the same object graph) is prohibitively
+     *   expensive to synthesize and can even recurse indefinitely (see
+     *   VirtualThread#threadState, which follows carrierThread). The
+     *   (String,int,boolean) constructor is used because it is the one
+     *   constructor that does not itself call currentThread(), avoiding
+     *   infinite recursion while bootstrapping.
      */
     @IntrinsicCandidate
-    public static native Thread currentThread();
+    public static Thread currentThread() {
+        Thread t = cproverCurrentThread;
+        if (t == null) {
+            t = new Thread("main", NO_INHERIT_THREAD_LOCALS, true);
+            cproverCurrentThread = t;
+        }
+        return t;
+    }
 
     /**
      * Sets the Thread object to be returned by Thread.currentThread().
+     *
+     * @cprover.fullSupport See {@link #currentThread}.
      */
     @IntrinsicCandidate
-    native void setCurrentThread(Thread thread);
+    void setCurrentThread(Thread thread) {
+        cproverCurrentThread = thread;
+    }
 
     // ScopedValue support:
 
-    @IntrinsicCandidate
-    static native Object[] scopedValueCache();
+    /**
+     * @cprover.fullSupport Backed by a plain static field rather than
+     *   genuine per-(carrier-)thread native storage: see
+     *   {@link #currentThread} for why there is effectively one
+     *   current-thread context under JBMC's simplified model.
+     */
+    private static Object[] cproverScopedValueCache;
 
     @IntrinsicCandidate
-    static native void setScopedValueCache(Object[] cache);
+    static Object[] scopedValueCache() { return cproverScopedValueCache; }
 
     @IntrinsicCandidate
-    static native void ensureMaterializedForStackWalk(Object o);
+    static void setScopedValueCache(Object[] cache) { cproverScopedValueCache = cache; }
+
+    /**
+     * @cprover.fullSupport No-op: prevents a JIT from eliding an
+     *   object before a stack walk can see it, a pure
+     *   performance/optimization concern.
+     */
+    @IntrinsicCandidate
+    static void ensureMaterializedForStackWalk(Object o) {}
 
     /**
      * A hint to the scheduler that the current thread is willing to yield
@@ -446,7 +504,11 @@ public class Thread implements Runnable {
         }
     }
 
-    private static native void yield0();
+    /**
+     * @cprover.fullSupport No-op: a scheduling hint the scheduler is
+     *   free to ignore even in a real JVM.
+     */
+    private static void yield0() {}
 
     /**
      * Called before sleeping to create a jdk.ThreadSleep event.
@@ -513,7 +575,17 @@ public class Thread implements Runnable {
         }
     }
 
-    private static native void sleep0(long nanos) throws InterruptedException;
+    /**
+     * @cprover.fullSupport Sleep duration itself is irrelevant to
+     *   verification (a pure timing concern, see System#nanoTime);
+     *   this only models the documented possibility of the sleep being
+     *   interrupted, matching Object#wait's treatment.
+     */
+    private static void sleep0(long nanos) throws InterruptedException {
+        if (CProver.nondetBoolean()) {
+            throw new InterruptedException();
+        }
+    }
 
     /**
      * Causes the currently executing thread to sleep (temporarily cease
@@ -1560,7 +1632,19 @@ public class Thread implements Runnable {
         }
     }
 
-    private native void start0();
+    /**
+     * @cprover.fullSupport The real start0() asks the VM to spawn an OS
+     *   thread that will eventually call this.run(); CProver.startThread/
+     *   endThread is JBMC's own primitive for the same effect. The
+     *   literal thread id (333) is only used to syntactically pair this
+     *   startThread with its endThread and is otherwise unconstrained -
+     *   see org.cprover.CProver#startThread.
+     */
+    private void start0() {
+        CProver.startThread(333);
+        run();
+        CProver.endThread(333);
+    }
 
     /**
      * This method is run by the thread when it executes. Subclasses of {@code
@@ -2393,7 +2477,15 @@ public class Thread implements Runnable {
      *         the specified object.
      * @since 1.4
      */
-    public static native boolean holdsLock(Object obj);
+    /**
+     * @cprover.limitedSupport Approximated via Object's monitor count
+     *   (see Object#cproverMonitorCount): returns whether *some*
+     *   thread holds the lock, since monitor ownership is not tracked
+     *   per-thread.
+     */
+    public static boolean holdsLock(Object obj) {
+        return obj.cproverMonitorCount > 0;
+    }
 
     private static final StackTraceElement[] EMPTY_STACK_TRACE
         = new StackTraceElement[0];
@@ -2472,7 +2564,13 @@ public class Thread implements Runnable {
         }
     }
 
-    private native Object getStackTrace0();
+    /**
+     * @cprover.limitedSupport Always {@code null} ("stack trace cannot
+     *   be obtained", a legal outcome per {@link #asyncGetStackTrace}'s
+     *   own contract): there is no real Java call stack to introspect
+     *   under symbolic execution.
+     */
+    private Object getStackTrace0() { return null; }
 
     /**
      * Returns a map of stack traces for all live platform threads. The map
@@ -2596,8 +2694,20 @@ public class Thread implements Runnable {
         return getThreads();
     }
 
-    private static native StackTraceElement[][] dumpThreads(Thread[] threads);
-    private static native Thread[] getThreads();
+    /**
+     * @cprover.limitedSupport Always an array of nulls ("stack trace
+     *   cannot be obtained" per-thread, see #getStackTrace0): there is
+     *   no real Java call stack to introspect under symbolic execution.
+     */
+    private static StackTraceElement[][] dumpThreads(Thread[] threads) {
+        return new StackTraceElement[threads.length][];
+    }
+
+    /**
+     * @cprover.limitedSupport Always empty: enumerating all live
+     *   threads is not modelled.
+     */
+    private static Thread[] getThreads() { return new Thread[0]; }
 
     /**
      * Returns the identifier of this Thread.  The thread ID is a positive
@@ -2975,11 +3085,40 @@ public class Thread implements Runnable {
     }
 
     /* Some private helper methods */
-    private native void setPriority0(int newPriority);
-    private native void interrupt0();
-    private static native void clearInterruptEvent();
-    private native void setNativeName(String name);
+    /**
+     * @cprover.fullSupport No-op: a pure OS-scheduling hint, and
+     *   {@link #getPriority} already reads back whatever priority was
+     *   set directly on this object's own field, with no need for a
+     *   separate native notification.
+     */
+    private void setPriority0(int newPriority) {}
+
+    /**
+     * @cprover.fullSupport No-op: interrupted status is tracked by the
+     *   real {@code interrupted} field; this only "additionally
+     *   informs the VM" (e.g. to wake a thread blocked in native I/O),
+     *   which has no counterpart under JBMC.
+     */
+    private void interrupt0() {}
+
+    /**
+     * @cprover.fullSupport No-op: see {@link #interrupt0}.
+     */
+    private static void clearInterruptEvent() {}
+
+    /**
+     * @cprover.fullSupport No-op: the OS thread's name is a debugging/
+     *   display detail; {@link #getName} already reads back the real
+     *   {@code name} field directly.
+     */
+    private void setNativeName(String name) {}
 
     // The address of the next thread identifier, see ThreadIdentifiers.
-    private static native long getNextThreadIdOffset();
+    /**
+     * @cprover.fullSupport This offset is an opaque token only ever
+     *   consumed by Unsafe's no-support getX/putX(Object, long) family
+     *   (see Unsafe#getInt), which already ignore it; its specific
+     *   value does not matter.
+     */
+    private static long getNextThreadIdOffset() { return 0; }
 }
