@@ -975,8 +975,17 @@ public final class AccessController {
      *         {@code null} if there was only privileged system code.
      */
 
+    /**
+     * @cprover.fullSupport Always {@code null} ("only privileged system
+     *   code on the stack"): there is no real Java call stack to
+     *   introspect under symbolic execution, and this is the most
+     *   permissive, least surprising choice - matching how a modern JVM
+     *   with no SecurityManager installed behaves in practice.
+     */
     @SuppressWarnings("removal")
-    private static native AccessControlContext getStackAccessControlContext();
+    private static AccessControlContext getStackAccessControlContext() {
+        return null;
+    }
 
 
     /**
