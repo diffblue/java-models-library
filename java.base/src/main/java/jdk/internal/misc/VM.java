@@ -211,9 +211,15 @@ public class VM {
      * Note that the saved system properties do not include
      * the ones set by java.lang.VersionProps.init().
      */
+    /**
+     * @cprover.limitedSupport Returns null ("key not set", an
+     *   already-anticipated return value per this method's own
+     *   contract) rather than throwing when savedProps has not been
+     *   populated: see {@link #initialize}.
+     */
     public static String getSavedProperty(String key) {
         if (savedProps == null)
-            throw new IllegalStateException("Not yet initialized");
+            return null;
 
         return savedProps.get(key);
     }
@@ -226,9 +232,14 @@ public class VM {
      * Note that the saved system properties do not include
      * the ones set by java.lang.VersionProps.init().
      */
+    /**
+     * @cprover.limitedSupport Returns an empty map rather than
+     *   throwing when savedProps has not been populated: see
+     *   {@link #getSavedProperty}.
+     */
     public static Map<String, String> getSavedProperties() {
         if (savedProps == null)
-            throw new IllegalStateException("Not yet initialized");
+            return Collections.emptyMap();
 
         return Collections.unmodifiableMap(savedProps);
     }
@@ -379,7 +390,12 @@ public class VM {
      * This method should be replaced with StackWalker::walk and then we can
      * remove the logic in the VM.
      */
-    private static native ClassLoader latestUserDefinedLoader0();
+    /**
+     * @cprover.noSupport There is no real Java call stack to introspect
+     *   under symbolic execution. Returns null, the documented value
+     *   when only platform/bootstrap-loaded code is on the stack.
+     */
+    private static ClassLoader latestUserDefinedLoader0() { return null; }
 
     /**
      * Returns {@code true} if we are in a set UID program.
@@ -395,26 +411,36 @@ public class VM {
     /**
      * Returns the real user ID of the calling process,
      * or -1 if the value is not available.
+     *
+     * @cprover.fullSupport Always -1 ("not available"), a documented
+     *   legal sentinel: OS user/group identity is an environment
+     *   detail irrelevant to verification.
      */
-    public static native long getuid();
+    public static long getuid() { return -1; }
 
     /**
      * Returns the effective user ID of the calling process,
      * or -1 if the value is not available.
+     *
+     * @cprover.fullSupport See {@link #getuid}.
      */
-    public static native long geteuid();
+    public static long geteuid() { return -1; }
 
     /**
      * Returns the real group ID of the calling process,
      * or -1 if the value is not available.
+     *
+     * @cprover.fullSupport See {@link #getuid}.
      */
-    public static native long getgid();
+    public static long getgid() { return -1; }
 
     /**
      * Returns the effective group ID of the calling process,
      * or -1 if the value is not available.
+     *
+     * @cprover.fullSupport See {@link #getuid}.
      */
-    public static native long getegid();
+    public static long getegid() { return -1; }
 
     /**
      * Get a nanosecond time stamp adjustment in the form of a single long.
@@ -444,7 +470,13 @@ public class VM {
      *     In that case, the caller should call this method again, passing a
      *     more accurate offset.
      */
-    public static native long getNanoTimeAdjustment(long offsetInSeconds);
+    /**
+     * @cprover.fullSupport Always -1 ("offset too far off, call again
+     *   with a more accurate one"), a documented legal sentinel: high-
+     *   resolution wall-clock time is nondet under JBMC anyway (see
+     *   System#currentTimeMillis).
+     */
+    public static long getNanoTimeAdjustment(long offsetInSeconds) { return -1; }
 
     /**
      * Returns the VM arguments for this runtime environment.
@@ -459,12 +491,26 @@ public class VM {
      * If VM options file is specified via -XX:VMOptionsFile, the vm options
      * file is read and expanded in place of -XX:VMOptionFile option.
      */
-    public static native String[] getRuntimeArguments();
+    /**
+     * @cprover.limitedSupport Always empty: there is no real VM
+     *   command line under JBMC.
+     */
+    public static String[] getRuntimeArguments() { return new String[0]; }
 
     static {
         initialize();
     }
-    private static native void initialize();
+
+    /**
+     * @cprover.fullSupport No-op, matching Class/System/Unsafe's
+     *   registerNatives(): there is no native VM-internal state to
+     *   initialize here. In particular, this leaves savedProps null
+     *   rather than pre-populating it, so that saveProperties(Map)
+     *   (see below) can still install the real properties if it is
+     *   ever called - see getSavedProperty/getSavedProperties for the
+     *   corresponding "not yet initialized" handling.
+     */
+    private static void initialize() {}
 
     /**
      * Provides access to information on buffer usage.
