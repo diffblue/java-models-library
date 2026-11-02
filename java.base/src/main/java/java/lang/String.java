@@ -3568,6 +3568,67 @@ public final class String
      * @since  1.5
      */
     /**
+     * Serializes a {@code String.format} argument the way {@link
+     * org.cprover.CProverString#format}'s string-refinement backend
+     * expects to deserialize it (see
+     * src/solvers/strings/string_format_builtin_function.cpp,
+     * format_arg_from_string): {@code String} arguments pass through
+     * unchanged, {@code null} becomes the literal string {@code "null"},
+     * and primitive wrapper types are widened to {@code long} and packed
+     * into a 4-character string, 16 bits per character, most significant
+     * first. Any other object type is not modelled.
+     */
+    private static String cproverFormatArgument(Object obj) {
+        if (obj == null) {
+            return "null";
+        }
+        if (obj instanceof String) {
+            return (String) obj;
+        }
+
+        long longValue;
+        if (obj instanceof Integer) {
+            longValue = (Integer) obj;
+        } else if (obj instanceof Long) {
+            longValue = (Long) obj;
+        } else if (obj instanceof Float) {
+            longValue = (long) ((Float) obj).doubleValue();
+        } else if (obj instanceof Double) {
+            longValue = (long) ((Double) obj).doubleValue();
+        } else if (obj instanceof Character) {
+            longValue = (long) ((Character) obj).charValue();
+        } else if (obj instanceof Byte) {
+            longValue = (long) (Byte) obj;
+        } else if (obj instanceof Short) {
+            longValue = (long) (Short) obj;
+        } else if (obj instanceof Boolean) {
+            longValue = ((Boolean) obj) ? 1 : 0;
+        } else {
+            CProver.notModelled();
+            longValue = CProver.nondetLong();
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append((char) (longValue >> 48 & 0xFFFF));
+        builder.append((char) (longValue >> 32 & 0xFFFF));
+        builder.append((char) (longValue >> 16 & 0xFFFF));
+        builder.append((char) (longValue & 0xFFFF));
+        String str = builder.toString();
+
+        // The string solver's dependency graph does not always propagate
+        // the constraints for the concatenation above on its own (e.g.
+        // when the caller only uses the length of the formatted result,
+        // not its content) - these redundant constraints pin down the
+        // characters regardless.
+        CProver.assume(str.charAt(0) == (char) (longValue >> 48 & 0xFFFF));
+        CProver.assume(str.charAt(1) == (char) (longValue >> 32 & 0xFFFF));
+        CProver.assume(str.charAt(2) == (char) (longValue >> 16 & 0xFFFF));
+        CProver.assume(str.charAt(3) == (char) (longValue & 0xFFFF));
+
+        return str;
+    }
+
+    /**
      * @cprover.fullSupport Delegates to {@link
      *   org.cprover.CProverString#format}, which is backed by CBMC's
      *   string-refinement solver's own format-specifier support, rather
@@ -3576,16 +3637,17 @@ public final class String
      *   accepts); any further arguments are ignored.
      */
     public static String format(String format, Object... args) {
-        String s0 = args.length > 0 ? String.valueOf(args[0]) : "";
-        String s1 = args.length > 1 ? String.valueOf(args[1]) : "";
-        String s2 = args.length > 2 ? String.valueOf(args[2]) : "";
-        String s3 = args.length > 3 ? String.valueOf(args[3]) : "";
-        String s4 = args.length > 4 ? String.valueOf(args[4]) : "";
-        String s5 = args.length > 5 ? String.valueOf(args[5]) : "";
-        String s6 = args.length > 6 ? String.valueOf(args[6]) : "";
-        String s7 = args.length > 7 ? String.valueOf(args[7]) : "";
-        String s8 = args.length > 8 ? String.valueOf(args[8]) : "";
-        String s9 = args.length > 9 ? String.valueOf(args[9]) : "";
+        CProver.assume(args.length <= 10);
+        String s0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
+        String s1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
+        String s2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
+        String s3 = args.length > 3 ? cproverFormatArgument(args[3]) : "";
+        String s4 = args.length > 4 ? cproverFormatArgument(args[4]) : "";
+        String s5 = args.length > 5 ? cproverFormatArgument(args[5]) : "";
+        String s6 = args.length > 6 ? cproverFormatArgument(args[6]) : "";
+        String s7 = args.length > 7 ? cproverFormatArgument(args[7]) : "";
+        String s8 = args.length > 8 ? cproverFormatArgument(args[8]) : "";
+        String s9 = args.length > 9 ? cproverFormatArgument(args[9]) : "";
         return org.cprover.CProverString.format(
             format, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9);
     }
