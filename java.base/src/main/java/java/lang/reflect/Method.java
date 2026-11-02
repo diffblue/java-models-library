@@ -25,8 +25,9 @@
 
 package java.lang.reflect;
 
+import org.cprover.CProver;
+
 import jdk.internal.access.SharedSecrets;
-import jdk.internal.misc.VM;
 import jdk.internal.reflect.CallerSensitive;
 import jdk.internal.reflect.CallerSensitiveAdapter;
 import jdk.internal.reflect.MethodAccessor;
@@ -552,32 +553,21 @@ public final class Method extends Executable {
      * @throws    ExceptionInInitializerError if the initialization
      * provoked by this method fails.
      */
+    /**
+     * @cprover.noSupport True reflective method invocation requires
+     *   dynamic dispatch by a method name/signature computed at
+     *   runtime, which is not expressible in pure Java and has no
+     *   JBMC-level support (unlike String/Character, there is no
+     *   java.lang.reflect-specific interception table).
+     */
     @CallerSensitive
     @ForceInline // to ensure Reflection.getCallerClass optimization
     @IntrinsicCandidate
     public Object invoke(Object obj, Object... args)
         throws IllegalAccessException, InvocationTargetException
     {
-        boolean callerSensitive = isCallerSensitive();
-        Class<?> caller = null;
-        if (!override || callerSensitive) {
-            caller = Reflection.getCallerClass();
-        }
-
-        // Reflection::getCallerClass filters all subclasses of
-        // jdk.internal.reflect.MethodAccessorImpl and Method::invoke(Object, Object[])
-        // Should not call Method::invoke(Object, Object[], Class) here
-        if (!override) {
-            checkAccess(caller, clazz,
-                    Modifier.isStatic(modifiers) ? null : obj.getClass(),
-                    modifiers);
-        }
-        MethodAccessor ma = methodAccessor;             // read @Stable
-        if (ma == null) {
-            ma = acquireMethodAccessor();
-        }
-
-        return callerSensitive ? ma.invoke(obj, args, caller) : ma.invoke(obj, args);
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -588,36 +578,15 @@ public final class Method extends Executable {
      * If this adapter is not presented, MethodHandle invoking Method::invoke
      * will get an invoker class, a hidden nestmate of the original caller class,
      * that becomes the caller class invoking Method::invoke.
+     *
+     * @cprover.noSupport See {@link #invoke(Object, Object...)}.
      */
     @CallerSensitiveAdapter
     private Object invoke(Object obj, Object[] args, Class<?> caller)
             throws IllegalAccessException, InvocationTargetException
     {
-        boolean callerSensitive = isCallerSensitive();
-        if (!override) {
-            checkAccess(caller, clazz,
-                        Modifier.isStatic(modifiers) ? null : obj.getClass(),
-                        modifiers);
-        }
-        MethodAccessor ma = methodAccessor;             // read @Stable
-        if (ma == null) {
-            ma = acquireMethodAccessor();
-        }
-
-        return callerSensitive ? ma.invoke(obj, args, caller) : ma.invoke(obj, args);
-    }
-
-    //  0 = not initialized (@Stable contract)
-    //  1 = initialized, CS
-    // -1 = initialized, not CS
-    @Stable private byte callerSensitive;
-
-    private boolean isCallerSensitive() {
-        byte cs = callerSensitive;
-        if (cs == 0) {
-            callerSensitive = cs = (byte)(Reflection.isCallerSensitive(this) ? 1 : -1);
-        }
-        return (cs > 0);
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -708,28 +677,6 @@ public final class Method extends Executable {
         // declared in an interface.
         return ((getModifiers() & (Modifier.ABSTRACT | Modifier.PUBLIC | Modifier.STATIC)) ==
                 Modifier.PUBLIC) && getDeclaringClass().isInterface();
-    }
-
-    // NOTE that there is no synchronization used here. It is correct
-    // (though not efficient) to generate more than one MethodAccessor
-    // for a given Method. However, avoiding synchronization will
-    // probably make the implementation more scalable.
-    private MethodAccessor acquireMethodAccessor() {
-        // First check to see if one has been created yet, and take it
-        // if so
-        Method root = this.root;
-        MethodAccessor tmp = root == null ? null : root.getMethodAccessor();
-        if (tmp != null) {
-            methodAccessor = tmp;
-        } else {
-            // Otherwise fabricate one and propagate it up to the root
-            tmp = reflectionFactory.newMethodAccessor(this, isCallerSensitive());
-            // set the method accessor only if it's not using native implementation
-            if (VM.isJavaLangInvokeInited())
-                setMethodAccessor(tmp);
-        }
-
-        return tmp;
     }
 
     // Returns MethodAccessor for this Method object, not looking up
