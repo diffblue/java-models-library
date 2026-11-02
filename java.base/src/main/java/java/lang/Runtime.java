@@ -693,7 +693,12 @@ public class Runtime {
      *          machine; never smaller than one
      * @since 1.4
      */
-    public native int availableProcessors();
+    /**
+     * @cprover.fullSupport Always 1: the number of available
+     *   processors is an environment detail irrelevant to
+     *   verification, and 1 is the documented minimum legal value.
+     */
+    public int availableProcessors() { return 1; }
 
     /**
      * Returns the amount of free memory in the Java Virtual Machine.
@@ -704,7 +709,11 @@ public class Runtime {
      * @return  an approximation to the total amount of memory currently
      *          available for future allocated objects, measured in bytes.
      */
-    public native long freeMemory();
+    /**
+     * @cprover.fullSupport Nondet: heap memory accounting is a pure
+     *   environment/performance detail, irrelevant to verification.
+     */
+    public long freeMemory() { return org.cprover.CProver.nondetLong(); }
 
     /**
      * Returns the total amount of memory in the Java virtual machine.
@@ -717,7 +726,10 @@ public class Runtime {
      * @return  the total amount of memory currently available for current
      *          and future objects, measured in bytes.
      */
-    public native long totalMemory();
+    /**
+     * @cprover.fullSupport Nondet: see {@link #freeMemory}.
+     */
+    public long totalMemory() { return org.cprover.CProver.nondetLong(); }
 
     /**
      * Returns the maximum amount of memory that the Java virtual machine
@@ -728,7 +740,10 @@ public class Runtime {
      *          attempt to use, measured in bytes
      * @since 1.4
      */
-    public native long maxMemory();
+    /**
+     * @cprover.fullSupport Nondet: see {@link #freeMemory}.
+     */
+    public long maxMemory() { return org.cprover.CProver.nondetLong(); }
 
     /**
      * Runs the garbage collector in the Java Virtual Machine.
@@ -755,7 +770,12 @@ public class Runtime {
      * The method {@link System#gc()} is the conventional and convenient
      * means of invoking this method.
      */
-    public native void gc();
+    /**
+     * @cprover.fullSupport No-op: garbage collection is a pure
+     *   performance detail (and this method is already documented as
+     *   providing no actual guarantees), irrelevant to verification.
+     */
+    public void gc() {}
 
     /**
      * Runs the finalization methods of any objects pending finalization.
