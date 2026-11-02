@@ -24,6 +24,8 @@
  */
 package java.lang;
 
+import org.cprover.CProver;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Locale;
@@ -81,6 +83,19 @@ final class VirtualThread extends BaseVirtualThread {
     private final Executor scheduler;
     private final Continuation cont;
     private final Runnable runContinuation;
+
+    /**
+     * The task to run, kept directly (in addition to being captured inside
+     * {@link #cont}) so that it can be run via {@link
+     * org.cprover.CProver#startThread}/{@link org.cprover.CProver#endThread}
+     * without going through the carrier-thread/continuation
+     * mount-unmount-park-yield scheduling machinery: under JBMC a virtual
+     * thread is not meaningfully different from a platform thread (see
+     * {@code Thread.start0}), that machinery is a pure performance
+     * optimization (how virtual threads are multiplexed onto a small pool
+     * of carrier threads), and is not modelled.
+     */
+    private final Runnable task;
 
     // virtual thread state, accessed by VM
     private volatile int state;
@@ -178,6 +193,7 @@ final class VirtualThread extends BaseVirtualThread {
         this.scheduler = scheduler;
         this.cont = new VThreadContinuation(this, task);
         this.runContinuation = this::runContinuation;
+        this.task = task;
     }
 
     /**
@@ -536,6 +552,16 @@ final class VirtualThread extends BaseVirtualThread {
      * @throws IllegalThreadStateException if the thread has already been started
      * @throws RejectedExecutionException if the scheduler cannot accept a task
      */
+    /**
+     * @cprover.limitedSupport Runs the task as a genuine CPROVER thread
+     *   instead of scheduling a Continuation onto a carrier-thread pool:
+     *   whether the JVM executes a virtual thread's body by mounting a
+     *   continuation onto a pooled platform thread, or by giving it a
+     *   real OS thread, is a scheduling/performance detail that does
+     *   not change which interleavings are observable, so it is
+     *   irrelevant to verification. This mirrors how {@link
+     *   Thread#start0} models a platform thread's start.
+     */
     @Override
     void start(ThreadContainer container) {
         if (!compareAndSetState(NEW, STARTED)) {
@@ -556,14 +582,23 @@ final class VirtualThread extends BaseVirtualThread {
             // scoped values may be inherited
             inheritScopedValueBindings(container);
 
-            // submit task to run thread
-            submitRunContinuation();
             started = true;
         } finally {
             if (!started) {
                 afterDone(addedToContainer);
             }
         }
+
+        CProver.startThread(334);
+        setState(RUNNING);
+        mount();
+        try {
+            run(task);
+        } finally {
+            unmount();
+            afterDone();
+        }
+        CProver.endThread(334);
     }
 
     @Override
@@ -581,6 +616,16 @@ final class VirtualThread extends BaseVirtualThread {
      * permit is consumed and this method completes immediately (meaning it doesn't
      * yield). It also completes immediately if the interrupt status is set.
      */
+    /**
+     * @cprover.fullSupport Returns immediately once the permit/interrupt
+     *   fast path is checked, rather than yielding the backing
+     *   Continuation and waiting for a matching unpark: "returning for
+     *   no reason" (i.e. spuriously) is documented as legal, and this
+     *   thread's whole body already runs as a single CPROVER thread
+     *   (see {@link #start}), so there is no cooperative scheduler for
+     *   a real unpark to resume. See {@link jdk.internal.misc.Unsafe#park}
+     *   for the platform-thread analogue of this same simplification.
+     */
     @Override
     void park() {
         assert Thread.currentThread() == this;
@@ -588,24 +633,6 @@ final class VirtualThread extends BaseVirtualThread {
         // complete immediately if parking permit available or interrupted
         if (getAndSetParkPermit(false) || interrupted)
             return;
-
-        // park the thread
-        boolean yielded = false;
-        setState(PARKING);
-        try {
-            yielded = yieldContinuation();  // may throw
-        } finally {
-            assert (Thread.currentThread() == this) && (yielded == (state() == RUNNING));
-            if (!yielded) {
-                assert state() == PARKING;
-                setState(RUNNING);
-            }
-        }
-
-        // park on the carrier thread when pinned
-        if (!yielded) {
-            parkOnCarrierThread(false, 0);
-        }
     }
 
     /**
@@ -616,6 +643,9 @@ final class VirtualThread extends BaseVirtualThread {
      *
      * @param nanos the maximum number of nanoseconds to wait.
      */
+    /**
+     * @cprover.fullSupport See {@link #park}.
+     */
     @Override
     void parkNanos(long nanos) {
         assert Thread.currentThread() == this;
@@ -623,31 +653,6 @@ final class VirtualThread extends BaseVirtualThread {
         // complete immediately if parking permit available or interrupted
         if (getAndSetParkPermit(false) || interrupted)
             return;
-
-        // park the thread for the waiting time
-        if (nanos > 0) {
-            long startTime = System.nanoTime();
-
-            boolean yielded = false;
-            Future<?> unparker = scheduleUnpark(nanos);  // may throw OOME
-            setState(TIMED_PARKING);
-            try {
-                yielded = yieldContinuation();  // may throw
-            } finally {
-                assert (Thread.currentThread() == this) && (yielded == (state() == RUNNING));
-                if (!yielded) {
-                    assert state() == TIMED_PARKING;
-                    setState(RUNNING);
-                }
-                cancel(unparker);
-            }
-
-            // park on carrier thread for remaining time when pinned
-            if (!yielded) {
-                long remainingNanos = nanos - (System.nanoTime() - startTime);
-                parkOnCarrierThread(true, remainingNanos);
-            }
-        }
     }
 
     /**
@@ -731,52 +736,28 @@ final class VirtualThread extends BaseVirtualThread {
      * not to block.
      * @throws RejectedExecutionException if the scheduler cannot accept a task
      */
+    /**
+     * @cprover.fullSupport Just sets the parking permit, matching how
+     *   {@link #park}/{@link #parkNanos} no longer actually block: there
+     *   is no parked/pinned Continuation left to resubmit or unpark on a
+     *   carrier thread. See {@link jdk.internal.misc.Unsafe#unpark} for
+     *   the platform-thread analogue.
+     */
     @Override
     @ChangesCurrentThread
     void unpark() {
-        Thread currentThread = Thread.currentThread();
-        if (!getAndSetParkPermit(true) && currentThread != this) {
-            int s = state();
-            boolean parked = (s == PARKED) || (s == TIMED_PARKED);
-            if (parked && compareAndSetState(s, UNPARKED)) {
-                if (currentThread instanceof VirtualThread vthread) {
-                    vthread.switchToCarrierThread();
-                    try {
-                        submitRunContinuation();
-                    } finally {
-                        switchToVirtualThread(vthread);
-                    }
-                } else {
-                    submitRunContinuation();
-                }
-            } else if ((s == PINNED) || (s == TIMED_PINNED)) {
-                // unpark carrier thread when pinned
-                synchronized (carrierThreadAccessLock()) {
-                    Thread carrier = carrierThread;
-                    if (carrier != null && ((s = state()) == PINNED || s == TIMED_PINNED)) {
-                        U.unpark(carrier);
-                    }
-                }
-            }
-        }
+        getAndSetParkPermit(true);
     }
 
     /**
      * Attempts to yield the current virtual thread (Thread.yield).
      */
+    /**
+     * @cprover.fullSupport No-op: see {@link Thread#yield0}, the
+     *   platform-thread analogue this mirrors.
+     */
     void tryYield() {
         assert Thread.currentThread() == this;
-        setState(YIELDING);
-        boolean yielded = false;
-        try {
-            yielded = yieldContinuation();  // may throw
-        } finally {
-            assert (Thread.currentThread() == this) && (yielded == (state() == RUNNING));
-            if (!yielded) {
-                assert state() == YIELDING;
-                setState(RUNNING);
-            }
-        }
     }
 
     /**
@@ -792,6 +773,15 @@ final class VirtualThread extends BaseVirtualThread {
      * @param nanos the maximum number of nanoseconds to sleep
      * @throws InterruptedException if interrupted while sleeping
      */
+    /**
+     * @cprover.limitedSupport Parks once for the whole duration instead of
+     *   looping until {@code nanoTime() - startNanos >= nanos}: {@link
+     *   #parkNanos} no longer actually blocks (see its own doc), so a
+     *   loop driven by elapsed wall-clock time has no guarantee of
+     *   progress and could unwind indefinitely. A single park/interrupt
+     *   check is a faithful enough sleep under verification, where the
+     *   exact sleep duration is not an observable property.
+     */
     void sleepNanos(long nanos) throws InterruptedException {
         assert Thread.currentThread() == this && nanos >= 0;
         if (getAndClearInterrupt())
@@ -799,16 +789,10 @@ final class VirtualThread extends BaseVirtualThread {
         if (nanos == 0) {
             tryYield();
         } else {
-            // park for the sleep time
             try {
-                long remainingNanos = nanos;
-                long startNanos = System.nanoTime();
-                while (remainingNanos > 0) {
-                    parkNanos(remainingNanos);
-                    if (getAndClearInterrupt()) {
-                        throw new InterruptedException();
-                    }
-                    remainingNanos = nanos - (System.nanoTime() - startNanos);
+                parkNanos(nanos);
+                if (getAndClearInterrupt()) {
+                    throw new InterruptedException();
                 }
             } finally {
                 // may have been unparked while sleeping
@@ -944,18 +928,19 @@ final class VirtualThread extends BaseVirtualThread {
         return (state == TERMINATED);
     }
 
+    /**
+     * @cprover.limitedSupport Tries once rather than retrying until a
+     *   non-null result is obtained: see {@link Thread#getStackTrace0}.
+     *   Under JBMC there is no concurrent mounting/unmounting to wait
+     *   out, so retrying could spin forever if the stack trace is
+     *   unavailable (a legal outcome per
+     *   {@link Thread#asyncGetStackTrace}'s contract).
+     */
     @Override
     StackTraceElement[] asyncGetStackTrace() {
-        StackTraceElement[] stackTrace;
-        do {
-            stackTrace = (carrierThread != null)
-                    ? super.asyncGetStackTrace()  // mounted
-                    : tryGetStackTrace();         // unmounted
-            if (stackTrace == null) {
-                Thread.yield();
-            }
-        } while (stackTrace == null);
-        return stackTrace;
+        return (carrierThread != null)
+                ? super.asyncGetStackTrace()  // mounted
+                : tryGetStackTrace();         // unmounted
     }
 
     /**
@@ -1112,28 +1097,35 @@ final class VirtualThread extends BaseVirtualThread {
     }
 
     // -- JVM TI support --
+    // @cprover.fullSupport All no-ops: JVMTI is a debugging/profiling
+    // tool hook, irrelevant to verification.
 
     @IntrinsicCandidate
     @JvmtiMountTransition
-    private native void notifyJvmtiStart();
+    private void notifyJvmtiStart() {}
 
     @IntrinsicCandidate
     @JvmtiMountTransition
-    private native void notifyJvmtiEnd();
+    private void notifyJvmtiEnd() {}
 
     @IntrinsicCandidate
     @JvmtiMountTransition
-    private native void notifyJvmtiMount(boolean hide);
+    private void notifyJvmtiMount(boolean hide) {}
 
     @IntrinsicCandidate
     @JvmtiMountTransition
-    private native void notifyJvmtiUnmount(boolean hide);
+    private void notifyJvmtiUnmount(boolean hide) {}
 
     @IntrinsicCandidate
     @JvmtiMountTransition
-    private native void notifyJvmtiHideFrames(boolean hide);
+    private void notifyJvmtiHideFrames(boolean hide) {}
 
-    private static native void registerNatives();
+    /**
+     * @cprover.fullSupport No-op, matching Class/System/Thread/Unsafe's
+     *   registerNatives(): real JNI method registration is irrelevant
+     *   under JBMC.
+     */
+    private static void registerNatives() {}
     static {
         registerNatives();
     }
