@@ -25,8 +25,9 @@
 
 package java.lang.reflect;
 
+import org.cprover.CProver;
+
 import jdk.internal.access.SharedSecrets;
-import jdk.internal.misc.VM;
 import jdk.internal.reflect.CallerSensitive;
 import jdk.internal.reflect.ConstructorAccessor;
 import jdk.internal.reflect.Reflection;
@@ -476,31 +477,33 @@ public final class Constructor<T> extends Executable {
      * @throws    ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      */
+    /**
+     * @cprover.noSupport True reflective instantiation requires
+     *   dynamic dispatch by a constructor signature computed at
+     *   runtime, which is not expressible in pure Java and has no
+     *   JBMC-level support (unlike String/Character, there is no
+     *   java.lang.reflect-specific interception table).
+     */
     @CallerSensitive
     @ForceInline // to ensure Reflection.getCallerClass optimization
     public T newInstance(Object ... initargs)
         throws InstantiationException, IllegalAccessException,
                IllegalArgumentException, InvocationTargetException
     {
-        Class<?> caller = override ? null : Reflection.getCallerClass();
-        return newInstanceWithCaller(initargs, !override, caller);
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
+    /**
+     * @cprover.noSupport See {@link #newInstance(Object...)}.
+     */
     /* package-private */
     T newInstanceWithCaller(Object[] args, boolean checkAccess, Class<?> caller)
         throws InstantiationException, IllegalAccessException,
                InvocationTargetException
     {
-        if (checkAccess)
-            checkAccess(caller, clazz, clazz, modifiers);
-
-        ConstructorAccessor ca = constructorAccessor;   // read @Stable
-        if (ca == null) {
-            ca = acquireConstructorAccessor();
-        }
-        @SuppressWarnings("unchecked")
-        T inst = (T) ca.newInstance(args);
-        return inst;
+        CProver.notModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
     /**
@@ -525,34 +528,6 @@ public final class Constructor<T> extends Executable {
     @Override
     public boolean isSynthetic() {
         return super.isSynthetic();
-    }
-
-    // NOTE that there is no synchronization used here. It is correct
-    // (though not efficient) to generate more than one
-    // ConstructorAccessor for a given Constructor. However, avoiding
-    // synchronization will probably make the implementation more
-    // scalable.
-    private ConstructorAccessor acquireConstructorAccessor() {
-
-        // First check to see if one has been created yet, and take it
-        // if so.
-        Constructor<?> root = this.root;
-        ConstructorAccessor tmp = root == null ? null : root.getConstructorAccessor();
-        if (tmp != null) {
-            constructorAccessor = tmp;
-        } else {
-            // Otherwise fabricate one and propagate it up to the root
-            // Ensure the declaring class is not an Enum class.
-            if ((clazz.getModifiers() & Modifier.ENUM) != 0)
-                throw new IllegalArgumentException("Cannot reflectively create enum objects");
-
-            tmp = reflectionFactory.newConstructorAccessor(this);
-            // set the constructor accessor only if it's not using native implementation
-            if (VM.isJavaLangInvokeInited())
-                setConstructorAccessor(tmp);
-        }
-
-        return tmp;
     }
 
     // Returns ConstructorAccessor for this Constructor object, not
