@@ -3564,32 +3564,14 @@ public final class Class<T> implements java.io.Serializable,
         // initialize Unsafe machinery here, since we need to call Class.class instance method
         // and have to avoid calling it in the static initializer of the Class class...
         private static final Unsafe unsafe = Unsafe.getUnsafe();
-        // offset of Class.reflectionData instance field
-        private static final long reflectionDataOffset
-                = unsafe.objectFieldOffset(Class.class, "reflectionData");
         // offset of Class.annotationType instance field
         private static final long annotationTypeOffset
                 = unsafe.objectFieldOffset(Class.class, "annotationType");
-        // offset of Class.annotationData instance field
-        private static final long annotationDataOffset
-                = unsafe.objectFieldOffset(Class.class, "annotationData");
-
-        static <T> boolean casReflectionData(Class<?> clazz,
-                                             SoftReference<ReflectionData<T>> oldData,
-                                             SoftReference<ReflectionData<T>> newData) {
-            return unsafe.compareAndSetReference(clazz, reflectionDataOffset, oldData, newData);
-        }
 
         static boolean casAnnotationType(Class<?> clazz,
                                          AnnotationType oldType,
                                          AnnotationType newType) {
             return unsafe.compareAndSetReference(clazz, annotationTypeOffset, oldType, newType);
-        }
-
-        static boolean casAnnotationData(Class<?> clazz,
-                                         AnnotationData oldData,
-                                         AnnotationData newData) {
-            return unsafe.compareAndSetReference(clazz, annotationDataOffset, oldData, newData);
         }
     }
 
@@ -3630,38 +3612,18 @@ public final class Class<T> implements java.io.Serializable,
     // that redefines this class or a superclass.
     private transient volatile int classRedefinedCount;
 
-    // Lazily create and cache ReflectionData
+    /**
+     * @cprover.fullSupport Allocates a fresh {@code ReflectionData} on
+     *   every call instead of caching it behind a {@code SoftReference}
+     *   via a compare-and-swap retry loop: that loop never terminates
+     *   under JBMC, since {@code Unsafe.compareAndSetReference} (still
+     *   {@code native}) does not deterministically report success, and
+     *   caching is a pure performance optimization anyway - every
+     *   caller already tolerates (and relies on) recomputing a field of
+     *   this object the first time it is accessed.
+     */
     private ReflectionData<T> reflectionData() {
-        SoftReference<ReflectionData<T>> reflectionData = this.reflectionData;
-        int classRedefinedCount = this.classRedefinedCount;
-        ReflectionData<T> rd;
-        if (reflectionData != null &&
-            (rd = reflectionData.get()) != null &&
-            rd.redefinedCount == classRedefinedCount) {
-            return rd;
-        }
-        // else no SoftReference or cleared SoftReference or stale ReflectionData
-        // -> create and replace new instance
-        return newReflectionData(reflectionData, classRedefinedCount);
-    }
-
-    private ReflectionData<T> newReflectionData(SoftReference<ReflectionData<T>> oldReflectionData,
-                                                int classRedefinedCount) {
-        while (true) {
-            ReflectionData<T> rd = new ReflectionData<>(classRedefinedCount);
-            // try to CAS it...
-            if (Atomic.casReflectionData(this, oldReflectionData, new SoftReference<>(rd))) {
-                return rd;
-            }
-            // else retry
-            oldReflectionData = this.reflectionData;
-            classRedefinedCount = this.classRedefinedCount;
-            if (oldReflectionData != null &&
-                (rd = oldReflectionData.get()) != null &&
-                rd.redefinedCount == classRedefinedCount) {
-                return rd;
-            }
-        }
+        return new ReflectionData<>(classRedefinedCount);
     }
 
     /**
@@ -4551,22 +4513,13 @@ public final class Class<T> implements java.io.Serializable,
     @SuppressWarnings("UnusedDeclaration")
     private transient volatile AnnotationData annotationData;
 
+    /**
+     * @cprover.fullSupport Recomputes {@code AnnotationData} on every
+     *   call instead of caching it via a compare-and-swap retry loop:
+     *   see {@link #reflectionData}.
+     */
     private AnnotationData annotationData() {
-        while (true) { // retry loop
-            AnnotationData annotationData = this.annotationData;
-            int classRedefinedCount = this.classRedefinedCount;
-            if (annotationData != null &&
-                annotationData.redefinedCount == classRedefinedCount) {
-                return annotationData;
-            }
-            // null or stale annotationData -> optimistically create new instance
-            AnnotationData newAnnotationData = createAnnotationData(classRedefinedCount);
-            // try to install it
-            if (Atomic.casAnnotationData(this, annotationData, newAnnotationData)) {
-                // successfully installed new AnnotationData
-                return newAnnotationData;
-            }
-        }
+        return createAnnotationData(classRedefinedCount);
     }
 
     private AnnotationData createAnnotationData(int classRedefinedCount) {
