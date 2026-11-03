@@ -2490,12 +2490,82 @@ public final class String
     }
 
     /**
-     * @cprover.noSupport Regular-expression matching is deferred to a
+     * @cprover.limitedSupport Only {@code limit == 0} without delimiters
+     *   is modelled (anything else is {@code CProver.notModelled()}), and
+     *   only for a {@code regex} that is empty or a single character that
+     *   is not a regular-expression meta character; the model assumes
+     *   that (it does not throw {@code PatternSyntaxException} or treat
+     *   the character as a pattern), so no trace exists for any other
+     *   {@code regex}. The size of the result is limited by the unwind
+     *   bound. Regular-expression matching in general is deferred to a
      *   future Pattern/Matcher stage.
      */
     private String[] split(String regex, int limit, boolean withDelimiters) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        if (limit != 0 || withDelimiters) {
+            CProver.notModelled();
+            return CProver.nondetWithNullForNotModelled();
+        }
+        int size = CProver.nondetInt();
+        CProver.assume(size > 0);
+        String[] result = new String[size];
+
+        if (regex.length() == 0) {
+            int tokenIndex = 0;
+            if (length() == 0) {
+                CProver.assume(size == 1);
+                result[tokenIndex] = "";
+                return result;
+            }
+            while (tokenIndex < length()) {
+                result[tokenIndex] =
+                        CProverString.substring(this, tokenIndex, tokenIndex + 1);
+                tokenIndex++;
+            }
+            // the size of the array corresponds to the number of tokens
+            CProver.assume(tokenIndex == size);
+            return result;
+        }
+
+        // only single character delimiters
+        CProver.assume(regex.length() == 1);
+        char delimiter = CProverString.charAt(regex, 0);
+
+        // not the regular-expression meta characters \.[{()<>*+-=?^$|
+        CProver.assume(delimiter != '\\' && delimiter != '.' && delimiter != '['
+                && delimiter != '{' && delimiter != '('
+                && delimiter != ')' && delimiter != '<'
+                && delimiter != '>' && delimiter != '*'
+                && delimiter != '+' && delimiter != '-'
+                && delimiter != '=' && delimiter != '?'
+                && delimiter != '^' && delimiter != '$'
+                && delimiter != '|');
+
+        int tokenIndex = 0;
+        int tokenStart = 0;
+        int tokenEnd = indexOf(delimiter, tokenStart);
+        while (tokenIndex < size - 1) {
+            CProver.assume(tokenEnd != -1);
+            result[tokenIndex++] =
+                    CProverString.substring(this, tokenStart, tokenEnd);
+            tokenStart = tokenEnd + 1;
+            tokenEnd = indexOf(delimiter, tokenStart);
+        }
+        // the remainder of the string
+        if (tokenEnd == -1) {
+            // no trailing empty strings (limit == 0 removes them)
+            CProver.assume(tokenStart != length());
+            result[tokenIndex] =
+                CProverString.substring(this, tokenStart, length());
+        } else {
+            CProver.assume(tokenStart != tokenEnd);
+            result[tokenIndex] =
+                CProverString.substring(this, tokenStart, tokenEnd);
+            // only trailing empty strings after it, which are removed
+            for (int i = tokenEnd + 1; i < length(); i++) {
+                CProver.assume(charAt(i) == delimiter);
+            }
+        }
+        return result;
     }
 
     /**
