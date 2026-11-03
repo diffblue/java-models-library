@@ -802,15 +802,7 @@ public final class StringBuilder
      */
     @Serial
     private void writeObject(ObjectOutputStream s) throws IOException {
-        s.defaultWriteObject();
-        s.writeInt(count);
-        char[] val = new char[capacity()];
-        if (isLatin1()) {
-            StringLatin1.getChars(value, 0, count, val, 0);
-        } else {
-            StringUTF16.getChars(value, 0, count, val, 0);
-        }
-        s.writeObject(val);
+        CProver.notModelled();
     }
 
     /**
@@ -824,13 +816,6 @@ public final class StringBuilder
     @Serial
     private void readObject(ObjectInputStream s)
             throws IOException, ClassNotFoundException {
-        s.defaultReadObject();
-        int c = s.readInt();
-        char[] val = (char[]) s.readObject();
-        if (c < 0 || c > val.length) {
-            throw new StreamCorruptedException("count value invalid");
-        }
-        initBytes(val, 0, val.length);
-        count = c;
+        CProver.notModelled();
     }
 }

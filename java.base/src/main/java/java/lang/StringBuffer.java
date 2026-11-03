@@ -941,17 +941,7 @@ import java.io.StreamCorruptedException;
     @Serial
     private synchronized void writeObject(ObjectOutputStream s)
             throws IOException {
-        ObjectOutputStream.PutField fields = s.putFields();
-        char[] val = new char[capacity()];
-        if (isLatin1()) {
-            StringLatin1.getChars(value, 0, count, val, 0);
-        } else {
-            StringUTF16.getChars(value, 0, count, val, 0);
-        }
-        fields.put("value", val);
-        fields.put("count", count);
-        fields.put("shared", false);
-        s.writeFields();
+        CProver.notModelled();
     }
 
     /**
@@ -965,16 +955,7 @@ import java.io.StreamCorruptedException;
     @Serial
     private void readObject(ObjectInputStream s)
         throws IOException, ClassNotFoundException {
-        ObjectInputStream.GetField fields = s.readFields();
-
-        char[] val = (char[])fields.get("value", null);
-        int c = fields.get("count", 0);
-        if (c < 0 || c > val.length) {
-            throw new StreamCorruptedException("count value invalid");
-        }
-        initBytes(val, 0, val.length);
-        count = c;
-        // ignore shared field
+        CProver.notModelled();
     }
 
     synchronized void getBytes(byte[] dst, int dstBegin, byte coder) {

@@ -62,28 +62,11 @@ import org.cprover.CProver;
  */
 abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
     permits StringBuilder, StringBuffer {
-    /**
-     * The value is used for character storage.
-     */
-    byte[] value;
-
-    /**
-     * The id of the encoding used to encode the bytes in {@code value}.
-     */
-    byte coder;
-
-    /**
-     *  The attribute indicates {@code value} might be compressible to LATIN1 if it is UTF16-encoded.
-     *  An inflated byte array becomes compressible only when those non-latin1 chars are deleted.
-     *  We simply set this attribute in all methods which may delete chars. Therefore, there are
-     *  false positives. Subclasses and String need to handle it properly.
-     */
-    boolean maybeLatin1;
-
-    /**
-     * The count is the number of characters used.
-     */
-    int count;
+    // The JDK's storage fields (value, coder, maybeLatin1, count) are
+    // deliberately not declared: see the class comment. JBMC gives
+    // StringBuilder and StringBuffer their own length and data components,
+    // and the fields that were declared here are only used by the
+    // compact-string helpers below, which are not modelled.
 
     private static final byte[] EMPTYVALUE = new byte[0];
 
@@ -407,71 +390,40 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence
     //   those call sites itself; see lambda_synthesis.cpp).
 
     /**
-     * Needed by {@code String} for the contentEquals method.
+     * @cprover.noSupport The compact-string helpers of the JDK, which work
+     *   on the byte-level representation of the characters, are not
+     *   modelled (this class has none): {@code CProver.notModelled()}.
      */
     final byte[] getValue() {
-        return value;
+        CProver.notModelled();
+        return CProver.nondetWithNullForNotModelled();
     }
 
-    /*
-     * Invoker guarantees it is in UTF16 (inflate itself for asb), if two
-     * coders are different and the dstBegin has enough space
-     *
-     * @param dstBegin  the char index, not offset of byte[]
-     * @param coder     the coder of dst[]
-     */
     void getBytes(byte[] dst, int dstBegin, byte coder) {
-        if (this.coder == coder) {
-            System.arraycopy(value, 0, dst, dstBegin << coder, count << coder);
-        } else {        // this.coder == LATIN && coder == UTF16
-            StringLatin1.inflate(value, 0, dst, dstBegin, count);
-        }
+        CProver.notModelled();
     }
 
-    /* for readObject() */
     void initBytes(char[] value, int off, int len) {
-        if (String.COMPACT_STRINGS) {
-            byte[] val = StringUTF16.compress(value, off, len);
-            this.coder = StringUTF16.coderFromArrayLen(val, len);
-            this.value = val;
-            return;
-        }
-        this.coder = String.UTF16;
-        this.value = StringUTF16.toBytes(value, off, len);
+        CProver.notModelled();
     }
 
     final byte getCoder() {
-        return String.COMPACT_STRINGS ? coder : String.UTF16;
+        CProver.notModelled();
+        return (byte) CProver.nondetInt();
     }
 
     final boolean isLatin1() {
-        return String.COMPACT_STRINGS && coder == String.LATIN1;
+        CProver.notModelled();
+        return CProver.nondetBoolean();
     }
 
     long mix(long lengthCoder) {
-        return (lengthCoder + count) | ((long)coder << 32);
+        CProver.notModelled();
+        return CProver.nondetLong();
     }
 
-    /**
-     * Used by StringConcatHelper via JLA. Adds the characters in the builder value to the
-     * concatenation buffer and then updates the running accumulation of length.
-     *
-     * @param lengthCoder running accumulation of length and coder
-     * @param buffer      concatenation buffer
-     *
-     * @return running accumulation of length and coder minus the number of characters added
-     */
     long prepend(long lengthCoder, byte[] buffer) {
-        lengthCoder -= count;
-
-        if (lengthCoder < ((long)String.UTF16 << 32)) {
-            System.arraycopy(value, 0, buffer, (int)lengthCoder, count);
-        } else if (coder == String.LATIN1) {
-            StringUTF16.inflate(value, 0, buffer, (int)lengthCoder, count);
-        } else {
-            System.arraycopy(value, 0, buffer, (int)lengthCoder << 1, count << 1);
-        }
-
-        return lengthCoder;
+        CProver.notModelled();
+        return CProver.nondetLong();
     }
 }
