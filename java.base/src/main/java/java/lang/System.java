@@ -129,6 +129,46 @@ public final class System {
     }
 
     /**
+     * System properties.
+     *
+     * See {@linkplain #getProperties getProperties} for details.
+     *
+     * @cprover.fullSupport Initialized directly with placeholder
+     *   values for the properties jdk.internal.util.StaticProperty
+     *   requires to be present (it throws InternalError for any of
+     *   them that are missing), and declared before in/out/err below
+     *   (rather than in its original declaration order further down
+     *   this file), rather than relying on initPhase1() (see below) to
+     *   populate it from the real OS/JVM environment: there is no real
+     *   VM startup sequence driving initPhase1/2/3 under JBMC, so it
+     *   is never called. The actual values of these properties (a
+     *   filesystem path, an OS name, ...) are environment details
+     *   irrelevant to verification; only their presence matters.
+     *   Declaring this field first matters: field initializers run in
+     *   textual order as part of this class's static initializer, and
+     *   constructing out/err's PrintStream below transitively reads
+     *   system properties (to pick a default charset), so props must
+     *   already be assigned by the time that runs.
+     */
+    private static Properties props = createCproverDefaultProperties();
+
+    private static Properties createCproverDefaultProperties() {
+        Properties p = new Properties();
+        p.setProperty("java.home", "");
+        p.setProperty("user.home", "");
+        p.setProperty("user.dir", "");
+        p.setProperty("user.name", "");
+        p.setProperty("java.io.tmpdir", "");
+        p.setProperty("native.encoding", "UTF-8");
+        p.setProperty("file.encoding", "UTF-8");
+        p.setProperty("sun.jnu.encoding", "UTF-8");
+        p.setProperty("os.name", "Linux");
+        p.setProperty("os.arch", "amd64");
+        p.setProperty("os.version", "");
+        return p;
+    }
+
+    /**
      * The "standard" input stream. This stream is already
      * open and ready to supply input data. Typically this stream
      * corresponds to keyboard input or another input source specified by
@@ -749,20 +789,6 @@ public final class System {
      */
     @IntrinsicCandidate
     public static int identityHashCode(Object x) { return 0; }
-
-    /**
-     * System properties.
-     *
-     * See {@linkplain #getProperties getProperties} for details.
-     *
-     * @cprover.fullSupport Initialized directly to an empty Properties
-     *   rather than relying on initPhase1() (see below) to populate it
-     *   from the real OS/JVM environment: there is no real VM startup
-     *   sequence driving initPhase1/2/3 under JBMC, so it is never
-     *   called, and getProperty/getProperties would otherwise always
-     *   NullPointerException.
-     */
-    private static Properties props = new Properties();
 
     /**
      * Determines the current system properties.
