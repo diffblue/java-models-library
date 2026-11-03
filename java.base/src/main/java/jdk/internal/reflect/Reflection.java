@@ -70,7 +70,7 @@ public class Reflection {
         ignoring frames associated with java.lang.reflect.Method.invoke()
         and its implementation. */
     /**
-     * @cprover.noSupport There is no real Java call stack to introspect
+     * @cprover.limitedSupport There is no real Java call stack to introspect
      *   under symbolic execution. Returns the fixed {@code Object.class}
      *   rather than a freshly synthesized nondet {@code Class} object,
      *   since this is called from a great many call sites throughout
@@ -82,7 +82,6 @@ public class Reflection {
     @CallerSensitive
     @IntrinsicCandidate
     public static Class<?> getCallerClass() {
-        org.cprover.CProver.notModelled();
         return Object.class;
     }
 
