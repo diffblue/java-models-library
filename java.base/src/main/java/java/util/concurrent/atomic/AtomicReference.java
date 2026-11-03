@@ -35,7 +35,6 @@
 
 package java.util.concurrent.atomic;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
@@ -50,16 +49,12 @@ import java.util.function.UnaryOperator;
  */
 public class AtomicReference<V> implements java.io.Serializable {
     private static final long serialVersionUID = -1848883965231344442L;
-    private static final VarHandle VALUE;
-    static {
-        try {
-            MethodHandles.Lookup l = MethodHandles.lookup();
-            VALUE = l.findVarHandle(AtomicReference.class, "value", Object.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
 
+    /**
+     * @cprover.fullSupport Every method below operates on this field
+     *   directly instead of going through a VarHandle: see
+     *   {@link AtomicLong#value} for why.
+     */
     @SuppressWarnings("serial") // Conditionally serializable
     private volatile V value;
 
@@ -105,8 +100,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @param newValue the new value
      * @since 1.6
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void lazySet(V newValue) {
-        VALUE.setRelease(this, newValue);
+        value = newValue;
     }
 
     /**
@@ -119,8 +117,15 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful. False return indicates that
      * the actual value was not equal to the expected value.
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean compareAndSet(V expectedValue, V newValue) {
-        return VALUE.compareAndSet(this, expectedValue, newValue);
+        if (value == expectedValue) {
+            value = newValue;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -139,9 +144,12 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful
      * @see #weakCompareAndSetPlain
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     @Deprecated(since="9")
     public final boolean weakCompareAndSet(V expectedValue, V newValue) {
-        return VALUE.weakCompareAndSetPlain(this, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -154,8 +162,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetPlain(V expectedValue, V newValue) {
-        return VALUE.weakCompareAndSetPlain(this, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -165,9 +176,13 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @param newValue the new value
      * @return the previous value
      */
-    @SuppressWarnings("unchecked")
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V getAndSet(V newValue) {
-        return (V)VALUE.getAndSet(this, newValue);
+        V prev = value;
+        value = newValue;
+        return prev;
     }
 
     /**
@@ -285,8 +300,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V getPlain() {
-        return (V)VALUE.get(this);
+        return value;
     }
 
     /**
@@ -297,8 +315,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setPlain(V newValue) {
-        VALUE.set(this, newValue);
+        value = newValue;
     }
 
     /**
@@ -308,8 +329,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V getOpaque() {
-        return (V)VALUE.getOpaque(this);
+        return value;
     }
 
     /**
@@ -319,8 +343,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setOpaque(V newValue) {
-        VALUE.setOpaque(this, newValue);
+        value = newValue;
     }
 
     /**
@@ -330,8 +357,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V getAcquire() {
-        return (V)VALUE.getAcquire(this);
+        return value;
     }
 
     /**
@@ -341,8 +371,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setRelease(V newValue) {
-        VALUE.setRelease(this, newValue);
+        value = newValue;
     }
 
     /**
@@ -357,8 +390,15 @@ public class AtomicReference<V> implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V compareAndExchange(V expectedValue, V newValue) {
-        return (V)VALUE.compareAndExchange(this, expectedValue, newValue);
+        V prev = value;
+        if (prev == expectedValue) {
+            value = newValue;
+        }
+        return prev;
     }
 
     /**
@@ -373,8 +413,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V compareAndExchangeAcquire(V expectedValue, V newValue) {
-        return (V)VALUE.compareAndExchangeAcquire(this, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -389,8 +432,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final V compareAndExchangeRelease(V expectedValue, V newValue) {
-        return (V)VALUE.compareAndExchangeRelease(this, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -404,8 +450,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetVolatile(V expectedValue, V newValue) {
-        return VALUE.weakCompareAndSet(this, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -419,8 +468,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetAcquire(V expectedValue, V newValue) {
-        return VALUE.weakCompareAndSetAcquire(this, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -434,8 +486,11 @@ public class AtomicReference<V> implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetRelease(V expectedValue, V newValue) {
-        return VALUE.weakCompareAndSetRelease(this, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
 }
