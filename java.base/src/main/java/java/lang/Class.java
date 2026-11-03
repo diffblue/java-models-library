@@ -3420,35 +3420,46 @@ public final class Class<T> implements java.io.Serializable,
      * Return the Virtual Machine's Class object for the named
      * primitive type.
      *
-     * @cprover.limitedSupport Returns the class-literal expression for the
-     *   matching primitive type directly, rather than going through {@link
-     *   #forName0}: literals are initialized as singletons by JBMC (see
-     *   {@link #cproverInitializeClassLiteral}), so this also avoids the
-     *   bug this had via forName0 in the JDK 8 models, where every
-     *   boxed-primitive class's static initializer (e.g. {@code
-     *   Integer.TYPE}) ended up going through forName0's {@code
-     *   CProver.notModelled()} fallback.
+     * @cprover.limitedSupport Creates a fresh {@code Class} whose {@code
+     *   name} is the matching string literal (which is what {@link
+     *   #isPrimitive} relies on), rather than going through {@link
+     *   #forName0}: that has a small fixed-size name cache, which the nine
+     *   primitive types would overflow, falling back to {@code
+     *   CProver.notModelled()} in every boxed-primitive class's static
+     *   initializer (e.g. {@code Integer.TYPE}). It also must not return
+     *   the class literal ({@code int.class} etc.): javac compiles those
+     *   to a read of the boxing class's {@code TYPE} field, which is what
+     *   is being initialized by calling this method, so that would return
+     *   {@code null}. No caching is needed: each boxing class calls this
+     *   exactly once, and a class literal such as {@code int.class} always
+     *   reads that class's one {@code TYPE} field, so there is only ever
+     *   one {@code Class} per primitive type.
      */
     static Class<?> getPrimitiveClass(String name) {
+        String literal;
         if ("boolean".equals(name))
-            return boolean.class;
-        if ("char".equals(name))
-            return char.class;
-        if ("byte".equals(name))
-            return byte.class;
-        if ("short".equals(name))
-            return short.class;
-        if ("int".equals(name))
-            return int.class;
-        if ("long".equals(name))
-            return long.class;
-        if ("float".equals(name))
-            return float.class;
-        if ("double".equals(name))
-            return double.class;
-        if ("void".equals(name))
-            return void.class;
-        throw new IllegalArgumentException("Not primitive type: " + name);
+            literal = "boolean";
+        else if ("char".equals(name))
+            literal = "char";
+        else if ("byte".equals(name))
+            literal = "byte";
+        else if ("short".equals(name))
+            literal = "short";
+        else if ("int".equals(name))
+            literal = "int";
+        else if ("long".equals(name))
+            literal = "long";
+        else if ("float".equals(name))
+            literal = "float";
+        else if ("double".equals(name))
+            literal = "double";
+        else if ("void".equals(name))
+            literal = "void";
+        else
+            throw new IllegalArgumentException("Not primitive type: " + name);
+        Class<?> c = new Class<>();
+        c.name = literal;
+        return c;
     }
 
     /*
