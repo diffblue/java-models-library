@@ -129,6 +129,55 @@ public final class System {
     }
 
     /**
+     * A {@code PrintStream} that discards everything written to it.
+     *
+     * @cprover.limitedSupport Nothing written to {@code System.out} or
+     *   {@code System.err} is observable in a verification run, but a real
+     *   {@code PrintStream} encodes every character through a charset
+     *   encoder, which has to be unwound once per character of a symbolic
+     *   string (running out of memory for a program that prints one), so
+     *   these streams drop everything. Unlike the real ones, null or
+     *   invalid arguments are not reported. A {@code PrintStream} created
+     *   by the program itself is unaffected.
+     */
+    private static final class CProverNullPrintStream extends PrintStream {
+        CProverNullPrintStream() { super((Void) null); }
+        public void flush() { }
+        public void close() { }
+        public boolean checkError() { return false; }
+        public void write(int b) { }
+        public void write(byte[] buf, int off, int len) { }
+        public void write(byte[] buf) { }
+        public void writeBytes(byte[] buf) { }
+        public void print(boolean x) { }
+        public void println(boolean x) { }
+        public void print(char x) { }
+        public void println(char x) { }
+        public void print(int x) { }
+        public void println(int x) { }
+        public void print(long x) { }
+        public void println(long x) { }
+        public void print(float x) { }
+        public void println(float x) { }
+        public void print(double x) { }
+        public void println(double x) { }
+        public void print(char[] x) { }
+        public void println(char[] x) { }
+        public void print(String x) { }
+        public void println(String x) { }
+        public void print(Object x) { }
+        public void println(Object x) { }
+        public void println() { }
+        public PrintStream printf(String format, Object... args) { return this; }
+        public PrintStream printf(java.util.Locale l, String format, Object... args) { return this; }
+        public PrintStream format(String format, Object... args) { return this; }
+        public PrintStream format(java.util.Locale l, String format, Object... args) { return this; }
+        public PrintStream append(CharSequence csq) { return this; }
+        public PrintStream append(CharSequence csq, int start, int end) { return this; }
+        public PrintStream append(char c) { return this; }
+    }
+
+    /**
      * System properties.
      *
      * See {@linkplain #getProperties getProperties} for details.
@@ -223,7 +272,7 @@ public final class System {
      * @cprover.limitedSupport Initialized directly to a discarding
      * stream: see {@link #in}.
      */
-    public static final PrintStream out = new PrintStream(OutputStream.nullOutputStream());
+    public static final PrintStream out = new CProverNullPrintStream();
 
     /**
      * The "standard" error output stream. This stream is already
@@ -247,7 +296,7 @@ public final class System {
      * @cprover.limitedSupport Initialized directly to a discarding
      * stream: see {@link #in}.
      */
-    public static final PrintStream err = new PrintStream(OutputStream.nullOutputStream());
+    public static final PrintStream err = new CProverNullPrintStream();
 
     // Holder for the initial value of `in`, set within `initPhase1()`.
     private static InputStream initialIn;

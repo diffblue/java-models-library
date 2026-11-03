@@ -111,6 +111,21 @@ public class PrintStream extends FilterOutputStream
     }
 
     /* Private constructors */
+    /**
+     * @cprover.fullSupport Creates a print stream that is only meant to
+     *   be subclassed by a stream that discards everything (see {@code
+     *   System}'s standard streams): it creates none of the writers,
+     *   charset or lock the other constructors set up, which would pull
+     *   in the charset, encoder and buffering classes that nothing
+     *   observable depends on.
+     */
+    protected PrintStream(Void discarding) {
+        super(null);
+        this.autoFlush = false;
+        this.charset = null;
+        this.lock = null;
+    }
+
     private PrintStream(boolean autoFlush, OutputStream out) {
         super(out);
         this.autoFlush = autoFlush;
