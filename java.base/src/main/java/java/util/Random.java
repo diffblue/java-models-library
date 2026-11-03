@@ -26,7 +26,6 @@
 package java.util;
 
 import java.io.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.random.RandomGenerator;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -36,7 +35,7 @@ import jdk.internal.util.random.RandomSupport.*;
 
 import static jdk.internal.util.random.RandomSupport.*;
 
-import jdk.internal.misc.Unsafe;
+import org.cprover.CProver;
 
 /**
  * An instance of this class is used to generate a stream of
@@ -296,16 +295,9 @@ public class Random implements RandomGenerator, java.io.Serializable {
     static final long serialVersionUID = 3905348978240129619L;
 
     /**
-     * The internal state associated with this pseudorandom number generator.
-     * (The specs for the methods in this class describe the ongoing
-     * computation of this value.)
+     * @cprover.fullSupport This class carries no seed state at all: see
+     *   {@link #next}.
      */
-    private final AtomicLong seed;
-
-    private static final long multiplier = 0x5DEECE66DL;
-    private static final long addend = 0xBL;
-    private static final long mask = (1L << 48) - 1;
-
     private static final double DOUBLE_UNIT = 0x1.0p-53; // 1.0 / (1L << Double.PRECISION)
     private static final float FLOAT_UNIT = 0x1.0p-24f; // 1.0f / (1 << Float.PRECISION)
 
@@ -315,30 +307,14 @@ public class Random implements RandomGenerator, java.io.Serializable {
      * to be distinct from any other invocation of this constructor.
      */
     public Random() {
-        this(seedUniquifier() ^ System.nanoTime());
     }
 
     private Random(Void unused) {
-        this.seed = null;
     }
-
-    private static long seedUniquifier() {
-        // L'Ecuyer, "Tables of Linear Congruential Generators of
-        // Different Sizes and Good Lattice Structure", 1999
-        for (;;) {
-            long current = seedUniquifier.get();
-            long next = current * 1181783497276652981L;
-            if (seedUniquifier.compareAndSet(current, next))
-                return next;
-        }
-    }
-
-    private static final AtomicLong seedUniquifier
-            = new AtomicLong(8682522807148012L);
 
     /**
      * Creates a new random number generator using a single {@code long} seed.
-     * The seed is the initial value of the internal state of the pseudorandom
+     * The seed is the initial value of the initial state of the pseudorandom
      * number generator which is maintained by method {@link #next}.
      *
      * @implSpec The invocation {@code new Random(seed)} is equivalent to:
@@ -351,17 +327,7 @@ public class Random implements RandomGenerator, java.io.Serializable {
      * @see   #setSeed(long)
      */
     public Random(long seed) {
-        if (getClass() == Random.class)
-            this.seed = new AtomicLong(initialScramble(seed));
-        else {
-            // subclass might have overridden setSeed
-            this.seed = new AtomicLong();
-            setSeed(seed);
-        }
-    }
-
-    private static long initialScramble(long seed) {
-        return (seed ^ multiplier) & mask;
+        setSeed(seed);
     }
 
     /**
@@ -400,8 +366,12 @@ public class Random implements RandomGenerator, java.io.Serializable {
      * @throws UnsupportedOperationException if the {@code setSeed}
      *         operation is not supported by this random number generator
      */
+    /**
+     * @cprover.fullSupport No-op (beyond clearing haveNextNextGaussian,
+     *   per the documented contract above): see {@link #next}. The seed
+     *   value itself is never used for anything.
+     */
     public synchronized void setSeed(long seed) {
-        this.seed.set(initialScramble(seed));
         haveNextNextGaussian = false;
     }
 
@@ -435,14 +405,25 @@ public class Random implements RandomGenerator, java.io.Serializable {
      *         generator's sequence
      * @since  1.1
      */
+    /**
+     * @cprover.fullSupport Returns nondet bits directly, constrained to
+     *   the documented range (the real algorithm's seed/multiplier/
+     *   addend arithmetic is dropped entirely): the actual numeric
+     *   sequence produced by a Random is an environment/randomness
+     *   detail irrelevant to verification, and every other generator
+     *   method in this class (nextInt, nextLong, nextBoolean, nextFloat,
+     *   nextDouble, and - transitively, via nextDouble - nextGaussian)
+     *   is defined purely in terms of this one primitive, so fixing it
+     *   alone is enough to make the whole class nondet without needing
+     *   to touch any of them individually.
+     */
     protected int next(int bits) {
-        long oldseed, nextseed;
-        AtomicLong seed = this.seed;
-        do {
-            oldseed = seed.get();
-            nextseed = (oldseed * multiplier + addend) & mask;
-        } while (!seed.compareAndSet(oldseed, nextseed));
-        return (int)(nextseed >>> (48 - bits));
+        int r = CProver.nondetInt();
+        if (bits < 32) {
+            // widen to long: 1 << 31 overflows a 32-bit int
+            CProver.assume(r >= 0 && (long) r < (1L << bits));
+        }
+        return r;
     }
 
     /**
@@ -550,6 +531,19 @@ public class Random implements RandomGenerator, java.io.Serializable {
      *         from this random number generator's sequence
      * @throws IllegalArgumentException if bound is not positive
      * @since 1.2
+     */
+    /**
+     * @cprover.limitedSupport For a bound that is not a power of 2, the
+     *   "reject over-represented candidates" retry loop below draws a
+     *   fresh, independent nondet value from {@link #next} on every
+     *   retry (since {@link #next} no longer derives successive values
+     *   from a single real seed - see its own doc), so CBMC cannot
+     *   prove a bound on the number of iterations: nothing stops the
+     *   solver from choosing a value in the (tiny) reject range on
+     *   every one of the unwound iterations. This can surface as an
+     *   unwinding-assertion failure on this loop; it does not indicate
+     *   incorrect behavior on any path that is actually explored, and
+     *   is an inherent consequence of not modelling a real seed.
      */
     @Override
     public int nextInt(int bound) {
@@ -768,23 +762,6 @@ public class Random implements RandomGenerator, java.io.Serializable {
     }
 
     /**
-     * Serializable fields for Random.
-     *
-     * @serialField    seed long
-     *              seed for random computations
-     * @serialField    nextNextGaussian double
-     *              next Gaussian to be returned
-     * @serialField      haveNextNextGaussian boolean
-     *              nextNextGaussian is valid
-     */
-    @java.io.Serial
-    private static final ObjectStreamField[] serialPersistentFields = {
-            new ObjectStreamField("seed", Long.TYPE),
-            new ObjectStreamField("nextNextGaussian", Double.TYPE),
-            new ObjectStreamField("haveNextNextGaussian", Boolean.TYPE)
-    };
-
-    /**
      * Reconstitute the {@code Random} instance from a stream (that is,
      * deserialize it).
      *
@@ -793,21 +770,15 @@ public class Random implements RandomGenerator, java.io.Serializable {
      * @throws IOException if an I/O error occurs
      * @throws ClassNotFoundException if a serialized class cannot be loaded
      */
+    /**
+     * @cprover.noSupport There is no seed field to reconstitute (see
+     *   {@link #next}), and serialization generally is not modelled by
+     *   this library.
+     */
     @java.io.Serial
     private void readObject(java.io.ObjectInputStream s)
             throws java.io.IOException, ClassNotFoundException {
-
-        ObjectInputStream.GetField fields = s.readFields();
-
-        // The seed is read in as {@code long} for
-        // historical reasons, but it is converted to an AtomicLong.
-        long seedVal = fields.get("seed", -1L);
-        if (seedVal < 0)
-            throw new java.io.StreamCorruptedException(
-                    "Random: invalid seed");
-        resetSeed(seedVal);
-        nextNextGaussian = fields.get("nextNextGaussian", 0.0);
-        haveNextNextGaussian = fields.get("haveNextNextGaussian", false);
+        CProver.notModelled();
     }
 
     /**
@@ -817,33 +788,13 @@ public class Random implements RandomGenerator, java.io.Serializable {
      *
      * @throws IOException if an I/O error occurs
      */
+    /**
+     * @cprover.noSupport See {@link #readObject}.
+     */
     @java.io.Serial
     private synchronized void writeObject(ObjectOutputStream s)
             throws IOException {
-
-        // set the values of the Serializable fields
-        ObjectOutputStream.PutField fields = s.putFields();
-
-        // The seed is serialized as a long for historical reasons.
-        fields.put("seed", seed.get());
-        fields.put("nextNextGaussian", nextNextGaussian);
-        fields.put("haveNextNextGaussian", haveNextNextGaussian);
-
-        // save them
-        s.writeFields();
-    }
-
-    // Support for resetting seed while deserializing
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
-    private static final long seedOffset;
-    static {
-        try {
-            seedOffset = unsafe.objectFieldOffset
-                    (Random.class.getDeclaredField("seed"));
-        } catch (Exception ex) { throw new Error(ex); }
-    }
-    private void resetSeed(long seedVal) {
-        unsafe.putReferenceVolatile(this, seedOffset, new AtomicLong(seedVal));
+        CProver.notModelled();
     }
 
     /**
