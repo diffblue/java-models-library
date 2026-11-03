@@ -140,7 +140,14 @@ public final class System {
      * @see Console#charset()
      * @see Console#reader()
      */
-    public static final InputStream in = null;
+    /**
+     * @cprover.limitedSupport Initialized directly to a discarding
+     * stream rather than relying on initPhase1() (see
+     * {@link #props}) to install the real stdin: there is no real
+     * console under JBMC, and a non-null stream here avoids every
+     * ordinary use of System.in throwing NullPointerException.
+     */
+    public static final InputStream in = InputStream.nullInputStream();
 
     /**
      * The "standard" output stream. This stream is already
@@ -172,7 +179,11 @@ public final class System {
      * @see     Console#charset()
      * @see     <a href="#stdout.encoding">stdout.encoding</a>
      */
-    public static final PrintStream out = null;
+    /**
+     * @cprover.limitedSupport Initialized directly to a discarding
+     * stream: see {@link #in}.
+     */
+    public static final PrintStream out = new PrintStream(OutputStream.nullOutputStream());
 
     /**
      * The "standard" error output stream. This stream is already
@@ -192,7 +203,11 @@ public final class System {
      * @see     Console#charset()
      * @see     <a href="#stderr.encoding">stderr.encoding</a>
      */
-    public static final PrintStream err = null;
+    /**
+     * @cprover.limitedSupport Initialized directly to a discarding
+     * stream: see {@link #in}.
+     */
+    public static final PrintStream err = new PrintStream(OutputStream.nullOutputStream());
 
     // Holder for the initial value of `in`, set within `initPhase1()`.
     private static InputStream initialIn;
@@ -348,9 +363,25 @@ public final class System {
         }
     }
 
-    private static native void setIn0(InputStream in);
-    private static native void setOut0(PrintStream out);
-    private static native void setErr0(PrintStream err);
+    /**
+     * @cprover.noSupport in/out/err are initialized directly to a
+     * working (if discarding) stream (see {@link #in}) rather than by
+     * real native bootstrapping, and stay {@code final} exactly as
+     * they are declared in the real JDK (native code bypasses that at
+     * the JVM level, which cannot be replicated in pure Java), so
+     * there is no way to honor a request to actually reassign them.
+     */
+    private static void setIn0(InputStream in) { org.cprover.CProver.notModelled(); }
+
+    /**
+     * @cprover.noSupport See {@link #setIn0}.
+     */
+    private static void setOut0(PrintStream out) { org.cprover.CProver.notModelled(); }
+
+    /**
+     * @cprover.noSupport See {@link #setIn0}.
+     */
+    private static void setErr0(PrintStream err) { org.cprover.CProver.notModelled(); }
 
     private static class CallersHolder {
         // Remember callers of setSecurityManager() here so that warning
