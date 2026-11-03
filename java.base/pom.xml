@@ -59,6 +59,14 @@
             another module").
           -->
           <compilerArgs>
+            <!--
+              Compile string concatenation to StringBuilder calls instead
+              of invokedynamic (StringConcatFactory): JBMC does not support
+              the latter and silently mishandles it (the result of the
+              concatenation is unconstrained), which made for example
+              Object.toString() unsound.
+            -->
+            <arg>-XDstringConcat=inline</arg>
             <arg>--patch-module</arg>
             <arg>java.base=${project.basedir}/src/main/java</arg>
             <arg>--add-reads</arg>
