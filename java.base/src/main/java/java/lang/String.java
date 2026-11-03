@@ -53,7 +53,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import jdk.internal.util.ArraysSupport;
-import jdk.internal.util.Preconditions;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
 import jdk.internal.vm.annotation.Stable;
@@ -4152,16 +4151,37 @@ public final class String
      * StringIndexOutOfBoundsException  if {@code index} is
      * negative or greater than or equal to {@code length}.
      */
+    /**
+     * @cprover.fullSupport The same check and exception message as {@code
+     *   Preconditions}, written out directly: that builds the message
+     *   with {@code String.format} over a {@code List.of} of boxed
+     *   numbers, which would make every bounds error depend on {@code
+     *   java.util}'s immutable collections and the formatter.
+     */
     static void checkIndex(int index, int length) {
-        Preconditions.checkIndex(index, length, Preconditions.SIOOBE_FORMATTER);
+        if (index < 0 || index >= length) {
+            throw new StringIndexOutOfBoundsException(
+                "Index " + index + " out of bounds for length " + length);
+        }
     }
 
     /*
      * StringIndexOutOfBoundsException  if {@code offset}
      * is negative or greater than {@code length}.
      */
+    /**
+     * @cprover.fullSupport The same check and exception message as {@code
+     *   Preconditions}, written out directly: that builds the message
+     *   with {@code String.format} over a {@code List.of} of boxed
+     *   numbers, which would make every bounds error depend on {@code
+     *   java.util}'s immutable collections and the formatter.
+     */
     static void checkOffset(int offset, int length) {
-        Preconditions.checkFromToIndex(offset, length, length, Preconditions.SIOOBE_FORMATTER);
+        if (offset < 0 || offset > length) {
+            throw new StringIndexOutOfBoundsException(
+                "Range [" + offset + ", " + length +
+                ") out of bounds for length " + length);
+        }
     }
 
     /*
@@ -4173,8 +4193,20 @@ public final class String
      *          If {@code offset} is negative, {@code count} is negative,
      *          or {@code offset} is greater than {@code length - count}
      */
+    /**
+     * @cprover.fullSupport The same check and exception message as {@code
+     *   Preconditions}, written out directly: that builds the message
+     *   with {@code String.format} over a {@code List.of} of boxed
+     *   numbers, which would make every bounds error depend on {@code
+     *   java.util}'s immutable collections and the formatter.
+     */
     static int checkBoundsOffCount(int offset, int count, int length) {
-        return Preconditions.checkFromIndexSize(offset, count, length, Preconditions.SIOOBE_FORMATTER);
+        if ((length | offset | count) < 0 || count > length - offset) {
+            throw new StringIndexOutOfBoundsException(
+                "Range [" + offset + ", " + offset + " + " + count +
+                ") out of bounds for length " + length);
+        }
+        return offset;
     }
 
     /*
@@ -4185,8 +4217,19 @@ public final class String
      *          If {@code begin} is negative, {@code begin} is greater than
      *          {@code end}, or {@code end} is greater than {@code length}.
      */
+    /**
+     * @cprover.fullSupport The same check and exception message as {@code
+     *   Preconditions}, written out directly: that builds the message
+     *   with {@code String.format} over a {@code List.of} of boxed
+     *   numbers, which would make every bounds error depend on {@code
+     *   java.util}'s immutable collections and the formatter.
+     */
     static void checkBoundsBeginEnd(int begin, int end, int length) {
-        Preconditions.checkFromToIndex(begin, end, length, Preconditions.SIOOBE_FORMATTER);
+        if (begin < 0 || begin > end || end > length) {
+            throw new StringIndexOutOfBoundsException(
+                "Range [" + begin + ", " + end +
+                ") out of bounds for length " + length);
+        }
     }
 
     /**
