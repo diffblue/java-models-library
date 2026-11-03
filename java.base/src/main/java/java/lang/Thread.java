@@ -724,14 +724,12 @@ public class Thread implements Runnable {
      * See Thread initialization.
      */
     private static class ThreadIdentifiers {
-        private static final Unsafe U;
-        private static final long NEXT_TID_OFFSET;
-        static {
-            U = Unsafe.getUnsafe();
-            NEXT_TID_OFFSET = Thread.getNextThreadIdOffset();
-        }
+        // @cprover.fullSupport The off-heap counter shared with the VM is
+        //   an implementation detail; a plain static counter yields the
+        //   same sequence of identifiers (starting at 2).
+        private static long nextTid = 2;
         static long next() {
-            return U.getAndAddLong(null, NEXT_TID_OFFSET, 1);
+            return nextTid++;
         }
     }
 
@@ -1164,22 +1162,12 @@ public class Thread implements Runnable {
      * 0 and are separate from the thread identifier for historical reasons.
      */
     private static class ThreadNumbering {
-        private static final Unsafe U;
-        private static final Object NEXT_BASE;
-        private static final long NEXT_OFFSET;
-        static {
-            U = Unsafe.getUnsafe();
-            try {
-                Field nextField = ThreadNumbering.class.getDeclaredField("next");
-                NEXT_BASE = U.staticFieldBase(nextField);
-                NEXT_OFFSET = U.staticFieldOffset(nextField);
-            } catch (NoSuchFieldException e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
-        private static volatile int next;
+        // @cprover.fullSupport Unsafe offset-based access to the counter
+        //   is a JVM implementation detail; a plain static field is
+        //   equivalent (and JBMC cannot relate offsets to fields).
+        private static int next;
         static int next() {
-            return U.getAndAddInt(NEXT_BASE, NEXT_OFFSET, 1);
+            return next++;
         }
     }
 
@@ -3029,6 +3017,8 @@ public class Thread implements Runnable {
                 @Override
                 public ThreadGroup run() {
                     ThreadGroup parent = Thread.currentCarrierThread().getThreadGroup();
+                    if (parent == null)
+                        return null;
                     for (ThreadGroup p; (p = parent.getParent()) != null; )
                         parent = p;
                     return parent;
