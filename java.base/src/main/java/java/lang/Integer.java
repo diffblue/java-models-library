@@ -147,34 +147,14 @@ public final class Integer extends Number
      * @see     java.lang.Character#MAX_RADIX
      * @see     java.lang.Character#MIN_RADIX
      */
+    /**
+     * @cprover.fullSupport Delegates to the string solver ({@code
+     *   CProverString}), which models the conversion exactly, instead of
+     *   running the digit loop over a buffer: with that loop, constant
+     *   arguments are not fully constant-folded.
+     */
     public static String toString(int i, int radix) {
-        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
-            radix = 10;
-
-        /* Use the faster version */
-        if (radix == 10) {
-            return toString(i);
-        }
-
-        char[] buf = new char[33];
-        boolean negative = (i < 0);
-        int charPos = 32;
-
-        if (!negative) {
-            i = -i;
-        }
-
-        while (i <= -radix) {
-            buf[charPos--] = digits[-(i % radix)];
-            i = i / radix;
-        }
-        buf[charPos] = digits[-i];
-
-        if (negative) {
-            buf[--charPos] = '-';
-        }
-
-        return org.cprover.CProverString.ofCharArray(buf, charPos, (33 - charPos));
+        return org.cprover.CProverString.toString(i, radix);
     }
 
     /**
@@ -559,6 +539,12 @@ public final class Integer extends Number
      * @throws     NumberFormatException if the {@code String}
      *             does not contain a parsable {@code int}.
      */
+    /**
+     * @cprover.fullSupport After the argument checks, which are the JDK's,
+     *   delegates to the string solver ({@code CProverString}) for
+     *   validity and value, instead of running the digit loop, which would
+     *   have to be unwound once per character of a symbolic string.
+     */
     public static int parseInt(String s, int radix)
                 throws NumberFormatException
     {
@@ -576,43 +562,11 @@ public final class Integer extends Number
                                             " greater than Character.MAX_RADIX");
         }
 
-        boolean negative = false;
-        int i = 0, len = s.length();
-        int limit = -Integer.MAX_VALUE;
-
-        if (len > 0) {
-            char firstChar = s.charAt(0);
-            if (firstChar < '0') { // Possible leading "+" or "-"
-                if (firstChar == '-') {
-                    negative = true;
-                    limit = Integer.MIN_VALUE;
-                } else if (firstChar != '+') {
-                    throw NumberFormatException.forInputString(s, radix);
-                }
-
-                if (len == 1) { // Cannot have lone "+" or "-"
-                    throw NumberFormatException.forInputString(s, radix);
-                }
-                i++;
-            }
-            int multmin = limit / radix;
-            int result = 0;
-            while (i < len) {
-                // Accumulating negatively avoids surprises near MAX_VALUE
-                int digit = Character.digit(s.charAt(i++), radix);
-                if (digit < 0 || result < multmin) {
-                    throw NumberFormatException.forInputString(s, radix);
-                }
-                result *= radix;
-                if (result < limit + digit) {
-                    throw NumberFormatException.forInputString(s, radix);
-                }
-                result -= digit;
-            }
-            return negative ? result : -result;
-        } else {
+        if (!org.cprover.CProverString.isValidInt(s, radix)) {
             throw NumberFormatException.forInputString(s, radix);
         }
+
+        return org.cprover.CProverString.parseInt(s, radix);
     }
 
     /**
