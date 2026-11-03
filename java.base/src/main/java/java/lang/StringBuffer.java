@@ -452,13 +452,18 @@ import java.io.StreamCorruptedException;
      * @param   s the {@code CharSequence} to append.
      * @return  a reference to this object.
      * @since 1.5
+     *
+     * @cprover.fullSupport Appends {@code String.valueOf(s)}: {@code
+     *   "null"} for {@code null}, and otherwise the characters of {@code
+     *   s}, which is what {@code s.toString()} returns for any {@code
+     *   CharSequence}. This is done in Java, going through {@link
+     *   #append(String)}, because JBMC's string-refinement table has no
+     *   entry for this signature (it has one for {@code
+     *   StringBuilder.append(CharSequence)}), so the body does run.
      */
     @Override
     public synchronized StringBuffer append(CharSequence s) {
-        // Handled by JBMC's string-refinement (exact signature match);
-        // this body is never executed.
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return append(String.valueOf(s));
     }
 
     /**
