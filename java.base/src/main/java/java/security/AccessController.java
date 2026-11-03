@@ -664,7 +664,8 @@ public final class AccessController {
         return AccHolder.innocuousAcc;
     }
 
-    private static native ProtectionDomain getProtectionDomain(final Class<?> caller);
+    /** @cprover.limitedSupport Always null: there are no protection domains (only used when a SecurityManager is installed). */
+    private static ProtectionDomain getProtectionDomain(final Class<?> caller) { return null; }
 
     /**
      * Performs the specified {@code PrivilegedExceptionAction} with
@@ -740,8 +741,9 @@ public final class AccessController {
      * The value needs to be physically located in the frame, so that it
      * can be found by a stack walk.
      */
+    /** @cprover.fullSupport No-op: only keeps the object alive for the JVM's stack walker. */
     @Hidden
-    private static native void ensureMaterializedForStackWalk(Object o);
+    private static void ensureMaterializedForStackWalk(Object o) { }
 
     /**
      * Sanity check that the caller context is indeed privileged.
@@ -762,6 +764,13 @@ public final class AccessController {
      * name or signature require corresponding changes in
      * getStackAccessControlContext().
      */
+    /**
+     * @cprover.limitedSupport Just runs the action: no SecurityManager is
+     *   ever installed, so there is no access-control context to push
+     *   (the JDK pushes one and only checks it against the stack when a
+     *   permission is checked), and the stack-walk bookkeeping around
+     *   the call has nothing to protect.
+     */
     @Hidden
     @ForceInline
     private static <T> T
@@ -769,20 +778,7 @@ public final class AccessController {
                           @SuppressWarnings("removal") AccessControlContext context,
                           Class<?> caller)
     {
-        // Ensure context has a physical value in the frame
-        if (context != null) {
-            ensureMaterializedForStackWalk(context);
-        }
-
-        assert isPrivileged(); // sanity check invariant
-        T result = action.run();
-        assert isPrivileged(); // sanity check invariant
-
-        // Keep these alive across the run() call so they can be
-        // retrieved by getStackAccessControlContext().
-        Reference.reachabilityFence(context);
-        Reference.reachabilityFence(caller);
-        return result;
+        return action.run();
     }
 
     /**
@@ -792,6 +788,13 @@ public final class AccessController {
      * name or signature require corresponding changes in
      * getStackAccessControlContext().
      */
+    /**
+     * @cprover.limitedSupport Just runs the action: no SecurityManager is
+     *   ever installed, so there is no access-control context to push
+     *   (the JDK pushes one and only checks it against the stack when a
+     *   permission is checked), and the stack-walk bookkeeping around
+     *   the call has nothing to protect.
+     */
     @Hidden
     @ForceInline
     private static <T> T
@@ -800,20 +803,7 @@ public final class AccessController {
                           Class<?> caller)
         throws Exception
     {
-        // Ensure context has a physical value in the frame
-        if (context != null) {
-            ensureMaterializedForStackWalk(context);
-        }
-
-        assert isPrivileged(); // sanity check invariant
-        T result = action.run();
-        assert isPrivileged(); // sanity check invariant
-
-        // Keep these alive across the run() call so they can be
-        // retrieved by getStackAccessControlContext().
-        Reference.reachabilityFence(context);
-        Reference.reachabilityFence(caller);
-        return result;
+        return action.run();
     }
 
 
@@ -994,8 +984,9 @@ public final class AccessController {
      * {@code AccessControlContext} can use it.
      */
 
+    /** @cprover.limitedSupport Always null: no access-control context is inherited, as no SecurityManager is installed. */
     @SuppressWarnings("removal")
-    static native AccessControlContext getInheritedAccessControlContext();
+    static AccessControlContext getInheritedAccessControlContext() { return null; }
 
     /**
      * This method takes a "snapshot" of the current calling context, which
