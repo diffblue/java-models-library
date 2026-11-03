@@ -1979,7 +1979,6 @@ public abstract class ClassLoader {
                 throw new IllegalStateException(msg);
             default:
                 // system fully initialized
-                assert VM.isBooted() && scl != null;
                 @SuppressWarnings("removal")
                 SecurityManager sm = System.getSecurityManager();
                 if (sm != null) {
@@ -2067,7 +2066,7 @@ public abstract class ClassLoader {
         if (from == to)
             return false;
 
-        if (from == null)
+        if (from == null || to == null)
             return false;
 
         return !to.isAncestor(from);

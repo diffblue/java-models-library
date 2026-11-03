@@ -114,7 +114,10 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
         this.maxPriority = maxPriority;
         if (daemon)
             this.daemon = true;
-        if (VM.isBooted()) {
+        if (parent == null) {
+            // No parent: only happens for the bootstrapped main group,
+            // where there is nothing to register with.
+        } else if (VM.isBooted()) {
             parent.synchronizedAddWeak(this);
         } else {
             // keep strong reference to the "main" and other groups created
