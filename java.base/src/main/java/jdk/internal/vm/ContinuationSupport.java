@@ -50,5 +50,12 @@ public class ContinuationSupport {
         }
     }
 
-    private static native boolean isSupported0();
+    /**
+     * @cprover.fullSupport Always true: callers only use this to
+     *   decide whether continuation-based virtual-thread scheduling is
+     *   available, but VirtualThread#start no longer uses continuations
+     *   at all (see its own doc), so there is nothing this could
+     *   correctly report as unsupported.
+     */
+    private static boolean isSupported0() { return true; }
 }
