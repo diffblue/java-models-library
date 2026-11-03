@@ -25,9 +25,7 @@
 
 package java.lang;
 
-import jdk.internal.misc.CDS;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
-import jdk.internal.vm.annotation.Stable;
 
 import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
@@ -106,31 +104,6 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
         return Optional.of(DynamicConstantDesc.ofNamed(BSM_EXPLICIT_CAST, DEFAULT_NAME, CD_byte, intValue()));
     }
 
-    private static final class ByteCache {
-        private ByteCache() {}
-
-        @Stable
-        static final Byte[] cache;
-        static Byte[] archivedCache;
-
-        static {
-            final int size = -(-128) + 127 + 1;
-
-            // Load and use the archived cache if it exists
-            CDS.initializeFromArchive(ByteCache.class);
-            if (archivedCache == null) {
-                Byte[] c = new Byte[size];
-                byte value = (byte)-128;
-                for(int i = 0; i < size; i++) {
-                    c[i] = new Byte(value++);
-                }
-                archivedCache = c;
-            }
-            cache = archivedCache;
-            assert cache.length == size;
-        }
-    }
-
     /**
      * Returns a {@code Byte} instance representing the specified
      * {@code byte} value.
@@ -144,10 +117,17 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * @return a {@code Byte} instance representing {@code b}.
      * @since  1.5
      */
+    /**
+     * @cprover.limitedSupport Not faithful to JLS 5.1.7: the real
+     *   ByteCache.cache identity cache (covering every byte value) is
+     *   dropped entirely, so {@code Byte.valueOf(b) == Byte.valueOf(b)}
+     *   is no longer guaranteed true. See {@link Integer#valueOf(int)}
+     *   for why (same reasoning: the cache's eager 256-iteration
+     *   population loop is prohibitively expensive to unwind).
+     */
     @IntrinsicCandidate
     public static Byte valueOf(byte b) {
-        final int offset = 128;
-        return ByteCache.cache[(int)b + offset];
+        return new Byte(b);
     }
 
     /**

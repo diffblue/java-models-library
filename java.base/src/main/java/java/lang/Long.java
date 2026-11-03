@@ -33,10 +33,8 @@ import java.math.*;
 import java.util.Objects;
 import java.util.Optional;
 
-import jdk.internal.misc.CDS;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
-import jdk.internal.vm.annotation.Stable;
 
 import static java.lang.String.COMPACT_STRINGS;
 import static java.lang.String.LATIN1;
@@ -1089,31 +1087,6 @@ public final class Long extends Number
         return Long.valueOf(parseLong(s, 10));
     }
 
-    private static final class LongCache {
-        private LongCache() {}
-
-        @Stable
-        static final Long[] cache;
-        static Long[] archivedCache;
-
-        static {
-            int size = -(-128) + 127 + 1;
-
-            // Load and use the archived cache if it exists
-            CDS.initializeFromArchive(LongCache.class);
-            if (archivedCache == null) {
-                Long[] c = new Long[size];
-                long value = -128;
-                for(int i = 0; i < size; i++) {
-                    c[i] = new Long(value++);
-                }
-                archivedCache = c;
-            }
-            cache = archivedCache;
-            assert cache.length == size;
-        }
-    }
-
     /**
      * Returns a {@code Long} instance representing the specified
      * {@code long} value.
@@ -1130,12 +1103,12 @@ public final class Long extends Number
      * @return a {@code Long} instance representing {@code l}.
      * @since  1.5
      */
+    /**
+     * @cprover.limitedSupport Not faithful to JLS 5.1.7: see
+     *   {@link Integer#valueOf(int)}.
+     */
     @IntrinsicCandidate
     public static Long valueOf(long l) {
-        final int offset = 128;
-        if (l >= -128 && l <= 127) { // will cache
-            return LongCache.cache[(int)l + offset];
-        }
         return new Long(l);
     }
 

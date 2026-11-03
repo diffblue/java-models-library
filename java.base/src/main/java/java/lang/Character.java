@@ -27,9 +27,7 @@ package java.lang;
 
 import org.cprover.CProver;
 
-import jdk.internal.misc.CDS;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
-import jdk.internal.vm.annotation.Stable;
 
 import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
@@ -8959,30 +8957,6 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
         this.value = value;
     }
 
-    private static final class CharacterCache {
-        private CharacterCache(){}
-
-        @Stable
-        static final Character[] cache;
-        static Character[] archivedCache;
-
-        static {
-            int size = 127 + 1;
-
-            // Load and use the archived cache if it exists
-            CDS.initializeFromArchive(CharacterCache.class);
-            if (archivedCache == null) {
-                Character[] c = new Character[size];
-                for (int i = 0; i < size; i++) {
-                    c[i] = new Character((char) i);
-                }
-                archivedCache = c;
-            }
-            cache = archivedCache;
-            assert cache.length == size;
-        }
-    }
-
     /**
      * Returns a {@code Character} instance representing the specified
      * {@code char} value.
@@ -9000,11 +8974,12 @@ class Character implements java.io.Serializable, Comparable<Character>, Constabl
      * @return a {@code Character} instance representing {@code c}.
      * @since  1.5
      */
+    /**
+     * @cprover.limitedSupport Not faithful to JLS 5.1.7: see
+     *   {@link Integer#valueOf(int)}.
+     */
     @IntrinsicCandidate
     public static Character valueOf(char c) {
-        if (c <= 127) { // must cache
-            return CharacterCache.cache[(int)c];
-        }
         return new Character(c);
     }
 

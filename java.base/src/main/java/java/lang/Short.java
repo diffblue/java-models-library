@@ -25,9 +25,7 @@
 
 package java.lang;
 
-import jdk.internal.misc.CDS;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
-import jdk.internal.vm.annotation.Stable;
 
 import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
@@ -232,31 +230,6 @@ public final class Short extends Number implements Comparable<Short>, Constable 
         return Optional.of(DynamicConstantDesc.ofNamed(BSM_EXPLICIT_CAST, DEFAULT_NAME, CD_short, intValue()));
     }
 
-    private static final class ShortCache {
-        private ShortCache() {}
-
-        @Stable
-        static final Short[] cache;
-        static Short[] archivedCache;
-
-        static {
-            int size = -(-128) + 127 + 1;
-
-            // Load and use the archived cache if it exists
-            CDS.initializeFromArchive(ShortCache.class);
-            if (archivedCache == null) {
-                Short[] c = new Short[size];
-                short value = -128;
-                for(int i = 0; i < size; i++) {
-                    c[i] = new Short(value++);
-                }
-                archivedCache = c;
-            }
-            cache = archivedCache;
-            assert cache.length == size;
-        }
-    }
-
     /**
      * Returns a {@code Short} instance representing the specified
      * {@code short} value.
@@ -273,13 +246,12 @@ public final class Short extends Number implements Comparable<Short>, Constable 
      * @return a {@code Short} instance representing {@code s}.
      * @since  1.5
      */
+    /**
+     * @cprover.limitedSupport Not faithful to JLS 5.1.7: see
+     *   {@link Integer#valueOf(int)}.
+     */
     @IntrinsicCandidate
     public static Short valueOf(short s) {
-        final int offset = 128;
-        int sAsInt = s;
-        if (sAsInt >= -128 && sAsInt <= 127) { // must cache
-            return ShortCache.cache[sAsInt + offset];
-        }
         return new Short(s);
     }
 

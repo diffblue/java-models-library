@@ -25,11 +25,8 @@
 
 package java.lang;
 
-import jdk.internal.misc.CDS;
-import jdk.internal.misc.VM;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
-import jdk.internal.vm.annotation.Stable;
 
 import java.lang.annotation.Native;
 import java.lang.constant.Constable;
@@ -565,12 +562,6 @@ public final class Integer extends Number
     public static int parseInt(String s, int radix)
                 throws NumberFormatException
     {
-        /*
-         * WARNING: This method may be invoked early during VM initialization
-         * before IntegerCache is initialized. Care must be taken to not use
-         * the valueOf method.
-         */
-
         if (s == null) {
             throw new NumberFormatException("Cannot parse null string");
         }
@@ -941,78 +932,6 @@ public final class Integer extends Number
     }
 
     /**
-     * Cache to support the object identity semantics of autoboxing for values between
-     * -128 and 127 (inclusive) as required by JLS.
-     *
-     * The cache is initialized on first usage.  The size of the cache
-     * may be controlled by the {@code -XX:AutoBoxCacheMax=<size>} option.
-     * During VM initialization, java.lang.Integer.IntegerCache.high property
-     * may be set and saved in the private system properties in the
-     * jdk.internal.misc.VM class.
-     *
-     * WARNING: The cache is archived with CDS and reloaded from the shared
-     * archive at runtime. The archived cache (Integer[]) and Integer objects
-     * reside in the closed archive heap regions. Care should be taken when
-     * changing the implementation and the cache array should not be assigned
-     * with new Integer object(s) after initialization.
-     */
-
-    private static final class IntegerCache {
-        static final int low = -128;
-        static final int high;
-
-        @Stable
-        static final Integer[] cache;
-        static Integer[] archivedCache;
-
-        static {
-            // high value may be configured by property
-            int h = 127;
-            String integerCacheHighPropValue =
-                VM.getSavedProperty("java.lang.Integer.IntegerCache.high");
-            if (integerCacheHighPropValue != null) {
-                try {
-                    h = Math.max(parseInt(integerCacheHighPropValue), 127);
-                    // Maximum array size is Integer.MAX_VALUE
-                    h = Math.min(h, Integer.MAX_VALUE - (-low) -1);
-                } catch( NumberFormatException nfe) {
-                    // If the property cannot be parsed into an int, ignore it.
-                }
-            }
-            high = h;
-
-            // Load IntegerCache.archivedCache from archive, if possible
-            CDS.initializeFromArchive(IntegerCache.class);
-            int size = (high - low) + 1;
-
-            // Use the archived cache if it exists and is large enough
-            if (archivedCache == null || size > archivedCache.length) {
-                Integer[] c = new Integer[size];
-                int j = low;
-                // If archive has Integer cache, we must use all instances from it.
-                // Otherwise, the identity checks between archived Integers and
-                // runtime-cached Integers would fail.
-                int archivedSize = (archivedCache == null) ? 0 : archivedCache.length;
-                for (int i = 0; i < archivedSize; i++) {
-                    c[i] = archivedCache[i];
-                    assert j == archivedCache[i];
-                    j++;
-                }
-                // Fill the rest of the cache.
-                for (int i = archivedSize; i < size; i++) {
-                    c[i] = new Integer(j++);
-                }
-                archivedCache = c;
-            }
-            cache = archivedCache;
-            // range [-128, 127] must be interned (JLS7 5.1.7)
-            assert IntegerCache.high >= 127;
-        }
-
-        private IntegerCache() {}
-    }
-
-    /**
      * Returns an {@code Integer} instance representing the specified
      * {@code int} value.  If a new {@code Integer} instance is not
      * required, this method should generally be used in preference to
@@ -1027,10 +946,22 @@ public final class Integer extends Number
      * @return an {@code Integer} instance representing {@code i}.
      * @since  1.5
      */
+    /**
+     * @cprover.limitedSupport Not faithful to JLS 5.1.7: the real
+     *   IntegerCache.cache[-128..127] identity cache is dropped
+     *   entirely, so {@code Integer.valueOf(1) == Integer.valueOf(1)}
+     *   is no longer guaranteed true. The cache's eager population
+     *   loop (256 iterations, run during this class's static
+     *   initializer) is prohibitively expensive to unwind, and raising
+     *   the unwind bound high enough to cover it is impractical since
+     *   the bound applies globally to every other loop in the program
+     *   too. A real difference, not a performance-only detail: a
+     *   program whose correctness depends on this identity (e.g.
+     *   comparing boxed Integers with {@code ==}) could behave
+     *   differently here than on a real JVM.
+     */
     @IntrinsicCandidate
     public static Integer valueOf(int i) {
-        if (i >= IntegerCache.low && i <= IntegerCache.high)
-            return IntegerCache.cache[i + (-IntegerCache.low)];
         return new Integer(i);
     }
 
