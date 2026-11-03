@@ -38,7 +38,6 @@ package java.util.concurrent.atomic;
 import java.lang.invoke.VarHandle;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntUnaryOperator;
-import jdk.internal.misc.Unsafe;
 
 /**
  * An {@code int} value that may be updated atomically.  See the
@@ -55,14 +54,11 @@ import jdk.internal.misc.Unsafe;
 public class AtomicInteger extends Number implements java.io.Serializable {
     private static final long serialVersionUID = 6214790243416807050L;
 
-    /*
-     * This class intended to be implemented using VarHandles, but there
-     * are unresolved cyclic startup dependencies.
+    /**
+     * @cprover.fullSupport Every method below operates on this field
+     *   directly instead of going through Unsafe's offset-based
+     *   accessors: see {@link AtomicLong#value} for why.
      */
-    private static final Unsafe U = Unsafe.getUnsafe();
-    private static final long VALUE
-        = U.objectFieldOffset(AtomicInteger.class, "value");
-
     private volatile int value;
 
     /**
@@ -107,8 +103,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 1.6
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void lazySet(int newValue) {
-        U.putIntRelease(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -118,8 +117,13 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getAndSet(int newValue) {
-        return U.getAndSetInt(this, VALUE, newValue);
+        int prev = value;
+        value = newValue;
+        return prev;
     }
 
     /**
@@ -132,8 +136,15 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful. False return indicates that
      * the actual value was not equal to the expected value.
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean compareAndSet(int expectedValue, int newValue) {
-        return U.compareAndSetInt(this, VALUE, expectedValue, newValue);
+        if (value == expectedValue) {
+            value = newValue;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -152,9 +163,12 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @see #weakCompareAndSetPlain
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     @Deprecated(since="9")
     public final boolean weakCompareAndSet(int expectedValue, int newValue) {
-        return U.weakCompareAndSetIntPlain(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -167,8 +181,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetPlain(int expectedValue, int newValue) {
-        return U.weakCompareAndSetIntPlain(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -179,8 +196,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      *
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getAndIncrement() {
-        return U.getAndAddInt(this, VALUE, 1);
+        return getAndAdd(1);
     }
 
     /**
@@ -191,8 +211,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      *
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getAndDecrement() {
-        return U.getAndAddInt(this, VALUE, -1);
+        return getAndAdd(-1);
     }
 
     /**
@@ -202,8 +225,13 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param delta the value to add
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getAndAdd(int delta) {
-        return U.getAndAddInt(this, VALUE, delta);
+        int prev = value;
+        value = prev + delta;
+        return prev;
     }
 
     /**
@@ -214,8 +242,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      *
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int incrementAndGet() {
-        return U.getAndAddInt(this, VALUE, 1) + 1;
+        return addAndGet(1);
     }
 
     /**
@@ -226,8 +257,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      *
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int decrementAndGet() {
-        return U.getAndAddInt(this, VALUE, -1) - 1;
+        return addAndGet(-1);
     }
 
     /**
@@ -237,8 +271,12 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param delta the value to add
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int addAndGet(int delta) {
-        return U.getAndAddInt(this, VALUE, delta) + delta;
+        value += delta;
+        return value;
     }
 
     /**
@@ -397,8 +435,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getPlain() {
-        return U.getInt(this, VALUE);
+        return value;
     }
 
     /**
@@ -409,8 +450,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setPlain(int newValue) {
-        U.putInt(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -420,8 +464,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getOpaque() {
-        return U.getIntOpaque(this, VALUE);
+        return value;
     }
 
     /**
@@ -431,8 +478,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setOpaque(int newValue) {
-        U.putIntOpaque(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -442,8 +492,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int getAcquire() {
-        return U.getIntAcquire(this, VALUE);
+        return value;
     }
 
     /**
@@ -453,8 +506,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setRelease(int newValue) {
-        U.putIntRelease(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -469,8 +525,15 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int compareAndExchange(int expectedValue, int newValue) {
-        return U.compareAndExchangeInt(this, VALUE, expectedValue, newValue);
+        int prev = value;
+        if (prev == expectedValue) {
+            value = newValue;
+        }
+        return prev;
     }
 
     /**
@@ -485,8 +548,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int compareAndExchangeAcquire(int expectedValue, int newValue) {
-        return U.compareAndExchangeIntAcquire(this, VALUE, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -501,8 +567,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final int compareAndExchangeRelease(int expectedValue, int newValue) {
-        return U.compareAndExchangeIntRelease(this, VALUE, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -516,8 +585,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetVolatile(int expectedValue, int newValue) {
-        return U.weakCompareAndSetInt(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -531,8 +603,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetAcquire(int expectedValue, int newValue) {
-        return U.weakCompareAndSetIntAcquire(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -546,8 +621,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetRelease(int expectedValue, int newValue) {
-        return U.weakCompareAndSetIntRelease(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
 }

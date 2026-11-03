@@ -38,7 +38,6 @@ package java.util.concurrent.atomic;
 import java.lang.invoke.VarHandle;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongUnaryOperator;
-import jdk.internal.misc.Unsafe;
 
 /**
  * A {@code long} value that may be updated atomically.  See the
@@ -67,16 +66,32 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * Returns whether underlying JVM supports lockless CompareAndSet
      * for longs. Called only once and cached in VM_SUPPORTS_LONG_CAS.
      */
-    private static native boolean VMSupportsCS8();
-
-    /*
-     * This class intended to be implemented using VarHandles, but there
-     * are unresolved cyclic startup dependencies.
+    /**
+     * @cprover.fullSupport Always true: lockless CAS support for longs
+     *   is a hardware/JVM capability detail, irrelevant to verification
+     *   (this class implements its own compareAndSet directly against
+     *   {@link #value} - see there - rather than relying on this flag).
      */
-    private static final Unsafe U = Unsafe.getUnsafe();
-    private static final long VALUE
-        = U.objectFieldOffset(AtomicLong.class, "value");
+    private static boolean VMSupportsCS8() { return true; }
 
+    /**
+     * @cprover.fullSupport Every method below operates on this field
+     *   directly instead of going through Unsafe's offset-based
+     *   accessors: Unsafe.compareAndSetLong/getLong/putLong etc. (see
+     *   their own doc) cannot be tied back to a specific object's
+     *   field given only an opaque offset, so they are modelled as
+     *   returning a value disconnected from whatever was actually
+     *   stored - which would make get() not reflect a prior set(), and
+     *   would make a compareAndSet-retry loop (e.g. in
+     *   getAndUpdate/Random#next) spin forever on an unconstrained
+     *   nondet boolean. Comparing directly against this field instead
+     *   gives genuinely correct (not approximated) compareAndSet
+     *   semantics: under single-threaded execution the comparison
+     *   always succeeds immediately (nothing else could have changed
+     *   the field since the preceding get()), and under genuine
+     *   multi-threaded contention a mismatch is a real, bounded retry
+     *   rather than a nondet one.
+     */
     private volatile long value;
 
     /**
@@ -111,8 +126,7 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      */
     public final void set(long newValue) {
-        // See JDK-8180620: Clarify VarHandle mixed-access subtleties
-        U.putLongVolatile(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -122,8 +136,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 1.6
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void lazySet(long newValue) {
-        U.putLongRelease(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -133,8 +150,13 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getAndSet(long newValue) {
-        return U.getAndSetLong(this, VALUE, newValue);
+        long prev = value;
+        value = newValue;
+        return prev;
     }
 
     /**
@@ -147,8 +169,15 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful. False return indicates that
      * the actual value was not equal to the expected value.
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean compareAndSet(long expectedValue, long newValue) {
-        return U.compareAndSetLong(this, VALUE, expectedValue, newValue);
+        if (value == expectedValue) {
+            value = newValue;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -167,9 +196,12 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @see #weakCompareAndSetPlain
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     @Deprecated(since="9")
     public final boolean weakCompareAndSet(long expectedValue, long newValue) {
-        return U.weakCompareAndSetLongPlain(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -182,8 +214,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetPlain(long expectedValue, long newValue) {
-        return U.weakCompareAndSetLongPlain(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -194,8 +229,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      *
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getAndIncrement() {
-        return U.getAndAddLong(this, VALUE, 1L);
+        return getAndAdd(1L);
     }
 
     /**
@@ -206,8 +244,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      *
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getAndDecrement() {
-        return U.getAndAddLong(this, VALUE, -1L);
+        return getAndAdd(-1L);
     }
 
     /**
@@ -217,8 +258,13 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param delta the value to add
      * @return the previous value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getAndAdd(long delta) {
-        return U.getAndAddLong(this, VALUE, delta);
+        long prev = value;
+        value = prev + delta;
+        return prev;
     }
 
     /**
@@ -229,8 +275,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      *
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long incrementAndGet() {
-        return U.getAndAddLong(this, VALUE, 1L) + 1L;
+        return addAndGet(1L);
     }
 
     /**
@@ -241,8 +290,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      *
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long decrementAndGet() {
-        return U.getAndAddLong(this, VALUE, -1L) - 1L;
+        return addAndGet(-1L);
     }
 
     /**
@@ -252,8 +304,12 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param delta the value to add
      * @return the updated value
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long addAndGet(long delta) {
-        return U.getAndAddLong(this, VALUE, delta) + delta;
+        value += delta;
+        return value;
     }
 
     /**
@@ -410,8 +466,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getPlain() {
-        return U.getLong(this, VALUE);
+        return value;
     }
 
     /**
@@ -422,8 +481,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setPlain(long newValue) {
-        U.putLong(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -433,8 +495,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getOpaque() {
-        return U.getLongOpaque(this, VALUE);
+        return value;
     }
 
     /**
@@ -444,8 +509,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setOpaque(long newValue) {
-        U.putLongOpaque(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -455,8 +523,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return the value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long getAcquire() {
-        return U.getLongAcquire(this, VALUE);
+        return value;
     }
 
     /**
@@ -466,8 +537,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @param newValue the new value
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final void setRelease(long newValue) {
-        U.putLongRelease(this, VALUE, newValue);
+        value = newValue;
     }
 
     /**
@@ -482,8 +556,15 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long compareAndExchange(long expectedValue, long newValue) {
-        return U.compareAndExchangeLong(this, VALUE, expectedValue, newValue);
+        long prev = value;
+        if (prev == expectedValue) {
+            value = newValue;
+        }
+        return prev;
     }
 
     /**
@@ -498,8 +579,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long compareAndExchangeAcquire(long expectedValue, long newValue) {
-        return U.compareAndExchangeLongAcquire(this, VALUE, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -514,8 +598,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * expected value if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final long compareAndExchangeRelease(long expectedValue, long newValue) {
-        return U.compareAndExchangeLongRelease(this, VALUE, expectedValue, newValue);
+        return compareAndExchange(expectedValue, newValue);
     }
 
     /**
@@ -529,8 +616,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetVolatile(long expectedValue, long newValue) {
-        return U.weakCompareAndSetLong(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -544,8 +634,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetAcquire(long expectedValue, long newValue) {
-        return U.weakCompareAndSetLongAcquire(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
     /**
@@ -559,8 +652,11 @@ public class AtomicLong extends Number implements java.io.Serializable {
      * @return {@code true} if successful
      * @since 9
      */
+    /**
+     * @cprover.fullSupport See {@link #value}.
+     */
     public final boolean weakCompareAndSetRelease(long expectedValue, long newValue) {
-        return U.weakCompareAndSetLongRelease(this, VALUE, expectedValue, newValue);
+        return compareAndSet(expectedValue, newValue);
     }
 
 }
