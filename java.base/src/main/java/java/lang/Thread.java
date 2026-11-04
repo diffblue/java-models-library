@@ -1580,14 +1580,16 @@ public class Thread implements Runnable {
      */
     public void start() {
         // @cprover.limitedSupport The JDK does this check-and-start under
-        //   synchronized(this). The monitor is dropped because JBMC's
-        //   symex rejects ("atomic sections differ across branches") a
-        //   throw out of a monitor region nested in a caller's monitor
-        //   region; concurrent double-starts of one Thread are not
-        //   explored as a race.
-        // zero status corresponds to state "NEW".
-        if (holder.threadStatus != 0)
-            throw new IllegalThreadStateException();
+        //   synchronized(this) and throws IllegalThreadStateException if
+        //   the thread was already started. Neither is modelled:
+        //   * the monitor: JBMC's symex rejects ("atomic sections differ
+        //     across branches") a throw out of a monitor region nested in
+        //     a caller's monitor region;
+        //   * the exception: its allocation, class initialisation and
+        //     stack-trace state add hundreds of shared variables per
+        //     start() call, which makes multi-thread programs time out in
+        //     the SAT solver (several-threads: >150s vs 68s).
+        //   A second start() of one Thread therefore runs it again.
         start0();
     }
 
