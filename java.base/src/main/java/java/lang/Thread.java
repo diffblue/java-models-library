@@ -1633,8 +1633,16 @@ public class Thread implements Runnable {
      *   see org.cprover.CProver#startThread.
      */
     private void start0() {
+        // The task is read before the thread is spawned so that its value
+        // is known to symex (reads inside the new thread are shared reads
+        // of unknown value, which makes task.run() dispatch to every
+        // Runnable, including Thread.run itself, without bound).
+        Runnable task = holder.task;
         CProver.startThread(333);
-        run();
+        if (task != null)
+            task.run();
+        else
+            run();
         CProver.endThread(333);
     }
 
@@ -1653,11 +1661,12 @@ public class Thread implements Runnable {
      */
     @Override
     public void run() {
-        Runnable task = holder.task;
-        if (task != null) {
-            Object bindings = scopedValueBindings();
-            runWith(bindings, task);
-        }
+        // @cprover.limitedSupport Does not run the task: start0() runs it
+        //   directly. Dispatching task.run() from here lets symex pick
+        //   Thread.run itself as a candidate for the (shared, hence
+        //   unknown) task of the new thread, which recurses without
+        //   bound. Consequence: calling run() directly on a Thread built
+        //   from a Runnable does nothing.
     }
 
     /**
