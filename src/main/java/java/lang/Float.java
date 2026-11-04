@@ -137,8 +137,11 @@ public final class Float extends Number implements Comparable<Float> {
      *
      * @since JDK1.1
      */
+    // DIFFBLUE MODEL LIBRARY
+    //     We use the int version of getPrimitiveClass instead of
+    //     the original String version
     @SuppressWarnings("unchecked")
-    public static final Class<Float> TYPE = (Class<Float>) Class.getPrimitiveClass(7);
+    public static final Class<Float> TYPE = (Class<Float>) Class.getPrimitiveClass(6);
 
     /**
      * Returns a string representation of the {@code float}

@@ -61,8 +61,11 @@ public final class Short extends Number implements Comparable<Short> {
      * The {@code Class} instance representing the primitive type
      * {@code short}.
      */
+    // DIFFBLUE MODEL LIBRARY
+    //     We use the int version of getPrimitiveClass instead of
+    //     the original String version
     @SuppressWarnings("unchecked")
-    public static final Class<Short> TYPE = (Class<Short>) Class.getPrimitiveClass(7);
+    public static final Class<Short> TYPE = (Class<Short>) Class.getPrimitiveClass(3);
     /**
      * Returns a new {@code String} object representing the
      * specified {@code short}. The radix is assumed to be 10.
