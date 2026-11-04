@@ -115,12 +115,30 @@ public final class Class<T> {
     private boolean cproverIsMemberClass;
     private boolean cproverIsEnum;
 
-    // TODO: these fields are to enforce singleton semantics of
-    // Class objects as returned by Object.getClass() and Class.forName()
-    // The size is currently hard-coded which may lead to incorrect results.
-    // A map could be used here in future.
-    private static String[] cproverClassNames = new String[8];
-    private static Class<?>[] cproverClassInstances = new Class<?>[8];
+    // DIFFBLUE MODEL LIBRARY
+    // The JVM creates exactly one Class object per class, so that, e.g.,
+    // a.getClass() == b.getClass() holds if and only if a and b have the same
+    // runtime type, and a.getClass() == A.class if and only if a has type A.
+    // We keep all Class objects created so far in two linked lists:
+    // - cproverClassLiterals: the class literals, which JBMC initialises via
+    //   cproverInitializeClassLiteral;
+    // - cproverOtherClasses: the Class objects that forName creates for names
+    //   that are not in cproverClassLiterals, and those that
+    //   cproverGetClassObject creates.
+    // JBMC only creates class literals of classes that the program refers to
+    // by a class literal. For other classes, getClass calls
+    // cproverGetClassObject on its first call for that class, which returns
+    // the Class object that forName created for the class, if any.
+    // Objects are only ever added at the head of a list, and each object only
+    // once: the name comparisons are generally not resolved during symbolic
+    // execution, and adding an object that may already be in a list would let
+    // JBMC consider cyclic lists, so that it could not bound the loops over
+    // the lists.
+    // The heads of the lists are stored in final arrays so that
+    // --nondet-static does not replace them with nondeterministic values.
+    private static final Class<?>[] cproverClassLiterals = new Class<?>[1];
+    private static final Class<?>[] cproverOtherClasses = new Class<?>[1];
+    private Class<?> cproverNextClass;
 
     public String toString() {
         return (isInterface() ? "interface " : (isPrimitive() ? "" : "class "))
@@ -174,29 +192,51 @@ public final class Class<T> {
         }
     }
 
-    // TODO: This is a very partial model of the actual behaviour of the Java
-    // forName method. The goal is to correctly model combinations of forName
-    // and getName, but precisely following the JDK behaviour is more involved.
+    /**
+     * @diffblue.limitedSupport
+     * Returns the unique Class object for the given class name, creating it if
+     * necessary. Unlike the JVM, this does not run the static initializer of
+     * the class, and does not throw ClassNotFoundException for names of classes
+     * that do not exist.
+     */
     public static Class<?> forName(String className) {
-        CProver.notModelled();
-        throw new AssertionError();
-        /*
-        String foundName = null;
-        for (int i = 0; i < cproverClassNames.length; ++i) {
-            String currentName = cproverClassNames[i];
-            if (currentName == null) {
-                Class<?> c = new Class();
-                c.name = className;
-                cproverClassNames[i] = className;
-                cproverClassInstances[i] = c;
+        // DIFFBLUE MODEL LIBRARY
+        if (className == null) {
+            throw new NullPointerException();
+        }
+        for (Class<?> c = cproverClassLiterals[0]; c != null;
+             c = c.cproverNextClass) {
+            if (className.equals(c.name)) {
                 return c;
             }
-            if (className.equals(currentName)) {
-                return cproverClassInstances[i];
+        }
+        Class<?> c = cproverFindOtherClass(className);
+        if (c == null) {
+            c = cproverNewOtherClass();
+            c.name = className;
+        }
+        return c;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // Find the Class object with the given name in cproverOtherClasses.
+    private static Class<?> cproverFindOtherClass(String className) {
+        for (Class<?> c = cproverOtherClasses[0]; c != null;
+             c = c.cproverNextClass) {
+            if (className.equals(c.name)) {
+                return c;
             }
         }
-        return CProver.nondetWithoutNullForNotModelled();
-        */
+        return null;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // Create a Class object and add it to cproverOtherClasses.
+    private static Class<?> cproverNewOtherClass() {
+        Class<?> c = new Class();
+        c.cproverNextClass = cproverOtherClasses[0];
+        cproverOtherClasses[0] = c;
+        return c;
     }
 
     public static Class<?> forName(String name, boolean initialize,
@@ -546,6 +586,51 @@ public final class Class<T> {
     // deterministically.
     @org.cprover.MustNotThrow
     public void cproverInitializeClassLiteral(
+            String name,
+            boolean isAnnotation,
+            boolean isArray,
+            boolean isInterface,
+            boolean isSynthetic,
+            boolean isLocalClass,
+            boolean isMemberClass,
+            boolean isEnum) {
+        cproverSetClassInfo(
+            name, isAnnotation, isArray, isInterface, isSynthetic,
+            isLocalClass, isMemberClass, isEnum);
+        cproverNextClass = cproverClassLiterals[0];
+        cproverClassLiterals[0] = this;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // JBMC calls this method on the first call of getClass on an object of a
+    // class whose class literal the program does not refer to, and returns
+    // the result from all calls of getClass for objects of that class. It
+    // takes the same arguments as cproverInitializeClassLiteral. To ensure
+    // that there is only one Class object for each class, this returns the
+    // object that forName created for the class, if any.
+    @org.cprover.MustNotThrow
+    private static Class<?> cproverGetClassObject(
+            String name,
+            boolean isAnnotation,
+            boolean isArray,
+            boolean isInterface,
+            boolean isSynthetic,
+            boolean isLocalClass,
+            boolean isMemberClass,
+            boolean isEnum) {
+        Class<?> c = cproverFindOtherClass(name);
+        if (c == null) {
+            c = cproverNewOtherClass();
+        }
+        c.cproverSetClassInfo(
+            name, isAnnotation, isArray, isInterface, isSynthetic,
+            isLocalClass, isMemberClass, isEnum);
+        return c;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    @org.cprover.MustNotThrow
+    private void cproverSetClassInfo(
             String name,
             boolean isAnnotation,
             boolean isArray,
