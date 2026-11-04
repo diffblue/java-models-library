@@ -35,10 +35,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException ;
 import java.util.BitSet;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import sun.security.action.GetBooleanAction;
-import sun.security.action.GetPropertyAction;
 
 /**
  * Utility class for HTML form encoding. This class contains static methods
@@ -140,9 +136,11 @@ public class URLEncoder {
         dontNeedEncoding.set('.');
         dontNeedEncoding.set('*');
 
-        dfltEncName = AccessController.doPrivileged(
-            new GetPropertyAction("file.encoding")
-        );
+        // DIFFBLUE MODEL LIBRARY
+        // sun.security.action.GetPropertyAction is not available in Java 25,
+        // and AccessController.doPrivileged has no effect without a
+        // security manager
+        dfltEncName = System.getProperty("file.encoding");
     }
 
     /**
