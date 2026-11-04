@@ -368,7 +368,7 @@ public class HashSet<E>
      * @since 1.8
      */
     public Spliterator<E> spliterator() {
-        return new HashMap.KeySpliterator<>(map, 0, -1, 0, 0);
+        return map.keySet().spliterator();
     }
 
     @Override
