@@ -62,8 +62,11 @@ public final class Byte extends Number implements Comparable<Byte> {
      * The {@code Class} instance representing the primitive type
      * {@code byte}.
      */
+    // DIFFBLUE MODEL LIBRARY
+    //     We use the int version of getPrimitiveClass instead of
+    //     the original String version
     @SuppressWarnings("unchecked")
-    public static final Class<Byte> TYPE = (Class<Byte>) Class.getPrimitiveClass(7);
+    public static final Class<Byte> TYPE = (Class<Byte>) Class.getPrimitiveClass(2);
     
     /**
      * Returns a new {@code String} object representing the
