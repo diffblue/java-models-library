@@ -44,7 +44,8 @@ import org.cprover.CProver;
  * Iteration order is unspecified for {@code HashMap}, so insertion order
  * is one of the permitted behaviours.
  *
- * @cprover.limitedSupport Not faithful to the JDK in: the iteration order
+ * @cprover.limitedSupport Not faithful to the JDK in: at most 128 mappings
+ *   are supported (paths with more are pruned by an assumption), the iteration order
  *   (always insertion order), {@code hashCode} not being consulted for
  *   key lookup (a key whose {@code equals} is inconsistent with
  *   {@code hashCode} is found here, but not by the JDK), and
@@ -68,8 +69,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /** The default load factor. */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
-    /** Smallest backing array allocated by the model. */
-    private static final int CPROVER_MIN_TABLE = 4;
+    /** Backing array size at construction. */
+    private static final int CPROVER_MIN_TABLE = 8;
+
+    /**
+     * Backing array size after the first growth, and the maximum number of
+     * mappings: arrays are only ever allocated with constant sizes, since
+     * an allocation whose size depends on a nondeterministic array length
+     * yields an array of symbolic size that blows up the SAT encoding.
+     */
+    private static final int CPROVER_MAX_TABLE = 128;
 
     /**
      * Basic entry.
@@ -289,7 +298,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     @SuppressWarnings("unchecked")
     final void cproverAppend(K key, V value) {
         if (size == table.length) {
-            Node<K,V>[] bigger = (Node<K,V>[]) new Node[table.length * 2];
+            // Only constant-size allocations (see CPROVER_MAX_TABLE).
+            CProver.assume(table.length < CPROVER_MAX_TABLE);
+            Node<K,V>[] bigger = (Node<K,V>[]) new Node[CPROVER_MAX_TABLE];
             for (int i = 0; i < size; i++)
                 bigger[i] = table[i];
             table = bigger;

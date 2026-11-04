@@ -44,7 +44,8 @@ import org.cprover.CProver;
  * is observable). Iteration order is unspecified for {@code Hashtable},
  * so insertion order is one of the permitted behaviours.
  *
- * @cprover.limitedSupport Iteration order (insertion order) and
+ * @cprover.limitedSupport At most 128 entries are supported (paths with
+ *   more are pruned by an assumption). Iteration order (insertion order) and
  *   key lookup by {@code equals} only differ from the JDK where
  *   {@code equals} is inconsistent with {@code hashCode}. The views
  *   returned by {@code keySet()}, {@code entrySet()} and {@code values()}
@@ -122,7 +123,7 @@ public class Hashtable<K,V>
                                                initialCapacity);
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal Load: "+loadFactor);
-        table = (Entry<K,V>[]) new Entry<?,?>[4];
+        table = (Entry<K,V>[]) new Entry<?,?>[8];
     }
 
     /**
@@ -197,7 +198,11 @@ public class Hashtable<K,V>
     @SuppressWarnings("unchecked")
     private void append(K key, V value) {
         if (count == table.length) {
-            Entry<K,V>[] bigger = (Entry<K,V>[]) new Entry<?,?>[table.length * 2];
+            // Only constant-size allocations: an array whose size depends
+            // on a nondeterministic array length has symbolic size, which
+            // blows up the SAT encoding. At most 128 entries are supported.
+            CProver.assume(table.length < 128);
+            Entry<K,V>[] bigger = (Entry<K,V>[]) new Entry<?,?>[128];
             for (int i = 0; i < count; i++)
                 bigger[i] = table[i];
             table = bigger;
