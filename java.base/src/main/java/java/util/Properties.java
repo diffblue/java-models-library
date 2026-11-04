@@ -1448,6 +1448,16 @@ public class Properties extends Hashtable<Object,Object> {
         return super.merge(key, value, remappingFunction);
     }
 
-    // clone(), rehash() and the Hashtable serialization hooks are inherited
-    // from Hashtable (see the delegation note at the top of this file).
+    /**
+     * @cprover.limitedSupport Copies the entries into a new Properties with
+     *   the same defaults (Object.clone is not supported); a subclass must
+     *   override clone().
+     */
+    @Override
+    public synchronized Object clone() {
+        Properties clone = new Properties(defaults);
+        for (Map.Entry<Object, Object> e : super.entrySet())
+            clone.put(e.getKey(), e.getValue());
+        return clone;
+    }
 }
