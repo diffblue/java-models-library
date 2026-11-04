@@ -41,7 +41,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -164,7 +163,11 @@ public class Properties extends Hashtable<Object,Object> {
      * simple read operations.  Writes and bulk operations remain synchronized,
      * as in Hashtable.
      */
-    private transient volatile ConcurrentHashMap<Object, Object> map;
+    // @cprover.limitedSupport The JDK stores the entries in a private
+    // ConcurrentHashMap and delegates to it. Here the entries live in the
+    // inherited Hashtable (as in JDK 8): the concurrent map's internals
+    // (CAS-based tables, Unsafe) are unsupported by JBMC, and a second
+    // nondet map behind every nondet Properties explodes symex.
 
     /**
      * Creates an empty property list with no default values.
@@ -203,14 +206,8 @@ public class Properties extends Hashtable<Object,Object> {
     }
 
     private Properties(Properties defaults, int initialCapacity) {
-        // use package-private constructor to
-        // initialize unused fields with dummy values
-        super((Void) null);
-        map = new ConcurrentHashMap<>(initialCapacity);
+        super(initialCapacity);
         this.defaults = defaults;
-
-        // Ensure writes can't be reordered
-        UNSAFE.storeFence();
     }
 
     /**
@@ -927,8 +924,9 @@ public class Properties extends Hashtable<Object,Object> {
             // of their key. Else, we consider that the subclassed implementation may
             // potentially have returned a differently ordered entries and so we just
             // use the iteration order of the returned instance.
-            if (entries instanceof Collections.SynchronizedSet<?> ss
-                    && ss.c instanceof EntrySet) {
+            // @cprover.limitedSupport Entries are always sorted: the JDK
+            // sorts only when entrySet() is not overridden by a subclass.
+            {
                 entries = new ArrayList<>(entries);
                 ((List<Map.Entry<String, String>>) entries).sort(Map.Entry.comparingByKey());
             }
@@ -1144,7 +1142,7 @@ public class Properties extends Hashtable<Object,Object> {
      * @see     #defaults
      */
     public String getProperty(String key) {
-        Object oval = map.get(key);
+        Object oval = super.get(key);
         String sval = (oval instanceof String) ? (String)oval : null;
         Properties defaults;
         return ((sval == null) && ((defaults = this.defaults) != null)) ? defaults.getProperty(key) : sval;
@@ -1301,303 +1299,155 @@ public class Properties extends Hashtable<Object,Object> {
 
     @Override
     public int size() {
-        return map.size();
+        return super.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return map.isEmpty();
+        return super.isEmpty();
     }
 
     @Override
     public Enumeration<Object> keys() {
         // CHM.keys() returns Iterator w/ remove() - instead wrap keySet()
-        return Collections.enumeration(map.keySet());
+        return Collections.enumeration(super.keySet());
     }
 
     @Override
     public Enumeration<Object> elements() {
         // CHM.elements() returns Iterator w/ remove() - instead wrap values()
-        return Collections.enumeration(map.values());
+        return Collections.enumeration(super.values());
     }
 
     @Override
     public boolean contains(Object value) {
-        return map.contains(value);
+        return super.contains(value);
     }
 
     @Override
     public boolean containsValue(Object value) {
-        return map.containsValue(value);
+        return super.containsValue(value);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return map.containsKey(key);
+        return super.containsKey(key);
     }
 
     @Override
     public Object get(Object key) {
-        return map.get(key);
+        return super.get(key);
     }
 
     @Override
     public synchronized Object put(Object key, Object value) {
-        return map.put(key, value);
+        return super.put(key, value);
     }
 
     @Override
     public synchronized Object remove(Object key) {
-        return map.remove(key);
+        return super.remove(key);
     }
 
     @Override
     public synchronized void putAll(Map<?, ?> t) {
-        map.putAll(t);
+        super.putAll(t);
     }
 
     @Override
     public synchronized void clear() {
-        map.clear();
+        super.clear();
     }
 
     @Override
     public synchronized String toString() {
-        return map.toString();
+        return super.toString();
     }
 
     @Override
     public Set<Object> keySet() {
-        return Collections.synchronizedSet(map.keySet(), this);
+        return super.keySet();
     }
 
     @Override
     public Collection<Object> values() {
-        return Collections.synchronizedCollection(map.values(), this);
+        return super.values();
     }
 
     @Override
     public Set<Map.Entry<Object, Object>> entrySet() {
-        return Collections.synchronizedSet(new EntrySet(map.entrySet()), this);
-    }
-
-    /*
-     * Properties.entrySet() should not support add/addAll, however
-     * ConcurrentHashMap.entrySet() provides add/addAll.  This class wraps the
-     * Set returned from CHM, changing add/addAll to throw UOE.
-     */
-    private static class EntrySet implements Set<Map.Entry<Object, Object>> {
-        private Set<Map.Entry<Object,Object>> entrySet;
-
-        private EntrySet(Set<Map.Entry<Object, Object>> entrySet) {
-            this.entrySet = entrySet;
-        }
-
-        @Override public int size() { return entrySet.size(); }
-        @Override public boolean isEmpty() { return entrySet.isEmpty(); }
-        @Override public boolean contains(Object o) { return entrySet.contains(o); }
-        @Override public Object[] toArray() { return entrySet.toArray(); }
-        @Override public <T> T[] toArray(T[] a) { return entrySet.toArray(a); }
-        @Override public void clear() { entrySet.clear(); }
-        @Override public boolean remove(Object o) { return entrySet.remove(o); }
-
-        @Override
-        public boolean add(Map.Entry<Object, Object> e) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean addAll(Collection<? extends Map.Entry<Object, Object>> c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean containsAll(Collection<?> c) {
-            return entrySet.containsAll(c);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this || entrySet.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return entrySet.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return entrySet.toString();
-        }
-
-        @Override
-        public boolean removeAll(Collection<?> c) {
-            return entrySet.removeAll(c);
-        }
-
-        @Override
-        public boolean retainAll(Collection<?> c) {
-            return entrySet.retainAll(c);
-        }
-
-        @Override
-        public Iterator<Map.Entry<Object, Object>> iterator() {
-            return entrySet.iterator();
-        }
+        return super.entrySet();
     }
 
     @Override
     public synchronized boolean equals(Object o) {
-        return map.equals(o);
+        return super.equals(o);
     }
 
     @Override
     public synchronized int hashCode() {
-        return map.hashCode();
+        return super.hashCode();
     }
 
     @Override
     public Object getOrDefault(Object key, Object defaultValue) {
-        return map.getOrDefault(key, defaultValue);
+        return super.getOrDefault(key, defaultValue);
     }
 
     @Override
     public synchronized void forEach(BiConsumer<? super Object, ? super Object> action) {
-        map.forEach(action);
+        super.forEach(action);
     }
 
     @Override
     public synchronized void replaceAll(BiFunction<? super Object, ? super Object, ?> function) {
-        map.replaceAll(function);
+        super.replaceAll(function);
     }
 
     @Override
     public synchronized Object putIfAbsent(Object key, Object value) {
-        return map.putIfAbsent(key, value);
+        return super.putIfAbsent(key, value);
     }
 
     @Override
     public synchronized boolean remove(Object key, Object value) {
-        return map.remove(key, value);
+        return super.remove(key, value);
     }
 
     @Override
     public synchronized boolean replace(Object key, Object oldValue, Object newValue) {
-        return map.replace(key, oldValue, newValue);
+        return super.replace(key, oldValue, newValue);
     }
 
     @Override
     public synchronized Object replace(Object key, Object value) {
-        return map.replace(key, value);
+        return super.replace(key, value);
     }
 
     @Override
     public synchronized Object computeIfAbsent(Object key,
             Function<? super Object, ?> mappingFunction) {
-        return map.computeIfAbsent(key, mappingFunction);
+        return super.computeIfAbsent(key, mappingFunction);
     }
 
     @Override
     public synchronized Object computeIfPresent(Object key,
             BiFunction<? super Object, ? super Object, ?> remappingFunction) {
-        return map.computeIfPresent(key, remappingFunction);
+        return super.computeIfPresent(key, remappingFunction);
     }
 
     @Override
     public synchronized Object compute(Object key,
             BiFunction<? super Object, ? super Object, ?> remappingFunction) {
-        return map.compute(key, remappingFunction);
+        return super.compute(key, remappingFunction);
     }
 
     @Override
     public synchronized Object merge(Object key, Object value,
             BiFunction<? super Object, ? super Object, ?> remappingFunction) {
-        return map.merge(key, value, remappingFunction);
+        return super.merge(key, value, remappingFunction);
     }
 
-    //
-    // Special Hashtable methods
-
-    @Override
-    protected void rehash() { /* no-op */ }
-
-    @Override
-    public synchronized Object clone() {
-        Properties clone = (Properties) cloneHashtable();
-        clone.map = new ConcurrentHashMap<>(map);
-        return clone;
-    }
-
-    //
-    // Hashtable serialization overrides
-    // (these should emit and consume Hashtable-compatible stream)
-
-    @Override
-    void writeHashtable(ObjectOutputStream s) throws IOException {
-        var map = this.map;
-        List<Object> entryStack = new ArrayList<>(map.size() * 2); // an estimate
-
-        for (Map.Entry<Object, Object> entry : map.entrySet()) {
-            entryStack.add(entry.getValue());
-            entryStack.add(entry.getKey());
-        }
-
-        // Write out the simulated threshold, loadfactor
-        float loadFactor = 0.75f;
-        int count = entryStack.size() / 2;
-        int length = (int)(count / loadFactor) + (count / 20) + 3;
-        if (length > count && (length & 1) == 0) {
-            length--;
-        }
-        synchronized (map) { // in case of multiple concurrent serializations
-            defaultWriteHashtable(s, length, loadFactor);
-        }
-
-        // Write out simulated length and real count of elements
-        s.writeInt(length);
-        s.writeInt(count);
-
-        // Write out the key/value objects from the stacked entries
-        for (int i = entryStack.size() - 1; i >= 0; i--) {
-            s.writeObject(entryStack.get(i));
-        }
-    }
-
-    @Override
-    void readHashtable(ObjectInputStream s) throws IOException,
-            ClassNotFoundException {
-        // Read in the threshold and loadfactor
-        s.defaultReadObject();
-
-        // Read the original length of the array and number of elements
-        int origlength = s.readInt();
-        int elements = s.readInt();
-
-        // Validate # of elements
-        if (elements < 0) {
-            throw new StreamCorruptedException("Illegal # of Elements: " + elements);
-        }
-
-        // Constructing the backing map will lazily create an array when the first element is
-        // added, so check it before construction. Note that CHM's constructor takes a size
-        // that is the number of elements to be stored -- not the table size -- so it must be
-        // inflated by the default load factor of 0.75, then inflated to the next power of two.
-        // (CHM uses the same power-of-two computation as HashMap, and HashMap.tableSizeFor is
-        // accessible here.) Check Map.Entry[].class since it's the nearest public type to
-        // what is actually created.
-        SharedSecrets.getJavaObjectInputStreamAccess()
-                     .checkArray(s, Map.Entry[].class, HashMap.tableSizeFor((int)(elements / 0.75)));
-
-        // create CHM of appropriate capacity
-        var map = new ConcurrentHashMap<>(elements);
-
-        // Read all the key/value objects
-        for (; elements > 0; elements--) {
-            Object key = s.readObject();
-            Object value = s.readObject();
-            map.put(key, value);
-        }
-        this.map = map;
-    }
+    // clone(), rehash() and the Hashtable serialization hooks are inherited
+    // from Hashtable (see the delegation note at the top of this file).
 }
