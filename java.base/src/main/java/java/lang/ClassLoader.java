@@ -1993,7 +1993,12 @@ public abstract class ClassLoader {
     }
 
     static ClassLoader getBuiltinAppClassLoader() {
-        return ClassLoaders.appClassLoader();
+        // @cprover.limitedSupport No class loaders are modelled: the
+        //   application loader is created by the JDK's boot sequence
+        //   (jdk.internal.loader.ClassLoaders), which is not part of the
+        //   models; asking for it yields a nondet loader object graph
+        //   whose construction loops and breaks --unwind-bounded runs.
+        return null;
     }
 
     /*
