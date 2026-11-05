@@ -49,6 +49,15 @@ public class Object {
     public int cproverMonitorCount;
 
     /**
+     * Identifier of the thread that currently holds this object's monitor,
+     * meaningful only while {@link #cproverMonitorCount} is not 0. Not part of
+     * the real {@code Object} class; lets {@link #monitorenter} tell a thread
+     * that re-enters a monitor it already holds (which must not block) from a
+     * thread that has to wait for another one.
+     */
+    public int cproverMonitorOwner;
+
+    /**
      * Constructs a new object.
      */
     @IntrinsicCandidate
@@ -656,10 +665,17 @@ public class Object {
         if (object == null) {
             throw new NullPointerException();
         }
+        // Read before entering the atomic section: the first use of CProver
+        // runs its class initializer, which is itself atomic, and atomic
+        // sections cannot be nested.
+        int thread = CProver.getCurrentThreadId();
         CProver.atomicBegin();
-        // Blocks this execution path until the monitor is free, simulating a
-        // thread having to wait for another thread to release it.
-        CProver.assume(object.cproverMonitorCount == 0);
+        // Blocks this execution path until the monitor is free or held by
+        // this thread (monitors are reentrant), simulating a thread having to
+        // wait for another thread to release it.
+        CProver.assume(
+            object.cproverMonitorCount == 0 || object.cproverMonitorOwner == thread);
+        object.cproverMonitorOwner = thread;
         object.cproverMonitorCount++;
         CProver.atomicEnd();
     }
