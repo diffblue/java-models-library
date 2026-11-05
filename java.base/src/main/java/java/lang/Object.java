@@ -670,14 +670,21 @@ public class Object {
         // sections cannot be nested.
         int thread = CProver.getCurrentThreadId();
         CProver.atomicBegin();
-        // Blocks this execution path until the monitor is free or held by
-        // this thread (monitors are reentrant), simulating a thread having to
-        // wait for another thread to release it.
-        CProver.assume(
-            object.cproverMonitorCount == 0 || object.cproverMonitorOwner == thread);
-        object.cproverMonitorOwner = thread;
-        object.cproverMonitorCount++;
-        CProver.atomicEnd();
+        // The atomic section is left in all cases, including exceptions that
+        // JBMC adds, such as the null checks of the field accesses: otherwise,
+        // the paths that join after the call disagree on being atomic.
+        try {
+            // Blocks this execution path until the monitor is free or held by
+            // this thread (monitors are reentrant), simulating a thread having
+            // to wait for another thread to release it.
+            CProver.assume(
+                object.cproverMonitorCount == 0
+                    || object.cproverMonitorOwner == thread);
+            object.cproverMonitorOwner = thread;
+            object.cproverMonitorCount++;
+        } finally {
+            CProver.atomicEnd();
+        }
     }
 
     /**
@@ -688,7 +695,10 @@ public class Object {
      */
     public static void monitorexit(Object object) {
         CProver.atomicBegin();
-        object.cproverMonitorCount--;
-        CProver.atomicEnd();
+        try {
+            object.cproverMonitorCount--;
+        } finally {
+            CProver.atomicEnd();
+        }
     }
 }
