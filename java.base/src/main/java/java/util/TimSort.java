@@ -26,6 +26,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 /**
  * A stable, adaptive, iterative mergesort that requires far fewer than
  * n lg(n) comparisons when running on partially sorted arrays, while
@@ -153,8 +155,7 @@ class TimSort<T> {
             len >>> 1 : INITIAL_TMP_STORAGE_LENGTH;
         if (work == null || workLen < tlen || workBase + tlen > work.length) {
             @SuppressWarnings({"unchecked", "UnnecessaryLocalVariable"})
-            T[] newArray = (T[])java.lang.reflect.Array.newInstance
-                (a.getClass().getComponentType(), tlen);
+            T[] newArray = CProver.createArrayWithType(tlen, a);
             tmp = newArray;
             tmpBase = 0;
             tmpLen = tlen;
@@ -929,8 +930,7 @@ class TimSort<T> {
                 newSize = Math.min(newSize, a.length >>> 1);
 
             @SuppressWarnings({"unchecked", "UnnecessaryLocalVariable"})
-            T[] newArray = (T[])java.lang.reflect.Array.newInstance
-                (a.getClass().getComponentType(), newSize);
+            T[] newArray = CProver.createArrayWithType(newSize, a);
             tmp = newArray;
             tmpLen = newSize;
             tmpBase = 0;

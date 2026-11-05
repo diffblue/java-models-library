@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -537,8 +539,7 @@ class ImmutableCollections {
         @SuppressWarnings("unchecked")
         public <T> T[] toArray(T[] a) {
             T[] array = a.length >= size ? a :
-                    (T[])java.lang.reflect.Array
-                            .newInstance(a.getClass().getComponentType(), size);
+                    (T[])CProver.createArrayWithType(size, a);
             for (int i = 0; i < size; i++) {
                 array[i] = (T)get(i);
             }
@@ -644,7 +645,7 @@ class ImmutableCollections {
         public <T> T[] toArray(T[] a) {
             int size = size();
             T[] array = a.length >= size ? a :
-                    (T[])Array.newInstance(a.getClass().getComponentType(), size);
+                    (T[])CProver.createArrayWithType(size, a);
             array[0] = (T)e0;
             if (size == 2) {
                 array[1] = (T)e1;
@@ -708,7 +709,7 @@ class ImmutableCollections {
             int size = elements.length;
             if (a.length < size) {
                 // Make a new array of a's runtime type, but my contents:
-                return (T[]) Arrays.copyOf(elements, size, a.getClass());
+                return (T[]) Arrays.cproverCopyOf(elements, size, a);
             }
             System.arraycopy(elements, 0, a, 0, size);
             if (a.length > size) {
@@ -878,7 +879,7 @@ class ImmutableCollections {
         public <T> T[] toArray(T[] a) {
             int size = size();
             T[] array = a.length >= size ? a :
-                    (T[])Array.newInstance(a.getClass().getComponentType(), size);
+                    (T[])CProver.createArrayWithType(size, a);
             if (size == 1) {
                 array[0] = (T)e0;
             } else if (REVERSE) {
@@ -1055,7 +1056,7 @@ class ImmutableCollections {
         @SuppressWarnings("unchecked")
         public <T> T[] toArray(T[] a) {
             T[] array = a.length >= size ? a :
-                    (T[])Array.newInstance(a.getClass().getComponentType(), size);
+                    (T[])CProver.createArrayWithType(size, a);
             Iterator<E> it = iterator();
             for (int i = 0; i < size; i++) {
                 array[i] = (T)it.next();

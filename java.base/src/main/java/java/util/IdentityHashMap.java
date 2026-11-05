@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
@@ -1039,7 +1041,7 @@ public class IdentityHashMap<K,V>
             int expectedModCount = modCount;
             int size = size();
             if (a.length < size)
-                a = (T[]) Array.newInstance(a.getClass().getComponentType(), size);
+                a = (T[]) CProver.createArrayWithType(size, a);
             Object[] tab = table;
             int ti = 0;
             for (int si = 0; si < tab.length; si += 2) {
@@ -1127,7 +1129,7 @@ public class IdentityHashMap<K,V>
             int expectedModCount = modCount;
             int size = size();
             if (a.length < size)
-                a = (T[]) Array.newInstance(a.getClass().getComponentType(), size);
+                a = (T[]) CProver.createArrayWithType(size, a);
             Object[] tab = table;
             int ti = 0;
             for (int si = 0; si < tab.length; si += 2) {
@@ -1247,7 +1249,7 @@ public class IdentityHashMap<K,V>
             int expectedModCount = modCount;
             int size = size();
             if (a.length < size)
-                a = (T[]) Array.newInstance(a.getClass().getComponentType(), size);
+                a = (T[]) CProver.createArrayWithType(size, a);
             Object[] tab = table;
             int ti = 0;
             for (int si = 0; si < tab.length; si += 2) {

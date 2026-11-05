@@ -527,8 +527,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final <T> T[] prepareArray(T[] a) {
         int size = this.size;
         if (a.length < size) {
-            return (T[]) java.lang.reflect.Array
-                    .newInstance(a.getClass().getComponentType(), size);
+            return (T[]) CProver.createArrayWithType(size, a);
         }
         if (a.length > size) {
             a[size] = null;

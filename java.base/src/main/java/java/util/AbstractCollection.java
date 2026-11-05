@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import jdk.internal.util.ArraysSupport;
 
 /**
@@ -183,8 +185,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         // Estimate size of array; be prepared to see more or fewer elements
         int size = size();
         T[] r = a.length >= size ? a :
-                  (T[])java.lang.reflect.Array
-                  .newInstance(a.getClass().getComponentType(), size);
+                  (T[])CProver.createArrayWithType(size, a);
         Iterator<E> it = iterator();
 
         for (int i = 0; i < r.length; i++) {

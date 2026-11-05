@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import jdk.internal.access.SharedSecrets;
 
 /**
@@ -495,8 +497,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
         public <T> T[] toArray(T[] a) {
             int size = size();
             if (a.length < size)
-                a = (T[])java.lang.reflect.Array
-                    .newInstance(a.getClass().getComponentType(), size);
+                a = (T[])CProver.createArrayWithType(size, a);
             if (a.length > size)
                 a[size] = null;
             return (T[]) fillEntryArray(a);

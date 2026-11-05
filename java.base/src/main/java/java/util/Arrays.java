@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import jdk.internal.util.ArraysSupport;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
@@ -801,7 +803,7 @@ public final class Arrays {
         else
             new ArraysParallelSortHelpers.FJObject.Sorter<>
                 (null, a,
-                 (T[])Array.newInstance(a.getClass().getComponentType(), n),
+                 (T[])CProver.createArrayWithType(n, a),
                  0, n, 0, ((g = n / (p << 2)) <= MIN_ARRAY_SORT_GRAN) ?
                  MIN_ARRAY_SORT_GRAN : g, NaturalOrder.INSTANCE).invoke();
     }
@@ -860,7 +862,7 @@ public final class Arrays {
         else
             new ArraysParallelSortHelpers.FJObject.Sorter<>
                 (null, a,
-                 (T[])Array.newInstance(a.getClass().getComponentType(), n),
+                 (T[])CProver.createArrayWithType(n, a),
                  fromIndex, n, 0, ((g = n / (p << 2)) <= MIN_ARRAY_SORT_GRAN) ?
                  MIN_ARRAY_SORT_GRAN : g, NaturalOrder.INSTANCE).invoke();
     }
@@ -909,7 +911,7 @@ public final class Arrays {
         else
             new ArraysParallelSortHelpers.FJObject.Sorter<>
                 (null, a,
-                 (T[])Array.newInstance(a.getClass().getComponentType(), n),
+                 (T[])CProver.createArrayWithType(n, a),
                  0, n, 0, ((g = n / (p << 2)) <= MIN_ARRAY_SORT_GRAN) ?
                  MIN_ARRAY_SORT_GRAN : g, cmp).invoke();
     }
@@ -970,7 +972,7 @@ public final class Arrays {
         else
             new ArraysParallelSortHelpers.FJObject.Sorter<>
                 (null, a,
-                 (T[])Array.newInstance(a.getClass().getComponentType(), n),
+                 (T[])CProver.createArrayWithType(n, a),
                  fromIndex, n, 0, ((g = n / (p << 2)) <= MIN_ARRAY_SORT_GRAN) ?
                  MIN_ARRAY_SORT_GRAN : g, cmp).invoke();
     }
@@ -3479,7 +3481,36 @@ public final class Arrays {
      */
     @SuppressWarnings("unchecked")
     public static <T> T[] copyOf(T[] original, int newLength) {
-        return (T[]) copyOf(original, newLength, original.getClass());
+        return cproverCopyOf(original, newLength, original);
+    }
+
+    /**
+     * Not part of the real {@code Arrays}: copies {@code original} into a new
+     * array of the runtime type of {@code template}, which has the length
+     * {@code newLength}. JBMC can only create an array of a reference type
+     * from an existing array of that type (see {@code
+     * CProver.createArrayWithType}), not from the {@code Class} object, which
+     * is what the code of the JDK uses in {@code toArray(T[])} and
+     * {@code copyOf(U[], int, Class)}.
+     */
+    @SuppressWarnings("unchecked")
+    static <T> T[] cproverCopyOf(Object[] original, int newLength, T[] template) {
+        T[] copy = CProver.createArrayWithType(newLength, template);
+        System.arraycopy(original, 0, copy, 0,
+                         Math.min(original.length, newLength));
+        return copy;
+    }
+
+    /** Like {@link #cproverCopyOf} for the range from to to of the original. */
+    @SuppressWarnings("unchecked")
+    static <T> T[] cproverCopyOfRange(Object[] original, int from, int to, T[] template) {
+        int newLength = to - from;
+        if (newLength < 0)
+            throw new IllegalArgumentException(from + " > " + to);
+        T[] copy = CProver.createArrayWithType(newLength, template);
+        System.arraycopy(original, from, copy, 0,
+                         Math.min(original.length - from, newLength));
+        return copy;
     }
 
     /**
@@ -3508,6 +3539,8 @@ public final class Arrays {
      */
     @IntrinsicCandidate
     public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
+        if ((Object)newType == (Object)original.getClass())
+            return (T[]) cproverCopyOf(original, newLength, (T[]) original);
         @SuppressWarnings("unchecked")
         T[] copy = ((Object)newType == (Object)Object[].class)
             ? (T[]) new Object[newLength]
@@ -3765,7 +3798,7 @@ public final class Arrays {
      */
     @SuppressWarnings("unchecked")
     public static <T> T[] copyOfRange(T[] original, int from, int to) {
-        return copyOfRange(original, from, to, (Class<? extends T[]>) original.getClass());
+        return cproverCopyOfRange(original, from, to, original);
     }
 
     /**
@@ -3806,6 +3839,8 @@ public final class Arrays {
         int newLength = to - from;
         if (newLength < 0)
             throw new IllegalArgumentException(from + " > " + to);
+        if ((Object)newType == (Object)original.getClass())
+            return (T[]) cproverCopyOfRange(original, from, to, (T[]) original);
         @SuppressWarnings("unchecked")
         T[] copy = ((Object)newType == (Object)Object[].class)
             ? (T[]) new Object[newLength]

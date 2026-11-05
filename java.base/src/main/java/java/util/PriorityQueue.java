@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import jdk.internal.access.SharedSecrets;
@@ -451,7 +453,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         final int size = this.size;
         if (a.length < size)
             // Make a new array of a's runtime type, but my contents:
-            return (T[]) Arrays.copyOf(queue, size, a.getClass());
+            return (T[]) Arrays.cproverCopyOf(queue, size, a);
         System.arraycopy(queue, 0, a, 0, size);
         if (a.length > size)
             a[size] = null;

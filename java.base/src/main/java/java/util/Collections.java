@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -3419,7 +3421,7 @@ public class Collections {
                 a = coll.toArray(z);
                 // Defend against coll violating the toArray contract
                 if (a.getClass() != z.getClass())
-                    a = Arrays.copyOf(a, a.length, z.getClass());
+                    a = Arrays.cproverCopyOf(a, a.length, z);
             } catch (ArrayStoreException ignore) {
                 // To get better and consistent diagnostics,
                 // we call typeCheck explicitly on each element.
@@ -5424,8 +5426,7 @@ public class Collections {
         public <T> T[] toArray(T[] a) {
             final int n = this.n;
             if (a.length < n) {
-                a = (T[])java.lang.reflect.Array
-                    .newInstance(a.getClass().getComponentType(), n);
+                a = (T[])CProver.createArrayWithType(n, a);
                 if (element != null)
                     Arrays.fill(a, 0, n, element);
             } else {

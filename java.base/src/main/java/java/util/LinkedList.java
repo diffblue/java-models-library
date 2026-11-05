@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -1106,8 +1108,7 @@ public class LinkedList<E>
     @SuppressWarnings("unchecked")
     public <T> T[] toArray(T[] a) {
         if (a.length < size)
-            a = (T[])java.lang.reflect.Array.newInstance(
-                                a.getClass().getComponentType(), size);
+            a = (T[])CProver.createArrayWithType(size, a);
         int i = 0;
         Object[] result = a;
         for (Node<E> x = first; x != null; x = x.next)

@@ -25,6 +25,8 @@
 
 package java.util;
 
+import org.cprover.CProver;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.StreamCorruptedException;
@@ -714,7 +716,7 @@ public class Vector<E>
     @SuppressWarnings("unchecked")
     public synchronized <T> T[] toArray(T[] a) {
         if (a.length < elementCount)
-            return (T[]) Arrays.copyOf(elementData, elementCount, a.getClass());
+            return (T[]) Arrays.cproverCopyOf(elementData, elementCount, a);
 
         System.arraycopy(elementData, 0, a, 0, elementCount);
 
