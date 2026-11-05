@@ -70,6 +70,15 @@ public class PrintStream extends FilterOutputStream
     // initialized to null when PrintStream is sub-classed
     private final InternalLock lock;
 
+    /**
+     * Not part of the real {@code PrintStream}: true for the streams that
+     * discard everything written to them (see {@link #PrintStream(Void)}),
+     * so that classes layered on top of a stream, such as {@link PrintWriter},
+     * can skip building a charset encoder chain whose output would be thrown
+     * away.
+     */
+    boolean cproverDiscarding;
+
     private final boolean autoFlush;
     private boolean trouble = false;
     private Formatter formatter;
@@ -121,6 +130,7 @@ public class PrintStream extends FilterOutputStream
      */
     protected PrintStream(Void discarding) {
         super(null);
+        this.cproverDiscarding = true;
         this.autoFlush = false;
         this.charset = null;
         this.lock = null;

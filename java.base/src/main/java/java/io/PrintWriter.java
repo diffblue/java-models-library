@@ -167,12 +167,30 @@ public class PrintWriter extends Writer {
      * @since 10
      */
     public PrintWriter(OutputStream out, boolean autoFlush, Charset charset) {
-        this(new BufferedWriter(new OutputStreamWriter(out, charset)), autoFlush);
+        this(cproverWriterFor(out, charset), autoFlush);
 
         // save print stream for error propagation
         if (out instanceof java.io.PrintStream) {
             psOut = (PrintStream) out;
         }
+    }
+
+    /**
+     * Not part of the real {@code PrintWriter}: the writer that characters for
+     * {@code out} go to. For a {@code PrintStream} that discards everything
+     * (such as {@code System.out} and {@code System.err} in JBMC) that is a
+     * writer that does nothing, instead of an encoder chain with buffers that
+     * is very expensive to analyze and whose output would be thrown away.
+     */
+    private static Writer cproverWriterFor(OutputStream out, Charset charset) {
+        if (out instanceof PrintStream ps && ps.cproverDiscarding) {
+            return new Writer() {
+                public void write(char[] cbuf, int off, int len) { }
+                public void flush() { }
+                public void close() { }
+            };
+        }
+        return new BufferedWriter(new OutputStreamWriter(out, charset));
     }
 
     /**
