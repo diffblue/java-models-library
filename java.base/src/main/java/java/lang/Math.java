@@ -457,16 +457,11 @@ public final class Math {
      *   to equal the real {@code Math.sqrt}'s result.
      */
     public static double sqrt(double a) {
-        if (Double.isNaN(a) || a < 0.0) {
-            return Double.NaN;
-        }
-        if (a == Double.POSITIVE_INFINITY || a == 0.0) {
-            return a;
-        }
-        double sqrt = CProver.nondetDouble();
-        CProver.assume(sqrt >= 0);
-        CProver.assume(sqrt * sqrt == a);
-        return sqrt;
+        // The algorithm of the JDK (fdlibm) is exact, and its bit operations are
+        // supported now. The earlier model constrained a nondeterministic result
+        // by sqrt * sqrt == a, which has no solution for most arguments (e.g.,
+        // 10.0), so that the paths with such a call were silently dropped.
+        return StrictMath.sqrt(a);
     }
 
 
