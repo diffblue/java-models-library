@@ -813,10 +813,157 @@ public final class System {
      * @throws     NullPointerException if either {@code src} or
      *             {@code dest} is {@code null}.
      */
-    @IntrinsicCandidate
-    public static native void arraycopy(Object src,  int  srcPos,
-                                        Object dest, int destPos,
-                                        int length);
+    /**
+     * @cprover.limitedSupport The copy is done by loops, so it needs an
+     *   unwinding bound of at least {@code length}. A reference element that
+     *   does not match the component type of {@code dest} does not throw an
+     *   {@code ArrayStoreException}.
+     */
+    public static void arraycopy(Object src,  int  srcPos,
+                                 Object dest, int destPos,
+                                 int length) {
+        if (src == null || dest == null)
+            throw new NullPointerException();
+        if (srcPos < 0 || destPos < 0 || length < 0)
+            throw new ArrayIndexOutOfBoundsException();
+        if (src instanceof boolean[]) {
+            if (!(dest instanceof boolean[]))
+                throw new ArrayStoreException();
+            boolean[] s = (boolean[]) src;
+            boolean[] d = (boolean[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof byte[]) {
+            if (!(dest instanceof byte[]))
+                throw new ArrayStoreException();
+            byte[] s = (byte[]) src;
+            byte[] d = (byte[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof char[]) {
+            if (!(dest instanceof char[]))
+                throw new ArrayStoreException();
+            char[] s = (char[]) src;
+            char[] d = (char[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof short[]) {
+            if (!(dest instanceof short[]))
+                throw new ArrayStoreException();
+            short[] s = (short[]) src;
+            short[] d = (short[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof int[]) {
+            if (!(dest instanceof int[]))
+                throw new ArrayStoreException();
+            int[] s = (int[]) src;
+            int[] d = (int[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof long[]) {
+            if (!(dest instanceof long[]))
+                throw new ArrayStoreException();
+            long[] s = (long[]) src;
+            long[] d = (long[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof float[]) {
+            if (!(dest instanceof float[]))
+                throw new ArrayStoreException();
+            float[] s = (float[]) src;
+            float[] d = (float[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof double[]) {
+            if (!(dest instanceof double[]))
+                throw new ArrayStoreException();
+            double[] s = (double[]) src;
+            double[] d = (double[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else if (src instanceof Object[]) {
+            if (!(dest instanceof Object[]))
+                throw new ArrayStoreException();
+            Object[] s = (Object[]) src;
+            Object[] d = (Object[]) dest;
+            if (srcPos > s.length - length || destPos > d.length - length)
+                throw new ArrayIndexOutOfBoundsException();
+            if (src == dest && srcPos < destPos) {
+                for (int i = length - 1; i >= 0; i--)
+                    d[destPos + i] = s[srcPos + i];
+            } else {
+                for (int i = 0; i < length; i++)
+                    d[destPos + i] = s[srcPos + i];
+            }
+        }
+        else
+            throw new ArrayStoreException();
+    }
 
     /**
      * Returns the same hash code for the given object as
