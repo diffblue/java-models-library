@@ -2105,8 +2105,11 @@ public final class Math {
     }
 
     // Use raw bit-wise conversions on guaranteed non-NaN arguments.
-    private static final long negativeZeroFloatBits  = Float.floatToRawIntBits(-0.0f);
-    private static final long negativeZeroDoubleBits = Double.doubleToRawLongBits(-0.0d);
+    // The constants are the bits of -0.0f and -0.0d, written as literals as
+    // Float.floatToRawIntBits and Double.doubleToRawLongBits are not modelled
+    // (and the static initializer of Math must not reach CProver.notModelled).
+    private static final long negativeZeroFloatBits  = 0x80000000; // Float.floatToRawIntBits(-0.0f)
+    private static final long negativeZeroDoubleBits = 0x8000000000000000L; // Double.doubleToRawLongBits(-0.0d)
 
     /**
      * Returns the greater of two {@code float} values.  That is,
@@ -3515,8 +3518,10 @@ public final class Math {
     }
 
     // Constants used in scalb
-    static double twoToTheDoubleScaleUp = powerOfTwoD(512);
-    static double twoToTheDoubleScaleDown = powerOfTwoD(-512);
+    // powerOfTwoD(512) and powerOfTwoD(-512), as literals, because powerOfTwoD
+    // uses Double.longBitsToDouble, which is not modelled
+    static double twoToTheDoubleScaleUp = 0x1.0p512;
+    static double twoToTheDoubleScaleDown = 0x1.0p-512;
 
     /**
      * Returns a floating-point power of two in the normal range.
