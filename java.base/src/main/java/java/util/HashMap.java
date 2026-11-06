@@ -298,8 +298,11 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     @SuppressWarnings("unchecked")
     final void cproverAppend(K key, V value) {
         if (size == table.length) {
-            // Only constant-size allocations (see CPROVER_MAX_TABLE).
-            CProver.assume(table.length < CPROVER_MAX_TABLE);
+            // Only constant-size allocations (see CPROVER_MAX_TABLE): a map with
+            // more entries is not supported, which must not be mistaken for
+            // the absence of such executions.
+            if (table.length >= CPROVER_MAX_TABLE)
+                CProver.notModelled();
             Node<K,V>[] bigger = (Node<K,V>[]) new Node[CPROVER_MAX_TABLE];
             for (int i = 0; i < size; i++)
                 bigger[i] = table[i];

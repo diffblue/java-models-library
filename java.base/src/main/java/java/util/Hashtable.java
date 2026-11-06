@@ -201,7 +201,10 @@ public class Hashtable<K,V>
             // Only constant-size allocations: an array whose size depends
             // on a nondeterministic array length has symbolic size, which
             // blows up the SAT encoding. At most 128 entries are supported.
-            CProver.assume(table.length < 128);
+            // A table with more entries is not supported, which must not be
+            // mistaken for the absence of such executions.
+            if (table.length >= 128)
+                CProver.notModelled();
             Entry<K,V>[] bigger = (Entry<K,V>[]) new Entry<?,?>[128];
             for (int i = 0; i < count; i++)
                 bigger[i] = table[i];
