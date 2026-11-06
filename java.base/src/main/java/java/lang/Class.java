@@ -456,8 +456,9 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public static Class<?> forName(String className)
                 throws ClassNotFoundException {
-        Class<?> caller = Reflection.getCallerClass();
-        return forName(className, caller);
+        // the caller and the class loaders are not modelled; getClass() relies
+        // on this method
+        return forName0(className, true, null, null);
     }
 
     // Caller-sensitive adapter method for reflective invocation
