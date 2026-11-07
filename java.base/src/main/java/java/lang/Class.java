@@ -584,6 +584,15 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
+     * The class with the given name, without initializing it (used by
+     * Object.getClass()).
+     */
+    static Class<?> cproverClassForName(String name)
+        throws ClassNotFoundException {
+        return forName0(name, false, null, null);
+    }
+
+    /**
      * Called after security check for system loader access checks have been made.
      *
      * @cprover.limitedSupport Looks {@code name} up in, or adds it to, a
@@ -602,6 +611,10 @@ public final class Class<T> implements java.io.Serializable,
                                             ClassLoader loader,
                                             Class<?> caller)
         throws ClassNotFoundException {
+        if (initialize) {
+            // the static initializer of the class is not run
+            CProver.notModelled();
+        }
         for (int i = 0; i < cproverClassNames.length; ++i) {
             String currentName = cproverClassNames[i];
             if (currentName == null) {

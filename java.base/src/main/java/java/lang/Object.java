@@ -90,7 +90,7 @@ public class Object {
      */
     public final Class<?> getClass() {
         try {
-            return Class.forName(CProver.classIdentifier(this));
+            return Class.cproverClassForName(CProver.classIdentifier(this));
         } catch (ClassNotFoundException e) {
             throw new InternalError(e);
         }
