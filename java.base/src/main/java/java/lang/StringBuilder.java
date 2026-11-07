@@ -307,6 +307,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder append(float f) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return append(CProverString.toString(f));
     }
 
@@ -316,6 +318,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder append(double d) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return append(CProverString.toString(d));
     }
 
@@ -496,6 +500,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder insert(int offset, float f) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return insert(offset, CProverString.toString(f));
     }
 
@@ -507,6 +513,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder insert(int offset, double d) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return insert(offset, CProverString.toString(d));
     }
 

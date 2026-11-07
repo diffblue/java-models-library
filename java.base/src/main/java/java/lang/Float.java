@@ -311,6 +311,8 @@ public final class Float extends Number
      *   implementation cannot be used as-is.
      */
     public static String toString(float f) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return org.cprover.CProverString.toString(f);
     }
 

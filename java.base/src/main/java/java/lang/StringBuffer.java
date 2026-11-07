@@ -551,6 +551,8 @@ import java.io.StreamCorruptedException;
      */
     @Override
     public synchronized StringBuffer append(float f) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return append(CProverString.toString(f));
     }
 
@@ -560,6 +562,8 @@ import java.io.StreamCorruptedException;
      */
     @Override
     public synchronized StringBuffer append(double d) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return append(CProverString.toString(d));
     }
 
@@ -784,6 +788,8 @@ import java.io.StreamCorruptedException;
      */
     @Override
     public synchronized StringBuffer insert(int offset, float f) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return insert(offset, CProverString.toString(f));
     }
 
@@ -797,6 +803,8 @@ import java.io.StreamCorruptedException;
      */
     @Override
     public synchronized StringBuffer insert(int offset, double d) {
+        // the conversion of floating point numbers is only approximated
+        org.cprover.CProver.notModelled();
         return insert(offset, CProverString.toString(d));
     }
 
