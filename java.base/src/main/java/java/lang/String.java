@@ -2780,20 +2780,18 @@ public final class String
      * @since   1.1
      */
     /**
-     * @cprover.limitedSupport Composed via {@link Character#toLowerCase
-     *   (char)} per character, ignoring {@code locale}: correct for the
-     *   common case, but misses locale-specific exceptions (e.g. Turkish
-     *   dotted/dotless i) and 1:many case mappings (e.g. German {@code
-     *   ß}) that the real, full Unicode-and-locale-aware algorithm
-     *   handles.
+     * @cprover.limitedSupport Ignores {@code locale} and delegates to the
+     *   string solver (see {@link #toLowerCase()}): misses locale-specific
+     *   exceptions (e.g. Turkish dotted/dotless i) and 1:many case
+     *   mappings (e.g. German {@code ß}), and the solver handles only
+     *   part of Unicode.
      */
     public String toLowerCase(Locale locale) {
-        int len = length();
-        StringBuilder sb = new StringBuilder(len);
-        for (int i = 0; i < len; i++) {
-            sb.append(Character.toLowerCase(charAt(i)));
-        }
-        return sb.toString();
+        if (locale == null)
+            throw new NullPointerException();
+        // the locale is ignored; the string solver converts the case (the
+        // method without argument is replaced by it)
+        return toLowerCase();
     }
 
     /**
@@ -2872,17 +2870,15 @@ public final class String
      * @since   1.1
      */
     /**
-     * @cprover.limitedSupport Composed via {@link Character#toUpperCase
-     *   (char)} per character, ignoring {@code locale}: see {@link
-     *   #toLowerCase(Locale)}.
+     * @cprover.limitedSupport Ignores {@code locale} and delegates to the
+     *   string solver: see {@link #toLowerCase(Locale)}.
      */
     public String toUpperCase(Locale locale) {
-        int len = length();
-        StringBuilder sb = new StringBuilder(len);
-        for (int i = 0; i < len; i++) {
-            sb.append(Character.toUpperCase(charAt(i)));
-        }
-        return sb.toString();
+        if (locale == null)
+            throw new NullPointerException();
+        // the locale is ignored; the string solver converts the case (the
+        // method without argument is replaced by it)
+        return toUpperCase();
     }
 
     /**

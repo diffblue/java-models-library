@@ -563,7 +563,6 @@ public final class Locale implements Cloneable, Serializable {
      */
     public static final Locale ROOT;
 
-    private static final Map<BaseLocale, Locale> CONSTANT_LOCALES = new HashMap<>();
 
     static {
         ENGLISH = createConstant(BaseLocale.ENGLISH);
@@ -606,7 +605,6 @@ public final class Locale implements Cloneable, Serializable {
     private static Locale createConstant(byte baseType) {
         BaseLocale base = BaseLocale.constantBaseLocales[baseType];
         Locale locale = new Locale(base, null);
-        CONSTANT_LOCALES.put(base, locale);
         return locale;
     }
 
@@ -912,17 +910,10 @@ public final class Locale implements Cloneable, Serializable {
         return getInstance(baseloc, extensions);
     }
 
+    // DIFFBLUE MODEL LIBRARY: the instances are not cached (the caches are
+    // hash maps over strings that take a lot of resources to analyse)
     static Locale getInstance(BaseLocale baseloc, LocaleExtensions extensions) {
-        if (extensions == null) {
-            Locale locale = CONSTANT_LOCALES.get(baseloc);
-            if (locale != null) {
-                return locale;
-            }
-            return Cache.LOCALECACHE.get(baseloc);
-        } else {
-            LocaleKey key = new LocaleKey(baseloc, extensions);
-            return Cache.LOCALECACHE.get(key);
-        }
+        return new Locale(baseloc, extensions);
     }
 
     private static class Cache extends LocaleObjectCache<Object, Locale> {
@@ -2310,7 +2301,9 @@ public final class Locale implements Cloneable, Serializable {
      */
     private transient @Stable int hashCodeValue;
 
-    private static volatile Locale defaultLocale = initDefault();
+    // DIFFBLUE MODEL LIBRARY: the default locale is not computed from the
+    // system properties (java.util.Locale.initDefault())
+    private static volatile Locale defaultLocale = US;
     private static volatile Locale defaultDisplayLocale;
     private static volatile Locale defaultFormatLocale;
 

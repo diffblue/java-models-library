@@ -32,8 +32,6 @@
 
 package sun.util.locale;
 
-import jdk.internal.misc.CDS;
-import jdk.internal.util.StaticProperty;
 import jdk.internal.vm.annotation.Stable;
 
 import java.lang.ref.SoftReference;
@@ -63,7 +61,6 @@ public final class BaseLocale {
             ROOT = 18,
             NUM_CONSTANTS = 19;
     static {
-        CDS.initializeFromArchive(BaseLocale.class);
         BaseLocale[] baseLocales = constantBaseLocales;
         if (baseLocales == null) {
             baseLocales = new BaseLocale[NUM_CONSTANTS];
@@ -104,8 +101,9 @@ public final class BaseLocale {
      * The system property "java.locale.useOldISOCodes" is not security sensitive,
      * so no need to ensure privileged access here.
      */
-    private static final boolean OLD_ISO_CODES = StaticProperty.javaLocaleUseOldISOCodes()
-            .equalsIgnoreCase("true");
+    // DIFFBLUE MODEL LIBRARY: the system property java.locale.useOldISOCodes
+    // has its default value "false"
+    private static final boolean OLD_ISO_CODES = false;
 
     // This method must be called with normalize = false only when creating the
     // Locale.* constants and non-normalized BaseLocale$Keys used for lookup.
@@ -165,8 +163,9 @@ public final class BaseLocale {
             language = convertOldISOCodes(language);
         }
 
-        Key key = new Key(language, script, region, variant, false);
-        return Cache.CACHE.get(key);
+        // DIFFBLUE MODEL LIBRARY: no cache of the instances
+        return new BaseLocale(language, LocaleUtils.toTitleString(script),
+                              region, variant, false);
     }
 
     public static String convertOldISOCodes(String language) {
