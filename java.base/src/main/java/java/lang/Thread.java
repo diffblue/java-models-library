@@ -3043,9 +3043,9 @@ public class Thread implements Runnable {
             ThreadGroup root = AccessController.doPrivileged(getThreadGroup);
             VTHREAD_GROUP = new ThreadGroup(root, "VirtualThreads", MAX_PRIORITY, false);
 
-            NO_PERMISSIONS_ACC = new AccessControlContext(new ProtectionDomain[] {
-                new ProtectionDomain(null, null)
-            });
+            // DIFFBLUE MODEL LIBRARY: the access control contexts are not
+            // modelled, there is no security manager
+            NO_PERMISSIONS_ACC = null;
         }
     }
 
