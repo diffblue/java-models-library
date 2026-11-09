@@ -35,368 +35,96 @@
 
 package java.util.concurrent.atomic;
 
-import java.lang.invoke.VarHandle;
+import org.cprover.CProver;
 
 /**
- * A {@code boolean} value that may be updated atomically. See the
- * {@link VarHandle} specification for descriptions of the properties
- * of atomic accesses. An {@code AtomicBoolean} is used in
- * applications such as atomically updated flags, and cannot be used
- * as a replacement for a {@link java.lang.Boolean}.
- *
- * @since 1.5
- * @author Doug Lea
+ * DIFFBLUE MODEL LIBRARY: a {@code boolean} value in a plain field, whose
+ * compound operations are atomic ({@code CProver.atomicBegin()}). The memory
+ * order of the access modes is not modelled (all are sequentially consistent).
  */
 public class AtomicBoolean implements java.io.Serializable {
     private static final long serialVersionUID = 4654671469794556979L;
 
-    /**
-     * @cprover.fullSupport Every method below operates on this field
-     *   directly instead of going through a VarHandle: see
-     *   {@link AtomicLong#value} for why (the same reasoning applies -
-     *   a VarHandle's get/compareAndSet etc. cannot be modelled as
-     *   reflecting the specific field it was created for any more
-     *   faithfully than Unsafe's offset-based accessors can).
-     */
-    private volatile int value;
+    private volatile boolean value;
 
-    /**
-     * Creates a new {@code AtomicBoolean} with the given initial value.
-     *
-     * @param initialValue the initial value
-     */
     public AtomicBoolean(boolean initialValue) {
-        if (initialValue)
-            value = 1;
+        value = initialValue;
     }
 
-    /**
-     * Creates a new {@code AtomicBoolean} with initial value {@code false}.
-     */
     public AtomicBoolean() {
     }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getVolatile}.
-     *
-     * @return the current value
-     */
-    public final boolean get() {
-        return value != 0;
-    }
+    public final boolean get() { return value; }
 
-    /**
-     * Atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#compareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful. False return indicates that
-     * the actual value was not equal to the expected value.
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean compareAndSet(boolean expectedValue, boolean newValue) {
-        int expected = expectedValue ? 1 : 0;
-        if (value == expected) {
-            value = newValue ? 1 : 0;
-            return true;
-        }
-        return false;
+        CProver.atomicBegin();
+        boolean ok = value == expectedValue;
+        if (ok) value = newValue;
+        CProver.atomicEnd();
+        return ok;
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#weakCompareAndSetPlain}.
-     *
-     * @deprecated This method has plain memory effects but the method
-     * name implies volatile memory effects (see methods such as
-     * {@link #compareAndExchange} and {@link #compareAndSet}).  To avoid
-     * confusion over plain or volatile memory effects it is recommended that
-     * the method {@link #weakCompareAndSetPlain} be used instead.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @see #weakCompareAndSetPlain
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    @Deprecated(since="9")
     public boolean weakCompareAndSet(boolean expectedValue, boolean newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#weakCompareAndSetPlain}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public boolean weakCompareAndSetPlain(boolean expectedValue, boolean newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setVolatile}.
-     *
-     * @param newValue the new value
-     */
-    public final void set(boolean newValue) {
-        value = newValue ? 1 : 0;
-    }
+    public final void set(boolean newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
-     * @since 1.6
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void lazySet(boolean newValue) {
-        value = newValue ? 1 : 0;
-    }
+    public final void lazySet(boolean newValue) { value = newValue; }
 
-    /**
-     * Atomically sets the value to {@code newValue} and returns the old value,
-     * with memory effects as specified by {@link VarHandle#getAndSet}.
-     *
-     * @param newValue the new value
-     * @return the previous value
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean getAndSet(boolean newValue) {
-        int prev = value;
-        value = newValue ? 1 : 0;
-        return prev != 0;
+        CProver.atomicBegin();
+        boolean old = value;
+        value = newValue;
+        CProver.atomicEnd();
+        return old;
     }
 
-    /**
-     * Returns the String representation of the current value.
-     * @return the String representation of the current value
-     */
     public String toString() {
         return Boolean.toString(get());
     }
 
-    // jdk9
+    public final boolean getPlain() { return value; }
 
-    /**
-     * Returns the current value, with memory semantics of reading as
-     * if the variable was declared non-{@code volatile}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean getPlain() {
-        return value != 0;
-    }
+    public final void setPlain(boolean newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue}, with memory semantics
-     * of setting as if the variable was declared non-{@code volatile}
-     * and non-{@code final}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setPlain(boolean newValue) {
-        value = newValue ? 1 : 0;
-    }
+    public final boolean getOpaque() { return value; }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getOpaque}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean getOpaque() {
-        return value != 0;
-    }
+    public final void setOpaque(boolean newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setOpaque}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setOpaque(boolean newValue) {
-        value = newValue ? 1 : 0;
-    }
+    public final boolean getAcquire() { return value; }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getAcquire}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean getAcquire() {
-        return value != 0;
-    }
+    public final void setRelease(boolean newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setRelease(boolean newValue) {
-        value = newValue ? 1 : 0;
-    }
-
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchange}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean compareAndExchange(boolean expectedValue, boolean newValue) {
-        int prev = value;
-        if (prev == (expectedValue ? 1 : 0)) {
-            value = newValue ? 1 : 0;
-        }
-        return prev != 0;
+        CProver.atomicBegin();
+        boolean witness = value;
+        if (witness == expectedValue) value = newValue;
+        CProver.atomicEnd();
+        return witness;
     }
 
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean compareAndExchangeAcquire(boolean expectedValue, boolean newValue) {
         return compareAndExchange(expectedValue, newValue);
     }
 
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean compareAndExchangeRelease(boolean expectedValue, boolean newValue) {
         return compareAndExchange(expectedValue, newValue);
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetVolatile(boolean expectedValue, boolean newValue) {
+    public boolean weakCompareAndSetVolatile(boolean expectedValue, boolean newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetAcquire(boolean expectedValue, boolean newValue) {
+    public boolean weakCompareAndSetAcquire(boolean expectedValue, boolean newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetRelease(boolean expectedValue, boolean newValue) {
+    public boolean weakCompareAndSetRelease(boolean expectedValue, boolean newValue) {
         return compareAndSet(expectedValue, newValue);
     }
-
 }

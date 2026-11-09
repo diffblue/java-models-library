@@ -35,462 +35,142 @@
 
 package java.util.concurrent.atomic;
 
-import java.lang.invoke.VarHandle;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
+import org.cprover.CProver;
 
 /**
- * An object reference that may be updated atomically.  See the {@link
- * VarHandle} specification for descriptions of the properties of
- * atomic accesses.
- * @since 1.5
- * @author Doug Lea
- * @param <V> The type of object referred to by this reference
+ * DIFFBLUE MODEL LIBRARY: a reference in a plain field, whose compound
+ * operations are atomic ({@code CProver.atomicBegin()}). The memory order of
+ * the access modes is not modelled (all are sequentially consistent).
  */
 public class AtomicReference<V> implements java.io.Serializable {
     private static final long serialVersionUID = -1848883965231344442L;
 
-    /**
-     * @cprover.fullSupport Every method below operates on this field
-     *   directly instead of going through a VarHandle: see
-     *   {@link AtomicLong#value} for why.
-     */
-    @SuppressWarnings("serial") // Conditionally serializable
     private volatile V value;
 
-    /**
-     * Creates a new AtomicReference with the given initial value.
-     *
-     * @param initialValue the initial value
-     */
     public AtomicReference(V initialValue) {
         value = initialValue;
     }
 
-    /**
-     * Creates a new AtomicReference with null initial value.
-     */
     public AtomicReference() {
     }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getVolatile}.
-     *
-     * @return the current value
-     */
-    public final V get() {
-        return value;
-    }
+    public final V get() { return value; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setVolatile}.
-     *
-     * @param newValue the new value
-     */
-    public final void set(V newValue) {
-        value = newValue;
-    }
+    public final void set(V newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
-     * @since 1.6
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void lazySet(V newValue) {
-        value = newValue;
-    }
+    public final void lazySet(V newValue) { value = newValue; }
 
-    /**
-     * Atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#compareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful. False return indicates that
-     * the actual value was not equal to the expected value.
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean compareAndSet(V expectedValue, V newValue) {
-        if (value == expectedValue) {
-            value = newValue;
-            return true;
-        }
-        return false;
+        CProver.atomicBegin();
+        boolean ok = value == expectedValue;
+        if (ok) value = newValue;
+        CProver.atomicEnd();
+        return ok;
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#weakCompareAndSetPlain}.
-     *
-     * @deprecated This method has plain memory effects but the method
-     * name implies volatile memory effects (see methods such as
-     * {@link #compareAndExchange} and {@link #compareAndSet}).  To avoid
-     * confusion over plain or volatile memory effects it is recommended that
-     * the method {@link #weakCompareAndSetPlain} be used instead.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @see #weakCompareAndSetPlain
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    @Deprecated(since="9")
     public final boolean weakCompareAndSet(V expectedValue, V newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#weakCompareAndSetPlain}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final boolean weakCompareAndSetPlain(V expectedValue, V newValue) {
         return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Atomically sets the value to {@code newValue} and returns the old value,
-     * with memory effects as specified by {@link VarHandle#getAndSet}.
-     *
-     * @param newValue the new value
-     * @return the previous value
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final V getAndSet(V newValue) {
-        V prev = value;
-        value = newValue;
-        return prev;
+    public final boolean weakCompareAndSetVolatile(V expectedValue, V newValue) {
+        return compareAndSet(expectedValue, newValue);
     }
 
-    /**
-     * Atomically updates (with memory effects as specified by {@link
-     * VarHandle#compareAndSet}) the current value with the results of
-     * applying the given function, returning the previous value. The
-     * function should be side-effect-free, since it may be re-applied
-     * when attempted updates fail due to contention among threads.
-     *
-     * @param updateFunction a side-effect-free function
-     * @return the previous value
-     * @since 1.8
-     */
+    public final boolean weakCompareAndSetAcquire(V expectedValue, V newValue) {
+        return compareAndSet(expectedValue, newValue);
+    }
+
+    public final boolean weakCompareAndSetRelease(V expectedValue, V newValue) {
+        return compareAndSet(expectedValue, newValue);
+    }
+
+    public final V getAndSet(V newValue) {
+        CProver.atomicBegin();
+        V old = value;
+        value = newValue;
+        CProver.atomicEnd();
+        return old;
+    }
+
     public final V getAndUpdate(UnaryOperator<V> updateFunction) {
         V prev = get(), next = null;
         for (boolean haveNext = false;;) {
             if (!haveNext)
                 next = updateFunction.apply(prev);
-            if (weakCompareAndSetVolatile(prev, next))
+            if (compareAndSet(prev, next))
                 return prev;
             haveNext = (prev == (prev = get()));
         }
     }
 
-    /**
-     * Atomically updates (with memory effects as specified by {@link
-     * VarHandle#compareAndSet}) the current value with the results of
-     * applying the given function, returning the updated value. The
-     * function should be side-effect-free, since it may be re-applied
-     * when attempted updates fail due to contention among threads.
-     *
-     * @param updateFunction a side-effect-free function
-     * @return the updated value
-     * @since 1.8
-     */
     public final V updateAndGet(UnaryOperator<V> updateFunction) {
         V prev = get(), next = null;
         for (boolean haveNext = false;;) {
             if (!haveNext)
                 next = updateFunction.apply(prev);
-            if (weakCompareAndSetVolatile(prev, next))
+            if (compareAndSet(prev, next))
                 return next;
             haveNext = (prev == (prev = get()));
         }
     }
 
-    /**
-     * Atomically updates (with memory effects as specified by {@link
-     * VarHandle#compareAndSet}) the current value with the results of
-     * applying the given function to the current and given values,
-     * returning the previous value. The function should be
-     * side-effect-free, since it may be re-applied when attempted
-     * updates fail due to contention among threads.  The function is
-     * applied with the current value as its first argument, and the
-     * given update as the second argument.
-     *
-     * @param x the update value
-     * @param accumulatorFunction a side-effect-free function of two arguments
-     * @return the previous value
-     * @since 1.8
-     */
-    public final V getAndAccumulate(V x,
-                                    BinaryOperator<V> accumulatorFunction) {
+    public final V getAndAccumulate(V x, BinaryOperator<V> accumulatorFunction) {
         V prev = get(), next = null;
         for (boolean haveNext = false;;) {
             if (!haveNext)
                 next = accumulatorFunction.apply(prev, x);
-            if (weakCompareAndSetVolatile(prev, next))
+            if (compareAndSet(prev, next))
                 return prev;
             haveNext = (prev == (prev = get()));
         }
     }
 
-    /**
-     * Atomically updates (with memory effects as specified by {@link
-     * VarHandle#compareAndSet}) the current value with the results of
-     * applying the given function to the current and given values,
-     * returning the updated value. The function should be
-     * side-effect-free, since it may be re-applied when attempted
-     * updates fail due to contention among threads.  The function is
-     * applied with the current value as its first argument, and the
-     * given update as the second argument.
-     *
-     * @param x the update value
-     * @param accumulatorFunction a side-effect-free function of two arguments
-     * @return the updated value
-     * @since 1.8
-     */
-    public final V accumulateAndGet(V x,
-                                    BinaryOperator<V> accumulatorFunction) {
+    public final V accumulateAndGet(V x, BinaryOperator<V> accumulatorFunction) {
         V prev = get(), next = null;
         for (boolean haveNext = false;;) {
             if (!haveNext)
                 next = accumulatorFunction.apply(prev, x);
-            if (weakCompareAndSetVolatile(prev, next))
+            if (compareAndSet(prev, next))
                 return next;
             haveNext = (prev == (prev = get()));
         }
     }
 
-    /**
-     * Returns the String representation of the current value.
-     * @return the String representation of the current value
-     */
     public String toString() {
         return String.valueOf(get());
     }
 
-    // jdk9
+    public final V getPlain() { return value; }
 
-    /**
-     * Returns the current value, with memory semantics of reading as
-     * if the variable was declared non-{@code volatile}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final V getPlain() {
-        return value;
-    }
+    public final void setPlain(V newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue}, with memory semantics
-     * of setting as if the variable was declared non-{@code volatile}
-     * and non-{@code final}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setPlain(V newValue) {
-        value = newValue;
-    }
+    public final V getOpaque() { return value; }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getOpaque}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final V getOpaque() {
-        return value;
-    }
+    public final void setOpaque(V newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setOpaque}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setOpaque(V newValue) {
-        value = newValue;
-    }
+    public final V getAcquire() { return value; }
 
-    /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getAcquire}.
-     *
-     * @return the value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final V getAcquire() {
-        return value;
-    }
+    public final void setRelease(V newValue) { value = newValue; }
 
-    /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final void setRelease(V newValue) {
-        value = newValue;
-    }
-
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchange}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final V compareAndExchange(V expectedValue, V newValue) {
-        V prev = value;
-        if (prev == expectedValue) {
-            value = newValue;
-        }
-        return prev;
+        CProver.atomicBegin();
+        V witness = value;
+        if (witness == expectedValue) value = newValue;
+        CProver.atomicEnd();
+        return witness;
     }
 
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final V compareAndExchangeAcquire(V expectedValue, V newValue) {
         return compareAndExchange(expectedValue, newValue);
     }
 
-    /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the <em>witness value</em>, which will be the same as the
-     * expected value if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
     public final V compareAndExchangeRelease(V expectedValue, V newValue) {
         return compareAndExchange(expectedValue, newValue);
     }
-
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetVolatile(V expectedValue, V newValue) {
-        return compareAndSet(expectedValue, newValue);
-    }
-
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetAcquire(V expectedValue, V newValue) {
-        return compareAndSet(expectedValue, newValue);
-    }
-
-    /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @since 9
-     */
-    /**
-     * @cprover.fullSupport See {@link #value}.
-     */
-    public final boolean weakCompareAndSetRelease(V expectedValue, V newValue) {
-        return compareAndSet(expectedValue, newValue);
-    }
-
 }
