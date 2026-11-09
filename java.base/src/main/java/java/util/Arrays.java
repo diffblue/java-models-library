@@ -3568,9 +3568,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static byte[] copyOf(byte[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         byte[] copy = new byte[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3595,9 +3592,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static short[] copyOf(short[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         short[] copy = new short[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3622,9 +3616,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static int[] copyOf(int[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         int[] copy = new int[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3650,9 +3641,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static long[] copyOf(long[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         long[] copy = new long[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3677,9 +3665,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static char[] copyOf(char[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         char[] copy = new char[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3704,9 +3689,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static float[] copyOf(float[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         float[] copy = new float[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3731,9 +3713,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static double[] copyOf(double[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         double[] copy = new double[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3758,9 +3737,6 @@ public final class Arrays {
      * @since 1.6
      */
     public static boolean[] copyOf(boolean[] original, int newLength) {
-        if (newLength == original.length) {
-            return original.clone();
-        }
         boolean[] copy = new boolean[newLength];
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -3884,11 +3860,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static byte[] copyOfRange(byte[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeByte(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeByte(original, from, to);
     }
 
     @ForceInline
@@ -3928,11 +3901,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static short[] copyOfRange(short[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeShort(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeShort(original, from, to);
     }
 
     @ForceInline
@@ -3972,11 +3942,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static int[] copyOfRange(int[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeInt(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeInt(original, from, to);
     }
 
     @ForceInline
@@ -4016,11 +3983,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static long[] copyOfRange(long[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeLong(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeLong(original, from, to);
     }
 
     @ForceInline
@@ -4060,11 +4024,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static char[] copyOfRange(char[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeChar(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeChar(original, from, to);
     }
 
     @ForceInline
@@ -4104,11 +4065,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static float[] copyOfRange(float[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeFloat(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeFloat(original, from, to);
     }
 
     @ForceInline
@@ -4148,11 +4106,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static double[] copyOfRange(double[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeDouble(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeDouble(original, from, to);
     }
 
     @ForceInline
@@ -4192,11 +4147,8 @@ public final class Arrays {
      * @since 1.6
      */
     public static boolean[] copyOfRange(boolean[] original, int from, int to) {
-        // Tickle the JIT to fold special cases optimally
-        if (from != 0 || to != original.length)
-            return copyOfRangeBoolean(original, from, to);
-        else // from == 0 && to == original.length
-            return original.clone();
+        // DIFFBLUE MODEL LIBRARY: no special case that clones the array
+        return copyOfRangeBoolean(original, from, to);
     }
 
     @ForceInline

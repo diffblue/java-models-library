@@ -1054,8 +1054,37 @@ public final class String
      */
     public byte[] getBytes(String charsetName)
             throws UnsupportedEncodingException {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        if (charsetName == null)
+            throw new NullPointerException();
+        // DIFFBLUE MODEL LIBRARY (as in the JDK 8 models) only the encodings
+        // of the characters below 128 (US-ASCII, ISO-8859-1 and UTF-8 agree
+        // there) and of US-ASCII/ISO-8859-1 are supported
+        String name = charsetName.toUpperCase();
+        boolean ascii = name.equals("US-ASCII") || name.equals("ASCII");
+        boolean latin1 = name.equals("ISO-8859-1") || name.equals("ISO8859_1")
+            || name.equals("LATIN1");
+        boolean utf8 = name.equals("UTF-8") || name.equals("UTF8");
+        if (!ascii && !latin1 && !utf8) {
+            CProver.notModelled();
+            return CProver.nondetWithNullForNotModelled();
+        }
+        int l = length();
+        byte[] result = new byte[l];
+        for (int i = 0; i < l; i++) {
+            char c = CProverString.charAt(this, i);
+            if (ascii) {
+                result[i] = c > 127 ? (byte) '?' : (byte) c;
+            } else if (latin1) {
+                result[i] = c > 255 ? (byte) '?' : (byte) c;
+            } else {
+                if (c > 127) {
+                    // the multi-byte sequences of UTF-8 are not modelled
+                    CProver.notModelled();
+                }
+                result[i] = (byte) c;
+            }
+        }
+        return result;
     }
 
     /**

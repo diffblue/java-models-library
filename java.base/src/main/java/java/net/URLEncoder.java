@@ -188,37 +188,22 @@ public class URLEncoder {
         if (enc == null) {
             throw new NullPointerException("charsetName");
         }
+        return encodeWith(s, enc);
+    }
 
+    public static String encode(String s, Charset charset) {
+        Objects.requireNonNull(charset, "charset");
         try {
-            Charset charset = Charset.forName(enc);
-            return encode(s, charset);
-        } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
-            throw new UnsupportedEncodingException(enc);
+            return encodeWith(s, charset.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalError(e);
         }
     }
 
-    /**
-     * Translates a string into {@code application/x-www-form-urlencoded}
-     * format using a specific {@linkplain Charset Charset}.
-     * This method uses the supplied charset to obtain the bytes for unsafe
-     * characters.
-     * <p>
-     * <em><strong>Note:</strong> The <a href=
-     * "http://www.w3.org/TR/html40/appendix/notes.html#non-ascii-chars">
-     * World Wide Web Consortium Recommendation</a> states that
-     * UTF-8 should be used. Not doing so may introduce incompatibilities.</em>
-     *
-     * @param   s   {@code String} to be translated.
-     * @param charset the given charset
-     * @return  the translated {@code String}.
-     * @throws NullPointerException if {@code s} or {@code charset} is {@code null}.
-     * @spec https://www.w3.org/TR/html4 HTML 4.01 Specification
-     * @see URLDecoder#decode(java.lang.String, Charset)
-     * @since 10
-     */
-    public static String encode(String s, Charset charset) {
-        Objects.requireNonNull(charset, "charset");
-
+    // DIFFBLUE MODEL LIBRARY: the encoding is given by its name, the class
+    // Charset is not modelled
+    private static String encodeWith(String s, String charsetName)
+        throws UnsupportedEncodingException {
         boolean needToChange = false;
         StringBuilder out = new StringBuilder(s.length());
         CharArrayWriter charArrayWriter = new CharArrayWriter();
@@ -273,7 +258,7 @@ public class URLEncoder {
 
                 charArrayWriter.flush();
                 String str = charArrayWriter.toString();
-                byte[] ba = str.getBytes(charset);
+                byte[] ba = str.getBytes(charsetName);
                 for (byte b : ba) {
                     out.append('%');
                     char ch = Character.forDigit((b >> 4) & 0xF, 16);
@@ -296,4 +281,5 @@ public class URLEncoder {
 
         return (needToChange? out.toString() : s);
     }
+
 }
