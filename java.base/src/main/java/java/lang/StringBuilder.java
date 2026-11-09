@@ -639,13 +639,14 @@ public final class StringBuilder
      * AbstractStringBuilder}), but must be re-declared here: see this
      * class's Javadoc.
      *
-     * @cprover.noSupport Handled by JBMC's string-refinement (exact
-     *   signature match); this body is never executed.
+     * @cprover.fullSupport The bounds are checked here, the character
+     *   is read by the string solver.
      */
     @Override
     public char charAt(int index) {
-        CProver.notModelled();
-        return CProver.nondetChar();
+        if (index < 0 || index >= length())
+            throw new StringIndexOutOfBoundsException(index);
+        return CProverString.charAt(toString(), index);
     }
 
     /**
