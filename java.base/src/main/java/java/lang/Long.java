@@ -1149,17 +1149,12 @@ public final class Long extends Number
         if (nm.startsWith("-", index) || nm.startsWith("+", index))
             throw new NumberFormatException("Sign character in wrong position");
 
-        try {
-            result = parseLong(nm, index, nm.length(), radix);
-            result = negative ? -result : result;
-        } catch (NumberFormatException e) {
-            // If number is Long.MIN_VALUE, we'll end up here. The next line
-            // handles this case, and causes any genuine format error to be
-            // rethrown.
-            String constant = negative ? ("-" + nm.substring(index))
-                                       : nm.substring(index);
-            result = parseLong(constant, radix);
-        }
+        // DIFFBLUE MODEL LIBRARY: the digits (with the sign) are parsed once by
+        // the string solver; Integer.MIN_VALUE and Long.MIN_VALUE need no
+        // fallback then
+        String constant = negative ? ("-" + nm.substring(index))
+                                   : nm.substring(index);
+        result = parseLong(constant, radix);
         return result;
     }
 
