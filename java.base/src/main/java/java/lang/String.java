@@ -1129,11 +1129,15 @@ public final class String
      * @since      1.1
      */
     /**
-     * @cprover.noSupport See {@link #getBytes(String)}.
+     * @cprover.limitedSupport The default charset is UTF-8: see {@link
+     *   #getBytes(String)}.
      */
     public byte[] getBytes() {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        try {
+            return getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalError(e);
+        }
     }
 
     /**
