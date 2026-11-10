@@ -350,12 +350,15 @@ public final class Long extends Number
      * @param shift the log2 of the base to format in (4 for hex, 3 for octal, 1 for binary)
      */
     static String toUnsignedString0(long val, int shift) {
-        // assert shift > 0 && shift <=5 : "Illegal shift value";
-        int mag = Long.SIZE - Long.numberOfLeadingZeros(val);
-        int chars = Math.max(((mag + (shift - 1)) / shift), 1);
-        char[] buf = new char[chars];
-        formatUnsignedLong0(val, shift, buf, 0, chars);
-        return org.cprover.CProverString.ofCharArray(buf, 0, chars);
+        // DIFFBLUE MODEL LIBRARY: the conversion of the string solver instead of
+        // the digit loop: the unsigned value is split into the digits above the
+        // last one (non-negative) and the last digit
+        int radix = 1 << shift;
+        if (val >= 0)
+            return toString(val, radix);
+        long high = val >>> shift;
+        int low = (int) (val & (radix - 1));
+        return toString(high, radix) + Character.forDigit(low, radix);
     }
 
     /**

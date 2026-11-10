@@ -315,12 +315,15 @@ public final class Integer extends Number
      * Convert the integer to an unsigned number.
      */
     private static String toUnsignedString0(int val, int shift) {
-        // assert shift > 0 && shift <=5 : "Illegal shift value";
-        int mag = Integer.SIZE - Integer.numberOfLeadingZeros(val);
-        int chars = Math.max(((mag + (shift - 1)) / shift), 1);
-        char[] buf = new char[chars];
-        formatUnsignedInt(val, shift, buf, chars);
-        return org.cprover.CProverString.ofCharArray(buf, 0, chars);
+        // DIFFBLUE MODEL LIBRARY: the conversion of the string solver instead of
+        // the digit loop: the unsigned value is split into the digits above the
+        // last one (non-negative) and the last digit
+        int radix = 1 << shift;
+        if (val >= 0)
+            return toString(val, radix);
+        int high = val >>> shift;
+        int low = val & (radix - 1);
+        return toString(high, radix) + Character.forDigit(low, radix);
     }
 
     /**
