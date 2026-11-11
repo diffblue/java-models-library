@@ -562,17 +562,8 @@ public class Thread implements Runnable {
             throw new IllegalArgumentException("timeout value is negative");
         }
 
-        long nanos = MILLISECONDS.toNanos(millis);
-        ThreadSleepEvent event = beforeSleep(nanos);
-        try {
-            if (currentThread() instanceof VirtualThread vthread) {
-                vthread.sleepNanos(nanos);
-            } else {
-                sleep0(nanos);
-            }
-        } finally {
-            afterSleep(event);
-        }
+        // DIFFBLUE MODEL LIBRARY: time is not modelled, the thread does not
+        // wait (the other threads can run at any point anyway)
     }
 
     /**
@@ -618,20 +609,7 @@ public class Thread implements Runnable {
             throw new IllegalArgumentException("nanosecond timeout value out of range");
         }
 
-        // total sleep time, in nanoseconds
-        long totalNanos = MILLISECONDS.toNanos(millis);
-        totalNanos += Math.min(Long.MAX_VALUE - totalNanos, nanos);
-
-        ThreadSleepEvent event = beforeSleep(totalNanos);
-        try {
-            if (currentThread() instanceof VirtualThread vthread) {
-                vthread.sleepNanos(totalNanos);
-            } else {
-                sleep0(totalNanos);
-            }
-        } finally {
-            afterSleep(event);
-        }
+        // DIFFBLUE MODEL LIBRARY: time is not modelled, see sleep(long)
     }
 
     /**
@@ -651,21 +629,8 @@ public class Thread implements Runnable {
      * @since 19
      */
     public static void sleep(Duration duration) throws InterruptedException {
-        long nanos = NANOSECONDS.convert(duration);  // MAX_VALUE if > 292 years
-        if (nanos < 0) {
-            return;
-        }
-
-        ThreadSleepEvent event = beforeSleep(nanos);
-        try {
-            if (currentThread() instanceof VirtualThread vthread) {
-                vthread.sleepNanos(nanos);
-            } else {
-                sleep0(nanos);
-            }
-        } finally {
-            afterSleep(event);
-        }
+        // DIFFBLUE MODEL LIBRARY: time is not modelled, see sleep(long)
+        java.util.Objects.requireNonNull(duration);
     }
 
     /**
