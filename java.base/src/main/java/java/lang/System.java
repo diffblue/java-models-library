@@ -1449,7 +1449,11 @@ public final class System {
             sm.checkPermission(new RuntimePermission("getenv."+name));
         }
 
-        return ProcessEnvironment.getenv(name);
+        // DIFFBLUE MODEL LIBRARY: the environment is empty (the class
+        // ProcessEnvironment reads it with native methods)
+        if (name == null)
+            throw new NullPointerException();
+        return null;
     }
 
 
@@ -1499,7 +1503,8 @@ public final class System {
             sm.checkPermission(new RuntimePermission("getenv.*"));
         }
 
-        return ProcessEnvironment.getenv();
+        // DIFFBLUE MODEL LIBRARY: the environment is empty
+        return java.util.Collections.emptyMap();
     }
 
     /**
