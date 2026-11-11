@@ -154,6 +154,9 @@ public final class Integer extends Number
      *   arguments are not fully constant-folded.
      */
     public static String toString(int i, int radix) {
+        // as in the JDK, an invalid radix is replaced by 10
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
+            radix = 10;
         return org.cprover.CProverString.toString(i, radix);
     }
 
