@@ -817,7 +817,8 @@ public final class Float extends Number implements Comparable<Float> {
      * @since 1.3
      */
     public static int floatToRawIntBits(float value){
-        //@TODO: implement this method internally in CBMC
+        // DIFFBLUE MODEL LIBRARY
+        // JBMC replaces this by the bits of the value.
         return CProver.nondetInt();
     }
 

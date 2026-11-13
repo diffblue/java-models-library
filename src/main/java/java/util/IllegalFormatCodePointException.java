@@ -40,7 +40,7 @@ public class IllegalFormatCodePointException extends IllegalFormatException {
     }
 
     // DIFFBLUE MODEL LIBRARY
-    // The model of String.format does not know the code point and passes 0.
+    // The message without String.format.
     public String getMessage() {
         return "Code point = 0x" + Integer.toHexString(c);
     }

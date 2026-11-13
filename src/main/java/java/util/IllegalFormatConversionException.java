@@ -48,10 +48,9 @@ public class IllegalFormatConversionException extends IllegalFormatException {
     }
 
     // DIFFBLUE MODEL LIBRARY
-    // The model of String.format does not know the class of the argument and
-    // passes Object.class, so the message does not name it.
+    // The message without String.format.
     public String getMessage() {
-        return c + " != java.lang.Object";
+        return c + " != " + arg.getName();
     }
 
     // DIFFBLUE MODEL LIBRARY

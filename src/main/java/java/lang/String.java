@@ -3963,109 +3963,162 @@ public final class String
     /**
      * DIFFBLUE MODEL LIBRARY
      * The first error of String.format with the format string and the
-     * arguments encoded by cproverFormatArgument ("" for a missing one):
-     * 0 for none, CPROVER_FORMAT_UNKNOWN_CONVERSION,
-     * CPROVER_FORMAT_MISSING_ARGUMENT, CPROVER_FORMAT_CODE_POINT, or the
-     * conversion character of a conversion that does not fit its argument.
+     * {@code n} arguments, of which the first ten are encoded by
+     * cproverFormatArgument ("" for a missing one): "" for none, or the
+     * code of the error and its detail, which
+     * java.util.CProverFormat.throwError reads.
+     * JBMC replaces this by the string solver's (any string here).
+     */
+    static String cproverFormatError(String format, int n, String arg0,
+            String arg1, String arg2, String arg3, String arg4, String arg5,
+            String arg6, String arg7, String arg8, String arg9) {
+        return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The calls of toString and hashCode that String.format with the format
+     * string makes on its first ten arguments, as bits: bit 2i for the
+     * toString of the argument i (from 0) for a %s, bit 2i+1 for its
+     * hashCode for a %h.
      * JBMC replaces this by the string solver's (any value here).
      */
-    static int cproverFormatError(String format, String arg0, String arg1,
-            String arg2, String arg3, String arg4, String arg5, String arg6,
-            String arg7, String arg8, String arg9) {
+    static int cproverFormatUses(String format) {
         return CProver.nondetInt();
     }
 
-    static final int CPROVER_FORMAT_UNKNOWN_CONVERSION = -1;
-    static final int CPROVER_FORMAT_MISSING_ARGUMENT = -2;
-    static final int CPROVER_FORMAT_CODE_POINT = -3;
-
     /**
      * DIFFBLUE MODEL LIBRARY
-     * Throws the exception of an error of cproverFormatError. The details
-     * that the error does not give (the specifier, the argument's class,
-     * the code point) are approximations.
-     */
-    static void cproverThrowFormatError(int error) {
-        if (error == CPROVER_FORMAT_UNKNOWN_CONVERSION) {
-            throw new java.util.UnknownFormatConversionException("?");
-        }
-        if (error == CPROVER_FORMAT_MISSING_ARGUMENT) {
-            throw new java.util.MissingFormatArgumentException(
-                "Format specifier");
-        }
-        if (error == CPROVER_FORMAT_CODE_POINT) {
-            throw new java.util.IllegalFormatCodePointException(0);
-        }
-        // A format string that is not constant may give any error.
-        if (error < 0 || error > 0xFFFF) {
-            throw new java.util.UnknownFormatConversionException("?");
-        }
-        throw new java.util.IllegalFormatConversionException(
-            (char) error, Object.class);
-    }
-
-    /**
-     * DIFFBLUE MODEL LIBRARY
-     * The encoding of an argument of String.format for the string solver:
+     * The encoding of an argument of String.format for the string solver,
+     * where {@code uses} says whether String.format uses its toString (bit
+     * 0) and its hashCode (bit 1):
      * <ul>
-     * <li>a character for its kind: 'N' null, 'S' String, 'I' Byte, Short
-     *     or Integer, 'L' Long, 'C' Character, 'B' Boolean, 'F' Float or
-     *     Double, 'O' any other object;</li>
-     * <li>four characters for the value of an integral, char or boolean as
-     *     a long, 16 bits each, the most significant first (zeros
+     * <li>a character for its kind: 'N' null, 'S' String, 'Y' Byte, 'H'
+     *     Short, 'I' Integer, 'L' Long, 'C' Character, 'B' Boolean, 'F'
+     *     Float, 'D' Double, 'G' BigInteger, 'R' BigDecimal, 'T' Date or
+     *     Calendar, 'U' another TemporalAccessor, 'O' any other object;</li>
+     * <li>four characters for its value as a long, 16 bits each, the most
+     *     significant first: the value of an integral, char or boolean, the
+     *     raw bits of the double value of a Float or Double, zero
+     *     otherwise;</li>
+     * <li>two characters for its hash code where it is used (zero
      *     otherwise);</li>
-     * <li>the text of String.valueOf(obj), which %s prints (any string for
-     *     a Float or Double).</li>
+     * <li>a character for its properties: bit 0 for a Formattable, bit 1
+     *     for a hash code that is not given (that of a String);</li>
+     * <li>the text that %s prints where it is used: String.valueOf(obj),
+     *     or any string for a Formattable, whose formatTo is not called (""
+     *     otherwise).</li>
      * </ul>
      * The kind is known on each path (an instanceof of the dynamic type),
      * and the solver reads it to format and to check the conversions.
      */
-    static String cproverFormatArgument(Object obj) {
+    static String cproverFormatArgument(Object obj, int uses) {
+        boolean usesText = (uses & 1) != 0;
+        boolean usesHash = (uses & 2) != 0;
         char kind;
         long longValue = 0;
-        String text;
+        int hash = 0;
+        char properties = 0;
+        String text = "";
         if (obj == null) {
             kind = 'N';
             text = "null";
         } else if (obj instanceof String) {
             kind = 'S';
             text = (String) obj;
+            // The hash code of a String is not given: String.hashCode loops
+            // over the characters, which symex does not know.
+            properties = 2;
         } else if (obj instanceof Integer) {
             kind = 'I';
-            longValue = (Integer) obj;
-            text = CProverString.toString((Integer) obj);
+            int value = (Integer) obj;
+            longValue = value;
+            hash = value;
+            if (usesText) {
+                text = CProverString.toString(value);
+            }
         } else if (obj instanceof Long) {
             kind = 'L';
-            longValue = (Long) obj;
-            text = CProverString.toString((long) (Long) obj);
+            long value = (Long) obj;
+            longValue = value;
+            hash = (int) (value ^ (value >>> 32));
+            if (usesText) {
+                text = CProverString.toString(value);
+            }
         } else if (obj instanceof Byte) {
-            kind = 'I';
-            longValue = (Byte) obj;
-            text = CProverString.toString((int) (Byte) obj);
+            kind = 'Y';
+            byte value = (Byte) obj;
+            longValue = value;
+            hash = value;
+            if (usesText) {
+                text = CProverString.toString((int) value);
+            }
         } else if (obj instanceof Short) {
-            kind = 'I';
-            longValue = (Short) obj;
-            text = CProverString.toString((int) (Short) obj);
+            kind = 'H';
+            short value = (Short) obj;
+            longValue = value;
+            hash = value;
+            if (usesText) {
+                text = CProverString.toString((int) value);
+            }
         } else if (obj instanceof Character) {
             kind = 'C';
-            char charValue = (Character) obj;
-            longValue = (long) charValue;
-            text = String.valueOf(charValue);
+            char value = (Character) obj;
+            longValue = (long) value;
+            hash = value;
+            text = String.valueOf(value);
         } else if (obj instanceof Boolean) {
             kind = 'B';
-            boolean booleanValue = (Boolean) obj;
-            longValue = booleanValue ? 1 : 0;
-            text = booleanValue ? "true" : "false";
-        } else if (obj instanceof Float || obj instanceof Double) {
-            // The floating-point conversions are not modelled.
+            boolean value = (Boolean) obj;
+            longValue = value ? 1 : 0;
+            hash = value ? 1231 : 1237;
+            text = value ? "true" : "false";
+        } else if (obj instanceof Float) {
             kind = 'F';
-            text = CProver.nondetWithoutNull("");
-        } else {
-            kind = 'O';
-            text = obj.toString();
-            if (text == null) {
-                text = "null";
+            float value = (Float) obj;
+            longValue = Double.doubleToRawLongBits((double) value);
+            hash = Float.floatToIntBits(value);
+            if (usesText) {
+                text = Float.toString(value);
             }
+        } else if (obj instanceof Double) {
+            kind = 'D';
+            double value = (Double) obj;
+            longValue = Double.doubleToRawLongBits(value);
+            long bits = Double.doubleToLongBits(value);
+            hash = (int) (bits ^ (bits >>> 32));
+            if (usesText) {
+                text = Double.toString(value);
+            }
+        } else {
+            if (obj instanceof java.math.BigInteger) {
+                kind = 'G';
+            } else if (obj instanceof java.math.BigDecimal) {
+                kind = 'R';
+            } else if (obj instanceof java.util.Date
+                    || obj instanceof java.util.Calendar) {
+                kind = 'T';
+            } else if (obj instanceof java.time.temporal.TemporalAccessor) {
+                kind = 'U';
+            } else {
+                kind = 'O';
+            }
+            if (obj instanceof java.util.Formattable) {
+                properties = 1;
+                // %s calls formatTo, which is not modelled.
+                text = CProver.nondetWithoutNull("");
+            } else if (usesText) {
+                text = obj.toString();
+                if (text == null) {
+                    text = "null";
+                }
+            }
+            if (usesHash) {
+                hash = obj.hashCode();
+            }
+        }
+        if (!usesHash) {
+            hash = 0;
         }
 
         StringBuilder builder = new StringBuilder();
@@ -4074,6 +4127,9 @@ public final class String
         builder.append((char) (longValue >> 32 & 0xFFFF));
         builder.append((char) (longValue >> 16 & 0xFFFF));
         builder.append((char) (longValue & 0xFFFF));
+        builder.append((char) (hash >> 16 & 0xFFFF));
+        builder.append((char) (hash & 0xFFFF));
+        builder.append(properties);
         builder.append(text);
         String str = builder.toString();
 
@@ -4090,6 +4146,9 @@ public final class String
         CProver.assume(str.charAt(2) == (char) (longValue >> 32 & 0xFFFF));
         CProver.assume(str.charAt(3) == (char) (longValue >> 16 & 0xFFFF));
         CProver.assume(str.charAt(4) == (char) (longValue & 0xFFFF));
+        CProver.assume(str.charAt(5) == (char) (hash >> 16 & 0xFFFF));
+        CProver.assume(str.charAt(6) == (char) (hash & 0xFFFF));
+        CProver.assume(str.charAt(7) == properties);
 
         return str;
     }
@@ -4133,24 +4192,30 @@ public final class String
      * The limitation of the current implementation are:
      * <ul>
      * <li>
-     *   'dateTime', 'hashcode' and 'octal' format specifiers are not
-     *   implemented, which can lead to incorrect trace when they are used
+     *   flags, widths, and precisions but those of %e, %f, %g and %a, give
+     *   any string where they do not throw, and so do %t but %tQ and %ts of
+     *   a Long, %d, %o and %x of a BigInteger, %e, %f and %g of a
+     *   BigDecimal, and %h of a String
      * </li>
      * <li>
-     *   precision and width are ignored
+     *   %e, %f and %g take the digits of Double.toString of Java 19 and
+     *   later
      * </li>
      * <li>
-     *   no trace will be generated if the format specifier is not a constant
-     *   String with correct syntax and compatible with the arguments,
-     *   in particular no trace can throw IllegalFormatException
+     *   the arguments beyond the tenth give any string, and may throw any
+     *   of the exceptions that they can throw
      * </li>
      * <li>
-     *   we arbitrary limit the number of arguments to 10 (increasing
-     *   this number slows down the solver and when the number of
-     *   arguments exceeds the limit the result will be incorrect)
+     *   the format string must be constant, or any error and any string
+     *   are possible
      * </li>
      * <li>
-     *   having 5 arguments or more makes the solver slow
+     *   toString and hashCode are called once for each argument that a %s
+     *   or %h uses, before the errors of the arguments, and formatTo of a
+     *   Formattable is not called
+     * </li>
+     * <li>
+     *   the line separator is "\n"
      * </li>
      * </ul>
      * @diffblue.untested
@@ -4158,24 +4223,26 @@ public final class String
     public static String format(String format, Object... args) {
         // return new Formatter().format(format, args).toString();
         // DIFFBLUE MODEL LIBRARY
-        CProver.assume(args.length <= 10);
-        String arg0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
-        String arg1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
-        String arg2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
-        String arg3 = args.length > 3 ? cproverFormatArgument(args[3]) : "";
-        String arg4 = args.length > 4 ? cproverFormatArgument(args[4]) : "";
-        String arg5 = args.length > 5 ? cproverFormatArgument(args[5]) : "";
-        String arg6 = args.length > 6 ? cproverFormatArgument(args[6]) : "";
-        String arg7 = args.length > 7 ? cproverFormatArgument(args[7]) : "";
-        String arg8 = args.length > 8 ? cproverFormatArgument(args[8]) : "";
-        String arg9 = args.length > 9 ? cproverFormatArgument(args[9]) : "";
+        int n = args.length;
+        int uses = cproverFormatUses(format);
+        String arg0 = n > 0 ? cproverFormatArgument(args[0], uses) : "";
+        String arg1 = n > 1 ? cproverFormatArgument(args[1], uses >> 2) : "";
+        String arg2 = n > 2 ? cproverFormatArgument(args[2], uses >> 4) : "";
+        String arg3 = n > 3 ? cproverFormatArgument(args[3], uses >> 6) : "";
+        String arg4 = n > 4 ? cproverFormatArgument(args[4], uses >> 8) : "";
+        String arg5 = n > 5 ? cproverFormatArgument(args[5], uses >> 10) : "";
+        String arg6 = n > 6 ? cproverFormatArgument(args[6], uses >> 12) : "";
+        String arg7 = n > 7 ? cproverFormatArgument(args[7], uses >> 14) : "";
+        String arg8 = n > 8 ? cproverFormatArgument(args[8], uses >> 16) : "";
+        String arg9 = n > 9 ? cproverFormatArgument(args[9], uses >> 18) : "";
         // The first error of the format string with these arguments, in the
-        // order of Java's Formatter (a missing argument is "").
-        int error = cproverFormatError(format, arg0, arg1, arg2, arg3, arg4,
-                arg5, arg6, arg7, arg8, arg9);
-        if (error != 0) {
-            cproverThrowFormatError(error);
+        // order of Java's Formatter.
+        String error = cproverFormatError(format, n, arg0, arg1, arg2, arg3,
+                arg4, arg5, arg6, arg7, arg8, arg9);
+        if (error.length() != 0) {
+            java.util.CProverFormat.throwError(error, args);
         }
+        // (What the arguments beyond the tenth give is not modelled.)
         return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5, arg6,
                 arg7, arg8, arg9);
     }

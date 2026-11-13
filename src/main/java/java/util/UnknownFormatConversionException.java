@@ -42,7 +42,7 @@ public class UnknownFormatConversionException extends IllegalFormatException {
     }
 
     // DIFFBLUE MODEL LIBRARY
-    // The model of String.format does not know the conversion and passes "?".
+    // The message without String.format.
     public String getMessage() {
         return "Conversion = '" + s + "'";
     }

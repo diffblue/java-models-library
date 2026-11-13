@@ -920,7 +920,8 @@ public final class Double extends Number implements Comparable<Double> {
      * @since 1.3
      */
     public static long doubleToRawLongBits(double value){
-        //@TODO: implement this method internally in CBMC
+        // DIFFBLUE MODEL LIBRARY
+        // JBMC replaces this by the bits of the value.
         return CProver.nondetLong();
     }
 
