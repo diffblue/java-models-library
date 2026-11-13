@@ -4192,14 +4192,18 @@ public final class String
      * The limitation of the current implementation are:
      * <ul>
      * <li>
-     *   flags, widths, and precisions but those of %e, %f, %g and %a, give
-     *   any string where they do not throw, and so do %t but %tQ and %ts of
-     *   a Long, %d, %o and %x of a BigInteger, %e, %f and %g of a
-     *   BigDecimal, and %h of a String
+     *   the flag ',' (whose grouping depends on the locale) gives any
+     *   string for a number, and so do %t but %tQ and %ts of a Long, %d,
+     *   %o and %x of a BigInteger, %e, %f and %g of a BigDecimal, %h of a
+     *   String, and %a with '0' and a precision
      * </li>
      * <li>
-     *   %e, %f and %g take the digits of Double.toString of Java 19 and
-     *   later
+     *   the digits, the decimal separator and the case are those of the
+     *   locales with ASCII digits and '.'
+     * </li>
+     * <li>
+     *   the strings of floats are those of the versions of Java that may
+     *   run the program (JBMC's --java-version)
      * </li>
      * <li>
      *   the arguments beyond the tenth give any string, and may throw any
