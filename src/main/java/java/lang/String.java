@@ -3960,6 +3960,18 @@ public final class String
      * Serialize potential String.format argument to a String.
      * The returned String is never null.
      */
+    /**
+     * The number of arguments that the format string uses: the largest
+     * argument index of its specifiers.
+     * DIFFBLUE MODEL LIBRARY: replaced internally by JBMC; any non-negative
+     * number here.
+     */
+    static int cproverFormatArgumentCount(String format) {
+        int count = CProver.nondetInt();
+        CProver.assume(count >= 0);
+        return count;
+    }
+
     static String cproverFormatArgument(Object obj) {
         if (obj == null) {
             return "null";
@@ -4082,6 +4094,12 @@ public final class String
         // return new Formatter().format(format, args).toString();
         // DIFFBLUE MODEL LIBRARY
         CProver.assume(args.length <= 10);
+        // A specifier without its argument throws.
+        int needed = cproverFormatArgumentCount(format);
+        if (needed > args.length) {
+            throw new java.util.MissingFormatArgumentException(
+                "Format specifier");
+        }
         String arg0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
         String arg1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
         String arg2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
