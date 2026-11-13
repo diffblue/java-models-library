@@ -3961,56 +3961,120 @@ public final class String
      * The returned String is never null.
      */
     /**
-     * The number of arguments that the format string uses: the largest
-     * argument index of its specifiers.
-     * DIFFBLUE MODEL LIBRARY: replaced internally by JBMC; any non-negative
-     * number here.
+     * DIFFBLUE MODEL LIBRARY
+     * The first error of String.format with the format string and the
+     * arguments encoded by cproverFormatArgument ("" for a missing one):
+     * 0 for none, CPROVER_FORMAT_UNKNOWN_CONVERSION,
+     * CPROVER_FORMAT_MISSING_ARGUMENT, CPROVER_FORMAT_CODE_POINT, or the
+     * conversion character of a conversion that does not fit its argument.
+     * JBMC replaces this by the string solver's (any value here).
      */
-    static int cproverFormatArgumentCount(String format) {
-        int count = CProver.nondetInt();
-        CProver.assume(count >= 0);
-        return count;
+    static int cproverFormatError(String format, String arg0, String arg1,
+            String arg2, String arg3, String arg4, String arg5, String arg6,
+            String arg7, String arg8, String arg9) {
+        return CProver.nondetInt();
     }
 
-    static String cproverFormatArgument(Object obj) {
-        if (obj == null) {
-            return "null";
-        }
-        if (obj instanceof String) {
-            return (String) obj;
-        }
+    static final int CPROVER_FORMAT_UNKNOWN_CONVERSION = -1;
+    static final int CPROVER_FORMAT_MISSING_ARGUMENT = -2;
+    static final int CPROVER_FORMAT_CODE_POINT = -3;
 
-        // All primitive types are cast to a long
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * Throws the exception of an error of cproverFormatError. The details
+     * that the error does not give (the specifier, the argument's class,
+     * the code point) are approximations.
+     */
+    static void cproverThrowFormatError(int error) {
+        if (error == CPROVER_FORMAT_UNKNOWN_CONVERSION) {
+            throw new java.util.UnknownFormatConversionException("?");
+        }
+        if (error == CPROVER_FORMAT_MISSING_ARGUMENT) {
+            throw new java.util.MissingFormatArgumentException(
+                "Format specifier");
+        }
+        if (error == CPROVER_FORMAT_CODE_POINT) {
+            throw new java.util.IllegalFormatCodePointException(0);
+        }
+        // A format string that is not constant may give any error.
+        if (error < 0 || error > 0xFFFF) {
+            throw new java.util.UnknownFormatConversionException("?");
+        }
+        throw new java.util.IllegalFormatConversionException(
+            (char) error, Object.class);
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The encoding of an argument of String.format for the string solver:
+     * <ul>
+     * <li>a character for its kind: 'N' null, 'S' String, 'I' Byte, Short
+     *     or Integer, 'L' Long, 'C' Character, 'B' Boolean, 'F' Float or
+     *     Double, 'O' any other object;</li>
+     * <li>four characters for the value of an integral, char or boolean as
+     *     a long, 16 bits each, the most significant first (zeros
+     *     otherwise);</li>
+     * <li>the text of String.valueOf(obj), which %s prints (any string for
+     *     a Float or Double).</li>
+     * </ul>
+     * The kind is known on each path (an instanceof of the dynamic type),
+     * and the solver reads it to format and to check the conversions.
+     */
+    static String cproverFormatArgument(Object obj) {
+        char kind;
         long longValue = 0;
-        if (obj instanceof Integer) {
+        String text;
+        if (obj == null) {
+            kind = 'N';
+            text = "null";
+        } else if (obj instanceof String) {
+            kind = 'S';
+            text = (String) obj;
+        } else if (obj instanceof Integer) {
+            kind = 'I';
             longValue = (Integer) obj;
+            text = CProverString.toString((Integer) obj);
         } else if (obj instanceof Long) {
+            kind = 'L';
             longValue = (Long) obj;
-        } else if (obj instanceof Float) {
-            longValue = (long) ((Float) obj).doubleValue();
-        } else if (obj instanceof Double) {
-            longValue = (long) ((Double) obj).doubleValue();
+            text = CProverString.toString((long) (Long) obj);
+        } else if (obj instanceof Byte) {
+            kind = 'I';
+            longValue = (Byte) obj;
+            text = CProverString.toString((int) (Byte) obj);
+        } else if (obj instanceof Short) {
+            kind = 'I';
+            longValue = (Short) obj;
+            text = CProverString.toString((int) (Short) obj);
         } else if (obj instanceof Character) {
+            kind = 'C';
             char charValue = (Character) obj;
             longValue = (long) charValue;
-        } else if (obj instanceof Byte) {
-            byte byteValue = ((Byte) obj);
-            longValue = (long) byteValue;
-        } else if (obj instanceof Short) {
-            short shortValue = ((Short) obj);
-            longValue = (long) shortValue;
+            text = String.valueOf(charValue);
         } else if (obj instanceof Boolean) {
-            longValue = ((Boolean) obj) ? 1 : 0;
+            kind = 'B';
+            boolean booleanValue = (Boolean) obj;
+            longValue = booleanValue ? 1 : 0;
+            text = booleanValue ? "true" : "false";
+        } else if (obj instanceof Float || obj instanceof Double) {
+            // The floating-point conversions are not modelled.
+            kind = 'F';
+            text = CProver.nondetWithoutNull("");
         } else {
-            CProver.assume(false);
+            kind = 'O';
+            text = obj.toString();
+            if (text == null) {
+                text = "null";
+            }
         }
 
-        // The long value is encoded using a string of 4 characters
         StringBuilder builder = new StringBuilder();
+        builder.append(kind);
         builder.append((char) (longValue >> 48 & 0xFFFF));
         builder.append((char) (longValue >> 32 & 0xFFFF));
         builder.append((char) (longValue >> 16 & 0xFFFF));
         builder.append((char) (longValue & 0xFFFF));
+        builder.append(text);
         String str = builder.toString();
 
         // These redundant constraints are necessary in case the string solver
@@ -4021,10 +4085,11 @@ public final class String
         // dependency graph, but the length of the formatted string depends
         // on the value of the integer, whose conversion is not normally
         // propagated in the dependency graph.
-        CProver.assume(str.charAt(0) == (char) (longValue >> 48 & 0xFFFF));
-        CProver.assume(str.charAt(1) == (char) (longValue >> 32 & 0xFFFF));
-        CProver.assume(str.charAt(2) == (char) (longValue >> 16 & 0xFFFF));
-        CProver.assume(str.charAt(3) == (char) (longValue & 0xFFFF));
+        CProver.assume(str.charAt(0) == kind);
+        CProver.assume(str.charAt(1) == (char) (longValue >> 48 & 0xFFFF));
+        CProver.assume(str.charAt(2) == (char) (longValue >> 32 & 0xFFFF));
+        CProver.assume(str.charAt(3) == (char) (longValue >> 16 & 0xFFFF));
+        CProver.assume(str.charAt(4) == (char) (longValue & 0xFFFF));
 
         return str;
     }
@@ -4094,12 +4159,6 @@ public final class String
         // return new Formatter().format(format, args).toString();
         // DIFFBLUE MODEL LIBRARY
         CProver.assume(args.length <= 10);
-        // A specifier without its argument throws.
-        int needed = cproverFormatArgumentCount(format);
-        if (needed > args.length) {
-            throw new java.util.MissingFormatArgumentException(
-                "Format specifier");
-        }
         String arg0 = args.length > 0 ? cproverFormatArgument(args[0]) : "";
         String arg1 = args.length > 1 ? cproverFormatArgument(args[1]) : "";
         String arg2 = args.length > 2 ? cproverFormatArgument(args[2]) : "";
@@ -4110,6 +4169,13 @@ public final class String
         String arg7 = args.length > 7 ? cproverFormatArgument(args[7]) : "";
         String arg8 = args.length > 8 ? cproverFormatArgument(args[8]) : "";
         String arg9 = args.length > 9 ? cproverFormatArgument(args[9]) : "";
+        // The first error of the format string with these arguments, in the
+        // order of Java's Formatter (a missing argument is "").
+        int error = cproverFormatError(format, arg0, arg1, arg2, arg3, arg4,
+                arg5, arg6, arg7, arg8, arg9);
+        if (error != 0) {
+            cproverThrowFormatError(error);
+        }
         return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5, arg6,
                 arg7, arg8, arg9);
     }
