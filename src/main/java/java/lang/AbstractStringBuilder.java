@@ -79,7 +79,8 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     }
 
     public int offsetByCodePoints(int index, int codePointOffset) {
-        return CProver.nondetInt();
+        // DIFFBLUE MODEL LIBRARY the model of String, on the contents
+        return toString().offsetByCodePoints(index, codePointOffset);
     }
 
     public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {

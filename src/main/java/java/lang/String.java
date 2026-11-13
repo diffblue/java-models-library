@@ -1030,7 +1030,22 @@ public final class String
         }
         // return Character.offsetByCodePointsImpl(value, 0, value.length,
         //         index, codePointOffset);
-        return CProverString.offsetByCodePoints(this, index, codePointOffset);
+        // DIFFBLUE MODEL LIBRARY
+        // The result is exact for a string without surrogate pairs (then
+        // it has as many code points as chars), and an index beyond the
+        // string means fewer code points than the offset. With a pair the
+        // result is bounded only, so whether it is out of range is not
+        // decided either.
+        int result =
+            CProverString.offsetByCodePoints(this, index, codePointOffset);
+        boolean exact =
+            CProverString.codePointCount(this, 0, this.length())
+            == this.length();
+        if (result < 0 || result > this.length()
+            || (!exact && CProver.nondetBoolean())) {
+            throw new IndexOutOfBoundsException();
+        }
+        return result;
     }
 
     /**

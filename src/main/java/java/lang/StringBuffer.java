@@ -300,7 +300,8 @@ import org.cprover.CProverString;
     @Override
     public synchronized int offsetByCodePoints(int index, int codePointOffset) {
         // return super.offsetByCodePoints(index, codePointOffset);
-        return CProver.nondetInt();
+        // DIFFBLUE MODEL LIBRARY the model of String, on the contents
+        return toString().offsetByCodePoints(index, codePointOffset);
     }
 
     /**
