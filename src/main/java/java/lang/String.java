@@ -3574,9 +3574,13 @@ public final class String
      * @diffblue.untested
      */
     public String toLowerCase(Locale locale) {
-        // DIFFBLUE MODEL LIBRARY We just ignore the argument as it does not
-        // make a difference in most cases
-        return toLowerCase();
+        // DIFFBLUE MODEL LIBRARY
+        // The conversion depends on the language of the locale (tr, az and
+        // lt convert i and I differently), which the models do not know.
+        if (locale == null) {
+            throw new NullPointerException();
+        }
+        return cproverToLowerCaseAnyLocale();
         // if (locale == null) {
         //     throw new NullPointerException();
         // }
@@ -3688,9 +3692,18 @@ public final class String
      * @diffblue.untested
      */
     public String toLowerCase() {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
+        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC, by the
+        // default locale of JBMC's --java-locale (any by default)
         return CProver.nondetWithNullForNotModelled();
         // return toLowerCase(Locale.getDefault());
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * toLowerCase by any locale. JBMC replaces this.
+     */
+    String cproverToLowerCaseAnyLocale() {
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -3747,7 +3760,13 @@ public final class String
      * @diffblue.untested
      */
     public String toUpperCase(Locale locale) {
-        return toUpperCase();
+        // DIFFBLUE MODEL LIBRARY
+        // The conversion depends on the language of the locale (tr, az and
+        // lt convert i and I differently), which the models do not know.
+        if (locale == null) {
+            throw new NullPointerException();
+        }
+        return cproverToUpperCaseAnyLocale();
         // if (locale == null) {
         //     throw new NullPointerException();
         // }
@@ -3864,9 +3883,18 @@ public final class String
      * @diffblue.untested
      */
     public String toUpperCase() {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
+        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC, by the
+        // default locale of JBMC's --java-locale (any by default)
         return CProver.nondetWithNullForNotModelled();
         // return toUpperCase(Locale.getDefault());
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * toUpperCase by any locale. JBMC replaces this.
+     */
+    String cproverToUpperCaseAnyLocale() {
+        return CProver.nondetWithNullForNotModelled();
     }
 
     /**
@@ -4227,6 +4255,34 @@ public final class String
     public static String format(String format, Object... args) {
         // return new Formatter().format(format, args).toString();
         // DIFFBLUE MODEL LIBRARY
+        return cproverFormat(CPROVER_DEFAULT_LOCALE, format, args);
+    }
+
+    /** DIFFBLUE MODEL LIBRARY The kinds of locales of cproverFormatLocale. */
+    static final int CPROVER_DEFAULT_LOCALE = 0;
+    static final int CPROVER_NULL_LOCALE = 1;
+    static final int CPROVER_OTHER_LOCALE = 2;
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * String.format with the format string and the arguments encoded (see
+     * cproverFormatArgument), by the default locale or another one: null,
+     * which localizes no numbers (and converts the case by the default
+     * locale), or one that the models do not know (so by any). JBMC
+     * replaces this by the string solver's (any string here).
+     */
+    static String cproverFormatWith(int locale, String format, String arg0,
+            String arg1, String arg2, String arg3, String arg4, String arg5,
+            String arg6, String arg7, String arg8, String arg9) {
+        return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * String.format by the default locale or a locale of the kind
+     * {@code locale} (see cproverFormatLocale).
+     */
+    static String cproverFormat(int locale, String format, Object... args) {
         int n = args.length;
         int uses = cproverFormatUses(format);
         String arg0 = n > 0 ? cproverFormatArgument(args[0], uses) : "";
@@ -4247,8 +4303,8 @@ public final class String
             java.util.CProverFormat.throwError(error, args);
         }
         // (What the arguments beyond the tenth give is not modelled.)
-        return CProverString.format(format, arg0, arg1, arg2, arg3, arg4, arg5, arg6,
-                arg7, arg8, arg9);
+        return cproverFormatWith(locale, format, arg0, arg1, arg2, arg3, arg4,
+                arg5, arg6, arg7, arg8, arg9);
     }
 
 
@@ -4289,11 +4345,17 @@ public final class String
      * @see  java.util.Formatter
      * @since  1.5
      *
-     * @diffblue.noSupport
+     * @diffblue.limitedSupport
+     * As format(String, Object...), but the models do not know the locale
+     * {@code l}: the digits, the decimal separator and the case are those of
+     * any locale (and for null, those of ASCII and the case of the default
+     * locale).
      */
     public static String format(Locale l, String format, Object... args) {
         // return new Formatter(l).format(format, args).toString();
-        return format(format, args);
+        // DIFFBLUE MODEL LIBRARY
+        return cproverFormat(l == null ? CPROVER_NULL_LOCALE
+                : CPROVER_OTHER_LOCALE, format, args);
     }
 
     /**
