@@ -4030,11 +4030,13 @@ public final class String
      *     raw bits of the double value of a Float or Double, zero
      *     otherwise;</li>
      * <li>two characters for its hash code where it is used (zero
-     *     otherwise);</li>
+     *     otherwise, and for objects, whose hashCode cproverFormatCall
+     *     calls);</li>
      * <li>a character for its properties: bit 0 for a Formattable, bit 1
      *     for a hash code that is not given (that of a String);</li>
-     * <li>the text that %s prints where it is used: String.valueOf(obj),
-     *     or any string for a Formattable, whose formatTo is not called (""
+     * <li>the text that %s prints where it is used: String.valueOf(obj)
+     *     but for objects (whose toString cproverFormatCall calls), or any
+     *     string for a Formattable, whose formatTo is not called (""
      *     otherwise).</li>
      * </ul>
      * The kind is known on each path (an instanceof of the dynamic type),
@@ -4131,18 +4133,14 @@ public final class String
             } else {
                 kind = 'O';
             }
+            // The models call toString and hashCode in the order of
+            // Formatter (see cproverFormatCall), and give their strings to
+            // the solver separately: the encoding gives neither.
+            properties = 2;
             if (obj instanceof java.util.Formattable) {
-                properties = 1;
+                properties = 3;
                 // %s calls formatTo, which is not modelled.
                 text = CProver.nondetWithoutNull("");
-            } else if (usesText) {
-                text = obj.toString();
-                if (text == null) {
-                    text = "null";
-                }
-            }
-            if (usesHash) {
-                hash = obj.hashCode();
             }
         }
         if (!usesHash) {
@@ -4268,13 +4266,91 @@ public final class String
      * String.format with the format string and the arguments encoded (see
      * cproverFormatArgument), by the default locale or another one: null,
      * which localizes no numbers (and converts the case by the default
-     * locale), or one that the models do not know (so by any). JBMC
-     * replaces this by the string solver's (any string here).
+     * locale), or one that the models do not know (so by any); and with the
+     * strings of the calls that cproverFormatCalls gives, for the %s and %h
+     * of each slot. JBMC replaces this by the string solver's (any string
+     * here).
      */
     static String cproverFormatWith(int locale, String format, String arg0,
             String arg1, String arg2, String arg3, String arg4, String arg5,
+            String arg6, String arg7, String arg8, String arg9, String call0,
+            String call1, String call2, String call3, String call4,
+            String call5, String call6, String call7, String call8,
+            String call9) {
+        return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The calls of String.format on its arguments (toString for %s,
+     * hashCode for %h), in their order, of the first ten %s and %h, up to
+     * its first error: a character for each, the argument (from 1) times 4,
+     * plus 1 for hashCode, plus 2 where a null of toString throws (with a
+     * width, a precision or upper case). JBMC replaces this by the string
+     * solver's (any string here).
+     */
+    static String cproverFormatCalls(String format, int n, String arg0,
+            String arg1, String arg2, String arg3, String arg4, String arg5,
             String arg6, String arg7, String arg8, String arg9) {
         return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The call {@code k} of {@code calls} (see cproverFormatCalls) on
+     * {@code args}, and its string: that of toString, or the hexadecimal
+     * digits of hashCode. None ("") where there is no such call, or where
+     * the argument's string is known without one (null, a String, a boxed
+     * primitive) or comes from formatTo (a Formattable, whose formatTo is
+     * not called).
+     */
+    static String cproverFormatCall(String calls, int k, Object[] args) {
+        if (calls.length() <= k) {
+            return "";
+        }
+        int c = CProverString.charAt(calls, k);
+        int index = (c >> 2) - 1;
+        CProver.assume(index >= 0 && index < args.length);
+        // Each argument in turn, so that symex sees its type (an index that
+        // only the solver knows would let it call any hashCode or toString,
+        // such as the loop of String.hashCode, unbounded).
+        String result = "";
+        for (int i = 0; i < args.length; i++) {
+            if (i == index) {
+                result = cproverFormatCallOn(c, args[i]);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The call of the code {@code c} (see cproverFormatCalls) on
+     * {@code obj} (see cproverFormatCall).
+     */
+    static String cproverFormatCallOn(int c, Object obj) {
+        if (obj == null || obj instanceof String || obj instanceof Integer
+                || obj instanceof Long || obj instanceof Byte
+                || obj instanceof Short || obj instanceof Character
+                || obj instanceof Boolean || obj instanceof Float
+                || obj instanceof Double
+                || obj instanceof java.util.Formattable) {
+            return "";
+        }
+        if ((c & 1) != 0) {
+            // Integer.toHexString of the hash code
+            return CProverString.toString(obj.hashCode() & 0xFFFFFFFFL, 16);
+        }
+        String text = obj.toString();
+        if (text == null) {
+            // Formatter takes its length for a width, a precision or the
+            // upper case
+            if ((c & 2) != 0) {
+                throw new NullPointerException();
+            }
+            return "null";
+        }
+        return text;
     }
 
     /**
@@ -4295,6 +4371,20 @@ public final class String
         String arg7 = n > 7 ? cproverFormatArgument(args[7], uses >> 14) : "";
         String arg8 = n > 8 ? cproverFormatArgument(args[8], uses >> 16) : "";
         String arg9 = n > 9 ? cproverFormatArgument(args[9], uses >> 18) : "";
+        // The calls of toString and hashCode before the first error, in
+        // their order (which may throw), then the error.
+        String calls = cproverFormatCalls(format, n, arg0, arg1, arg2, arg3,
+                arg4, arg5, arg6, arg7, arg8, arg9);
+        String call0 = cproverFormatCall(calls, 0, args);
+        String call1 = cproverFormatCall(calls, 1, args);
+        String call2 = cproverFormatCall(calls, 2, args);
+        String call3 = cproverFormatCall(calls, 3, args);
+        String call4 = cproverFormatCall(calls, 4, args);
+        String call5 = cproverFormatCall(calls, 5, args);
+        String call6 = cproverFormatCall(calls, 6, args);
+        String call7 = cproverFormatCall(calls, 7, args);
+        String call8 = cproverFormatCall(calls, 8, args);
+        String call9 = cproverFormatCall(calls, 9, args);
         // The first error of the format string with these arguments, in the
         // order of Java's Formatter.
         String error = cproverFormatError(format, n, arg0, arg1, arg2, arg3,
@@ -4304,7 +4394,8 @@ public final class String
         }
         // (What the arguments beyond the tenth give is not modelled.)
         return cproverFormatWith(locale, format, arg0, arg1, arg2, arg3, arg4,
-                arg5, arg6, arg7, arg8, arg9);
+                arg5, arg6, arg7, arg8, arg9, call0, call1, call2, call3, call4,
+                call5, call6, call7, call8, call9);
     }
 
 
