@@ -83,7 +83,9 @@ public final class CProverFormat {
      *     argument (from 1, two characters);</li>
      * <li>'T' IllegalFormatConversionException of a date/time, its field
      *     and the argument;</li>
-     * <li>'K' IllegalFormatCodePointException, the argument.</li>
+     * <li>'K' IllegalFormatCodePointException, the argument;</li>
+     * <li>'Z' ArithmeticException of the `,` of a locale without grouping,
+     *     the argument (beyond the tenth, not checked).</li>
      * </ul>
      * The errors of an argument are those of the argument itself here.
      */
@@ -155,6 +157,11 @@ public final class CProverFormat {
         }
         if (code == 'M') {
             throw new MissingFormatWidthException(detail);
+        }
+        if (code == 'Z') {
+            // the `,` of a locale without grouping in Java 8 (CLDR), 9 and
+            // 10, which divide by its grouping size
+            throw new ArithmeticException("/ by zero");
         }
         CProver.assume(code == 'A');
         throw new MissingFormatArgumentException(detail);

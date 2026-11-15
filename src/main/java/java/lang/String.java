@@ -3990,16 +3990,17 @@ public final class String
      */
     /**
      * DIFFBLUE MODEL LIBRARY
-     * The first error of String.format with the format string and the
+     * The first error of String.format by a locale of the kind
+     * {@code locale} (see cproverFormatWith) with the format string and the
      * {@code n} arguments, of which the first ten are encoded by
      * cproverFormatArgument ("" for a missing one): "" for none, or the
      * code of the error and its detail, which
      * java.util.CProverFormat.throwError reads.
      * JBMC replaces this by the string solver's (any string here).
      */
-    static String cproverFormatError(String format, int n, String arg0,
-            String arg1, String arg2, String arg3, String arg4, String arg5,
-            String arg6, String arg7, String arg8, String arg9) {
+    static String cproverFormatError(int locale, String format, int n,
+            String arg0, String arg1, String arg2, String arg3, String arg4,
+            String arg5, String arg6, String arg7, String arg8, String arg9) {
         return CProver.nondetWithoutNull("");
     }
 
@@ -4284,14 +4285,15 @@ public final class String
      * DIFFBLUE MODEL LIBRARY
      * The calls of String.format on its arguments (toString for %s,
      * hashCode for %h), in their order, of the first ten %s and %h, up to
-     * its first error: a character for each, the argument (from 1) times 4,
+     * its first error (by a locale of the kind {@code locale}, see
+     * cproverFormatWith): a character for each, the argument (from 1) times 4,
      * plus 1 for hashCode, plus 2 where a null of toString throws (with a
      * width, a precision or upper case). JBMC replaces this by the string
      * solver's (any string here).
      */
-    static String cproverFormatCalls(String format, int n, String arg0,
-            String arg1, String arg2, String arg3, String arg4, String arg5,
-            String arg6, String arg7, String arg8, String arg9) {
+    static String cproverFormatCalls(int locale, String format, int n,
+            String arg0, String arg1, String arg2, String arg3, String arg4,
+            String arg5, String arg6, String arg7, String arg8, String arg9) {
         return CProver.nondetWithoutNull("");
     }
 
@@ -4373,8 +4375,8 @@ public final class String
         String arg9 = n > 9 ? cproverFormatArgument(args[9], uses >> 18) : "";
         // The calls of toString and hashCode before the first error, in
         // their order (which may throw), then the error.
-        String calls = cproverFormatCalls(format, n, arg0, arg1, arg2, arg3,
-                arg4, arg5, arg6, arg7, arg8, arg9);
+        String calls = cproverFormatCalls(locale, format, n, arg0, arg1,
+                arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         String call0 = cproverFormatCall(calls, 0, args);
         String call1 = cproverFormatCall(calls, 1, args);
         String call2 = cproverFormatCall(calls, 2, args);
@@ -4387,8 +4389,8 @@ public final class String
         String call9 = cproverFormatCall(calls, 9, args);
         // The first error of the format string with these arguments, in the
         // order of Java's Formatter.
-        String error = cproverFormatError(format, n, arg0, arg1, arg2, arg3,
-                arg4, arg5, arg6, arg7, arg8, arg9);
+        String error = cproverFormatError(locale, format, n, arg0, arg1,
+                arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         if (error.length() != 0) {
             java.util.CProverFormat.throwError(error, args);
         }
