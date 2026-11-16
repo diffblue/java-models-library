@@ -393,7 +393,60 @@ public class Throwable implements Serializable {
      *          (which may be {@code null}).
      */
     public String getMessage() {
+        // DIFFBLUE MODEL LIBRARY
+        if (cproverJvmKind != 0) {
+            if (!cproverJvmMessageMade) {
+                cproverJvmMessage = cproverJvmMessage();
+                cproverJvmMessageMade = true;
+            }
+            return cproverJvmMessage;
+        }
         return detailMessage;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // JBMC sets these fields in the exceptions that it throws for the
+    // bytecode (java_bytecode_instrument, with --throw-runtime-exceptions):
+    // their message is that of the JVM of the version that runs the program
+    // (measured on Java 8 to 25), made when it is first asked for.
+    // The kinds: 1 ArrayIndexOutOfBoundsException (of the index and the
+    // length of the array), 2 ArithmeticException, 3
+    // NegativeArraySizeException (of the length), 4 ClassCastException, 5
+    // NullPointerException.
+    int cproverJvmKind;
+    int cproverJvmIndex;
+    int cproverJvmLength;
+    private String cproverJvmMessage;
+    private boolean cproverJvmMessageMade;
+
+    private String cproverJvmMessage() {
+        switch (cproverJvmKind) {
+        case 1:
+            if (CProverRuntime.version() <= 10) {
+                return "" + cproverJvmIndex;
+            }
+            return "Index " + cproverJvmIndex + " out of bounds for length "
+                + cproverJvmLength;
+        case 2:
+            return "/ by zero";
+        case 3:
+            if (CProverRuntime.version() <= 10) {
+                return null;
+            }
+            return "" + cproverJvmLength;
+        case 4:
+            // (the classes, from Java 9 with their modules and from Java 11
+            // with their class loaders)
+            return CProver.nondetWithoutNull("");
+        default:
+            // (from Java 14 a helpful message, by default from Java 15,
+            // which names the variables of the bytecode; a JVM option may
+            // switch it off)
+            if (CProverRuntime.version() <= 13 || CProver.nondetBoolean()) {
+                return null;
+            }
+            return CProver.nondetWithoutNull("");
+        }
     }
 
     /**
