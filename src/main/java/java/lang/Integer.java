@@ -396,8 +396,10 @@ public final class Integer extends Number implements Comparable<Integer> {
     public static int parseInt(String s, int radix)
                 throws NumberFormatException
     {
+        // DIFFBLUE MODEL LIBRARY: the messages of each version (the model
+        // said "... isn't a valid integer")
         if (s == null) {
-            throw new NumberFormatException("null");
+            throw CProverChecks.nullNumberString();
         }
 
         if (radix < Character.MIN_RADIX) {
@@ -411,7 +413,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         }
 
         if(!CProverString.isValidInt(s, radix)) {
-            throw new NumberFormatException(s + " isn't a valid integer");
+            throw CProverChecks.forInputString(s, radix);
         }
 
         return CProverString.parseInt(s, radix);
@@ -483,8 +485,13 @@ public final class Integer extends Number implements Comparable<Integer> {
      */
     public static int parseUnsignedInt(String s, int radix)
                 throws NumberFormatException {
+        // DIFFBLUE MODEL LIBRARY: the messages and the order of the checks
+        // of each version (Java 22 checks the radix first)
         if (s == null)  {
-            throw new NumberFormatException("null");
+            throw CProverChecks.nullNumberString();
+        }
+        if (CProverRuntime.version() >= 22) {
+            CProverChecks.checkRadix(radix);
         }
 
         int len = s.length();
@@ -510,7 +517,7 @@ public final class Integer extends Number implements Comparable<Integer> {
                 }
             }
         } else {
-            throw NumberFormatException.forInputString(s);
+            throw CProverChecks.forInputString(s, radix);
         }
     }
 

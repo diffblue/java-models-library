@@ -470,8 +470,10 @@ public final class Long extends Number implements Comparable<Long> {
     public static long parseLong(String s, int radix)
               throws NumberFormatException
     {
+        // DIFFBLUE MODEL LIBRARY: the messages of each version (the model
+        // said "... isn't a valid long")
         if (s == null) {
-            throw new NumberFormatException("null");
+            throw CProverChecks.nullNumberString();
         }
 
         if (radix < Character.MIN_RADIX) {
@@ -483,7 +485,7 @@ public final class Long extends Number implements Comparable<Long> {
                                             " greater than Character.MAX_RADIX");
         }
         if (!CProverString.isValidLong(s, radix)) {
-            throw new NumberFormatException(s + " isn't a valid long");
+            throw CProverChecks.forInputString(s, radix);
         }
 
         return CProverString.parseLong(s, radix);
@@ -562,8 +564,13 @@ public final class Long extends Number implements Comparable<Long> {
      */
     public static long parseUnsignedLong(String s, int radix)
                 throws NumberFormatException {
+        // DIFFBLUE MODEL LIBRARY: the messages and the order of the checks
+        // of each version (Java 22 checks the radix first)
         if (s == null)  {
-            throw new NumberFormatException("null");
+            throw CProverChecks.nullNumberString();
+        }
+        if (CProverRuntime.version() >= 22) {
+            CProverChecks.checkRadix(radix);
         }
 
         int len = s.length();
@@ -608,7 +615,7 @@ public final class Long extends Number implements Comparable<Long> {
                 return result;
             }
         } else {
-            throw NumberFormatException.forInputString(s);
+            throw CProverChecks.forInputString(s, radix);
         }
     }
 

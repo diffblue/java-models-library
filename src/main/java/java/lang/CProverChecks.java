@@ -172,4 +172,39 @@ final class CProverChecks {
         return new IllegalArgumentException(
             "Not a valid Unicode code point: 0x" + upperHex(codePoint));
     }
+
+    /**
+     * The NumberFormatException of the parse of a null string: "null" up
+     * to Java 16, "Cannot parse null string" from 17.
+     */
+    static NumberFormatException nullNumberString() {
+        if (CProverRuntime.version() <= 16) {
+            return new NumberFormatException("null");
+        }
+        return new NumberFormatException("Cannot parse null string");
+    }
+
+    /**
+     * NumberFormatException.forInputString: from Java 12 with the radix
+     * where it is not 10.
+     */
+    static NumberFormatException forInputString(String s, int radix) {
+        String message = "For input string: \"" + s + "\"";
+        if (radix != 10 && CProverRuntime.version() >= 12) {
+            message = message + " under radix " + radix;
+        }
+        return new NumberFormatException(message);
+    }
+
+    /** The checks of the radix of the parse methods. */
+    static void checkRadix(int radix) {
+        if (radix < Character.MIN_RADIX) {
+            throw new NumberFormatException("radix " + radix
+                + " less than Character.MIN_RADIX");
+        }
+        if (radix > Character.MAX_RADIX) {
+            throw new NumberFormatException("radix " + radix
+                + " greater than Character.MAX_RADIX");
+        }
+    }
 }
