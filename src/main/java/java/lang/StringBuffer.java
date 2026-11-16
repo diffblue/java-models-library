@@ -452,6 +452,11 @@ import org.cprover.CProverString;
         // toStringCache = null;
         // super.append(s, start, end);
         // return this;
+        // DIFFBLUE MODEL LIBRARY: a null s stands for "null" (in a call of
+        // its own, so that s keeps a single target where it is not null)
+        if (s == null) {
+            return append("null", start, end);
+        }
         if ((start < 0) || (start > end) || (end > s.length())) {
             throw new IndexOutOfBoundsException();
         }
