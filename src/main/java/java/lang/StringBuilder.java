@@ -91,622 +91,529 @@ public final class StringBuilder
     extends AbstractStringBuilder
     implements java.io.Serializable, CharSequence
 {
-
-    /** use serialVersionUID for interoperability */
     static final long serialVersionUID = 4383685877147921099L;
 
-    /**
-     * Constructs a string builder with no characters in it and an
-     * initial capacity of 16 characters.
-     *
-     * @diffblue.fullSupport
-     */
+    // DIFFBLUE MODEL LIBRARY
+    // The model follows AbstractStringBuilder of Java 8 to 25: its checks,
+    // their exceptions and messages (CProverChecks), and "null" for null
+    // arguments. The string solver does the rest: the methods marked
+    // "Handled internally by CBMC" and the private cprover* methods are
+    // replaced by JBMC (java_string_library_preprocess).
+
+    /** Handled internally by CBMC: the empty sequence. */
     public StringBuilder() {
-        // DIFFBLUE MODEL LIBRARY modelled internally in CBMC
-        // super(16);
     }
 
-    /**
-     * Constructs a string builder with no characters in it and an
-     * initial capacity specified by the {@code capacity} argument.
-     *
-     * @param      capacity  the initial capacity.
-     * @throws     NegativeArraySizeException  if the {@code capacity}
-     *               argument is less than {@code 0}.
-     *
-     * @diffblue.noSupport
-     */
+    /** The empty sequence, after the check of the capacity. */
     public StringBuilder(int capacity) {
-        CProver.notModelled();
-        // super(capacity);
+        this();
+        if (capacity < 0) {
+            // (Java allocates an array of the capacity)
+            throw new NegativeArraySizeException(
+                CProverChecks.negativeSizeMessage(capacity));
+        }
     }
 
-    /**
-     * Constructs a string builder initialized to the contents of the
-     * specified string. The initial capacity of the string builder is
-     * {@code 16} plus the length of the string argument.
-     *
-     * @param   str   the initial contents of the buffer.
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
+    /** Handled internally by CBMC: a copy of {@code str}. */
     public StringBuilder(String str) {
-        // DIFFBLUE MODEL LIBRARY modelled internally in CBMC
-        // super(str.length() + 16);
-        // append(str);
     }
 
-    /**
-     * Constructs a string builder that contains the same characters
-     * as the specified {@code CharSequence}. The initial capacity of
-     * the string builder is {@code 16} plus the length of the
-     * {@code CharSequence} argument.
-     *
-     * @param      seq   the sequence to copy.
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
     public StringBuilder(CharSequence seq) {
-        append(seq);
-        // this(seq.length() + 16);
-        // append(seq);
+        this(seq.toString());
     }
 
-    /**
-     * @diffblue.limitedSupport
-     * This method can be slow to generate tests due to TG-2866 and is
-     * also limited by which {@code toString()} methods have been modelled.
-     */
-    @Override
+    public int compareTo(StringBuilder another) {
+        return toString().compareTo(another.toString());
+    }
+
+    /** Handled internally by CBMC. */
+    public int length() {
+        return CProver.nondetInt();
+    }
+
+    public int capacity() {
+        // (any capacity that holds the sequence)
+        int capacity = CProver.nondetInt();
+        CProver.assume(capacity >= length());
+        return capacity;
+    }
+
+    public void ensureCapacity(int minimumCapacity) {
+    }
+
+    public void trimToSize() {
+    }
+
+    public void setLength(int newLength) {
+        if (newLength < 0) {
+            throw new StringIndexOutOfBoundsException(newLength);
+        }
+        cproverSetLength(newLength);
+    }
+
+    public char charAt(int index) {
+        if (index < 0 || index >= length()) {
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(index, length());
+        }
+        return cproverCharAt(index);
+    }
+
+    public int codePointAt(int index) {
+        if (index < 0 || index >= length()) {
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(index, length());
+        }
+        return cproverCodePointAt(index);
+    }
+
+    public int codePointBefore(int index) {
+        int i = index - 1;
+        if (i < 0 || i >= length()) {
+            if (CProverRuntime.version() <= 17) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(i, length());
+        }
+        return cproverCodePointBefore(index);
+    }
+
+    public int codePointCount(int beginIndex, int endIndex) {
+        if (beginIndex < 0 || endIndex > length() || beginIndex > endIndex) {
+            if (CProverRuntime.version() <= 17) {
+                throw new IndexOutOfBoundsException();
+            }
+            throw new IndexOutOfBoundsException(CProverChecks.rangeMessage(
+                beginIndex, endIndex, length()));
+        }
+        return cproverCodePointCount(beginIndex, endIndex);
+    }
+
+    public int offsetByCodePoints(int index, int codePointOffset) {
+        if (index < 0 || index > length()) {
+            throw new IndexOutOfBoundsException();
+        }
+        return toString().offsetByCodePoints(index, codePointOffset);
+    }
+
+    public void getChars(int srcBegin, int srcEnd, char[] dst,
+                              int dstBegin) {
+        int count = length();
+        if (CProverChecks.java8()) {
+            if (srcBegin < 0) {
+                throw new StringIndexOutOfBoundsException(srcBegin);
+            }
+            if ((srcEnd < 0) || (srcEnd > count)) {
+                throw new StringIndexOutOfBoundsException(srcEnd);
+            }
+            if (srcBegin > srcEnd) {
+                throw new StringIndexOutOfBoundsException(
+                    "srcBegin > srcEnd");
+            }
+            // (System.arraycopy)
+            int n = srcEnd - srcBegin;
+            if (dstBegin < 0 || dstBegin > dst.length - n) {
+                throw new ArrayIndexOutOfBoundsException();
+            }
+        } else {
+            CProverChecks.checkRangeSIOOBE(srcBegin, srcEnd, count);
+            int n = srcEnd - srcBegin;
+            CProverChecks.checkRange(dstBegin, dstBegin + n, dst.length);
+        }
+        for (int i = srcBegin; i < srcEnd; i++) {
+            dst[dstBegin + i - srcBegin] = cproverCharAt(i);
+        }
+    }
+
+    public void setCharAt(int index, char ch) {
+        if (index < 0 || index >= length()) {
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(index, length());
+        }
+        cproverSetCharAt(index, ch);
+    }
+
     public StringBuilder append(Object obj) {
-        // return append(String.valueOf(obj));
-        String temp = (obj == null) ? "null" : obj.toString();
-        return append(temp);
+        return append(String.valueOf(obj));
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
+    /** Handled internally by CBMC (a null str appends "null"). */
     public StringBuilder append(String str) {
-        // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
-        // super.append(str);
-        // return this;
-        return CProver.nondetWithNullForNotModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
-    /**
-     * Appends the specified {@code StringBuffer} to this sequence.
-     * <p>
-     * The characters of the {@code StringBuffer} argument are appended,
-     * in order, to this sequence, increasing the
-     * length of this sequence by the length of the argument.
-     * If {@code sb} is {@code null}, then the four characters
-     * {@code "null"} are appended to this sequence.
-     * <p>
-     * Let <i>n</i> be the length of this character sequence just prior to
-     * execution of the {@code append} method. Then the character at index
-     * <i>k</i> in the new character sequence is equal to the character at
-     * index <i>k</i> in the old character sequence, if <i>k</i> is less than
-     * <i>n</i>; otherwise, it is equal to the character at index <i>k-n</i>
-     * in the argument {@code sb}.
-     *
-     * @param   sb   the {@code StringBuffer} to append.
-     * @return  a reference to this object.
-     *
-     * @diffblue.noSupport
-     */
+    /** Handled internally by CBMC (a null sb appends "null"). */
     public StringBuilder append(StringBuffer sb) {
-        // super.append(sb);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(CharSequence s) {
+        if (s == null) {
+            return append("null");
+        }
         return append(s.toString());
-        // super.append(s);
-        // return this;
     }
 
-    /**
-     * @throws     IndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * Thrown exception has no message.
-     * @diffblue.untested Only exception throwing is tested.
-    */
-    @Override
     public StringBuilder append(CharSequence s, int start, int end) {
-        // super.append(s, start, end);
-        // return this;
-        // DIFFBLUE MODEL LIBRARY: a null s stands for "null" (in a call of
-        // its own, so that s keeps a single target where it is not null)
+        // (a null s stands for "null", in a call of its own, so that s
+        // keeps a single target where it is not null)
         if (s == null) {
             return append("null", start, end);
         }
-        if ((start < 0) || (start > end) || (end > s.length())) {
-            throw new IndexOutOfBoundsException();
+        if (CProverChecks.java8()) {
+            if ((start < 0) || (start > end) || (end > s.length())) {
+                throw new IndexOutOfBoundsException(
+                    "start " + start + ", end " + end + ", s.length() "
+                    + s.length());
+            }
+        } else {
+            CProverChecks.checkRange(start, end, s.length());
         }
-
-        return CProverString.append(this, s, start, end);
+        return append(CProverString.substring(s.toString(), start, end));
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(char[] str) {
-        // DIFFBLUE MODEL LIBRARY
-        String string = CProverString.ofCharArray(str, 0, str.length);
-        return append(string);
-        // super.append(str);
-        // return this;
+        return append(CProverString.ofCharArray(str, 0, str.length));
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(char[] str, int offset, int len) {
-        // DIFFBLUE MODEL LIBRARY
-        String string = new String(str, offset, len);
-        return append(string);
-        // super.append(str, offset, len);
-        // return this;
+        int end = offset + len;
+        if (CProverChecks.java8()) {
+            // (System.arraycopy)
+            if (offset < 0 || len < 0 || offset > str.length - len) {
+                throw new ArrayIndexOutOfBoundsException();
+            }
+        } else {
+            CProverChecks.checkRange(offset, end, str.length);
+        }
+        return append(CProverString.ofCharArray(str, offset, len));
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(boolean b) {
-        // super.append(b);
-        // return this;
-        return append(String.valueOf(b));
+        if (b) {
+            return append("true");
+        }
+        return append("false");
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
+    /** Handled internally by CBMC. */
     public StringBuilder append(char c) {
-        // super.append(c);
-        // return this;
-        return append(String.valueOf(c));
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(int i) {
-        // super.append(i);
-        // return this;
         return append(String.valueOf(i));
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
+    public StringBuilder appendCodePoint(int codePoint) {
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw CProverChecks.invalidCodePoint(codePoint);
+        }
+        return cproverAppendCodePoint(codePoint);
+    }
+
     public StringBuilder append(long lng) {
-        // super.append(lng);
-        // return this;
         return append(String.valueOf(lng));
     }
 
-    /**
-     * @diffblue.limitedSupport
-     * Result string is an approximate the value.
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(float f) {
-        // super.append(f);
-        // return this;
         return append(String.valueOf(f));
     }
 
-    /**
-     * @diffblue.limitedSupport
-     * Result string is an approximate the value.
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder append(double d) {
-        // super.append(d);
-        // return this;
         return append(String.valueOf(d));
     }
 
-    /**
-     * @since 1.5
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
-    public StringBuilder appendCodePoint(int codePoint) {
-        // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
-        // super.appendCodePoint(codePoint);
-        // return this;
-        return CProver.nondetWithNullForNotModelled();
-    }
-
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception throwing is tested.
-     */
-    @Override
     public StringBuilder delete(int start, int end) {
-        // super.delete(start, end);
-        // return this;
-        if (start < 0)
-            throw new StringIndexOutOfBoundsException(start);
-        if (end > this.length())
-            end = this.length();
-        if (start > end)
-            throw new StringIndexOutOfBoundsException();
-        return CProverString.delete(this, start, end);
+        int count = length();
+        if (CProverChecks.java8()) {
+            if (start < 0) {
+                throw new StringIndexOutOfBoundsException(start);
+            }
+            if (end > count) {
+                end = count;
+            }
+            if (start > end) {
+                throw new StringIndexOutOfBoundsException();
+            }
+        } else {
+            if (end > count) {
+                end = count;
+            }
+            CProverChecks.checkRangeSIOOBE(start, end, count);
+        }
+        return cproverDelete(start, end);
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception support is tested.
-     * */
-    @Override
     public StringBuilder deleteCharAt(int index) {
-        // super.deleteCharAt(index);
-        // return this;
-        if ((index < 0) || (index >= this.length()))
-            throw new StringIndexOutOfBoundsException(index);
-        return CProverString.deleteCharAt(this, index);
+        if (index < 0 || index >= length()) {
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(index, length());
+        }
+        return cproverDeleteCharAt(index);
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
     public StringBuilder replace(int start, int end, String str) {
-        // super.replace(start, end, str);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        int count = length();
+        if (CProverChecks.java8()) {
+            if (start < 0) {
+                throw new StringIndexOutOfBoundsException(start);
+            }
+            if (start > count) {
+                throw new StringIndexOutOfBoundsException("start > length()");
+            }
+            if (start > end) {
+                throw new StringIndexOutOfBoundsException("start > end");
+            }
+            if (end > count) {
+                end = count;
+            }
+        } else {
+            if (end > count) {
+                end = count;
+            }
+            CProverChecks.checkRangeSIOOBE(start, end, count);
+        }
+        // (a NullPointerException for a null str)
+        int len = str.length();
+        cproverDelete(start, end);
+        return cproverInsert(start, str);
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
-    public StringBuilder insert(int index, char[] str, int offset,
-                                int len)
-    {
-        // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
-        // super.insert(index, str, offset, len);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+    public String substring(int start) {
+        return substring(start, length());
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
+    public CharSequence subSequence(int start, int end) {
+        return substring(start, end);
+    }
+
+    public String substring(int start, int end) {
+        int count = length();
+        if (CProverChecks.java8()) {
+            if (start < 0) {
+                throw new StringIndexOutOfBoundsException(start);
+            }
+            if (end > count) {
+                throw new StringIndexOutOfBoundsException(end);
+            }
+            if (start > end) {
+                throw new StringIndexOutOfBoundsException(end - start);
+            }
+        } else {
+            CProverChecks.checkRangeSIOOBE(start, end, count);
+        }
+        return cproverSubstring(start, end);
+    }
+
+    /** The check of an offset of an insert of {@code CharSequence}s. */
+    private void checkInsertOffset(int offset) {
+        if (offset < 0 || offset > length()) {
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(offset);
+            }
+            CProverChecks.checkOffset(offset, length());
+        }
+    }
+
+    public StringBuilder insert(int index, char[] str, int offset, int len) {
+        if (CProverChecks.java8()) {
+            if ((index < 0) || (index > length())) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            if ((offset < 0) || (len < 0) || (offset > str.length - len)) {
+                throw new StringIndexOutOfBoundsException(
+                    "offset " + offset + ", len " + len + ", str.length "
+                    + str.length);
+            }
+        } else {
+            checkInsertOffset(index);
+            CProverChecks.checkRangeSIOOBE(offset, offset + len, str.length);
+        }
+        return cproverInsert(index, CProverString.ofCharArray(str, offset, len));
+    }
+
     public StringBuilder insert(int offset, Object obj) {
-        // super.insert(offset, obj);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        return insert(offset, String.valueOf(obj));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, String str) {
-        // super.insert(offset, str);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, str);
+        checkInsertOffset(offset);
+        if (str == null) {
+            return cproverInsert(offset, "null");
+        }
+        return cproverInsert(offset, str);
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
     public StringBuilder insert(int offset, char[] str) {
-        // super.insert(offset, str);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        checkInsertOffset(offset);
+        return cproverInsert(offset, CProverString.ofCharArray(str, 0, str.length));
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
     public StringBuilder insert(int dstOffset, CharSequence s) {
-        // super.insert(dstOffset, s);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+        if (s == null) {
+            return insert(dstOffset, "null");
+        }
+        if (s instanceof String) {
+            return insert(dstOffset, (String) s);
+        }
+        return insert(dstOffset, s, 0, s.length());
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     */
-    @Override
-    public StringBuilder insert(int dstOffset, CharSequence s,
-                                int start, int end)
-    {
-        // super.insert(dstOffset, s, start, end);
-        // return this;
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
+    public StringBuilder insert(int dstOffset, CharSequence s, int start,
+                              int end) {
+        if (s == null) {
+            return insert(dstOffset, "null", start, end);
+        }
+        if (CProverChecks.java8()) {
+            if ((dstOffset < 0) || (dstOffset > length())) {
+                throw new IndexOutOfBoundsException("dstOffset " + dstOffset);
+            }
+            if ((start < 0) || (end < 0) || (start > end)
+                || (end > s.length())) {
+                throw new IndexOutOfBoundsException(
+                    "start " + start + ", end " + end + ", s.length() "
+                    + s.length());
+            }
+        } else {
+            CProverChecks.checkOffset(dstOffset, length());
+            CProverChecks.checkRange(start, end, s.length());
+        }
+        return cproverInsert(
+            dstOffset, CProverString.substring(s.toString(), start, end));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, boolean b) {
-        // super.insert(offset, b);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, String.valueOf(b));
+        return insert(offset, String.valueOf(b));
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, char c) {
-        // super.insert(offset, c);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new IndexOutOfBoundsException();
-        return CProverString.insert(this, offset, String.valueOf(c));
+        if (offset < 0 || offset > length()) {
+            if (CProverChecks.java8()) {
+                // (System.arraycopy)
+                throw new ArrayIndexOutOfBoundsException();
+            }
+            CProverChecks.checkOffset(offset, length());
+        }
+        return cproverInsert(offset, String.valueOf(c));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, int i) {
-        // super.insert(offset, i);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, String.valueOf(i));
+        return insert(offset, String.valueOf(i));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, long l) {
-        // super.insert(offset, l);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, String.valueOf(l));
+        return insert(offset, String.valueOf(l));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.limitedSupport
-     * Value of the floating point is approximated.
-     * @diffblue.untested Only exception throwing is tested
-     */
-    @Override
     public StringBuilder insert(int offset, float f) {
-        // super.insert(offset, f);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, String.valueOf(f));
+        return insert(offset, String.valueOf(f));
     }
 
-    /**
-     * @throws StringIndexOutOfBoundsException {@inheritDoc}
-     *
-     * @diffblue.noSupport
-     * Value of the floating point is approximated.
-     * @diffblue.untested Only exception throwing is tested
-     * @diffblue.todo Handle CProverString.insert(StringBuilder, int, double)
-     * in jbmc.
-     */
-    @Override
     public StringBuilder insert(int offset, double d) {
-        // super.insert(offset, d);
-        // return this;
-        if ((offset < 0) || (offset > length()))
-            throw new StringIndexOutOfBoundsException(offset);
-        return CProverString.insert(this, offset, String.valueOf(d));
+        return insert(offset, String.valueOf(d));
     }
 
-    /**
-     * @diffblue.noSupport
-     */
-    @Override
     public int indexOf(String str) {
-        // return super.indexOf(str);
-        CProver.notModelled();
-        return CProver.nondetInt();
+        return indexOf(str, 0);
     }
 
-    /**
-     * @diffblue.noSupport
-     */
-    @Override
     public int indexOf(String str, int fromIndex) {
-        // return super.indexOf(str, fromIndex);
-        CProver.notModelled();
-        return CProver.nondetInt();
+        // (a NullPointerException for a null str)
+        return toString().indexOf(str.toString(), fromIndex);
     }
 
-    /**
-     * @diffblue.noSupport
-     */
-    @Override
     public int lastIndexOf(String str) {
-        // return super.lastIndexOf(str);
-        CProver.notModelled();
-        return CProver.nondetInt();
+        return lastIndexOf(str, length());
     }
 
-    /**
-     * @diffblue.noSupport
-     */
-    @Override
     public int lastIndexOf(String str, int fromIndex) {
-        // return super.lastIndexOf(str, fromIndex);
-        CProver.notModelled();
-        return CProver.nondetInt();
+        return toString().lastIndexOf(str.toString(), fromIndex);
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
     public StringBuilder reverse() {
-        // super.reverse();
-        // return this;
-        int size = this.length();
-        if (size < 2)
-          return this;
-        String tmp = this.toString();
-        CProverString.delete(this, 0, size);
-        for (int i=size-1; i>=0; --i) {
-            this.append(CProverString.charAt(tmp, i));
-         }
+        // (the surrogate pairs keep their order, as in Java)
+        String s = toString();
+        int size = s.length();
+        cproverDelete(0, size);
+        int i = size - 1;
+        while (i >= 0) {
+            char c = CProverString.charAt(s, i);
+            if (Character.isLowSurrogate(c) && i > 0
+                && Character.isHighSurrogate(CProverString.charAt(s, i - 1))) {
+                append(CProverString.charAt(s, i - 1));
+                append(c);
+                i -= 2;
+            } else {
+                append(c);
+                i -= 1;
+            }
+        }
         return this;
     }
 
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    @Override
+    /** Handled internally by CBMC: a copy of the sequence. */
     public String toString() {
-        // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
-        // // Create a copy, don't share the array
-        // return new String(value, 0, count);
-        return CProver.nondetWithNullForNotModelled();
+        return CProver.nondetWithoutNullForNotModelled();
     }
 
-    /**
-     * Save the state of the {@code StringBuilder} instance to a stream
-     * (that is, serialize it).
-     *
-     * @serialData the number of characters currently stored in the string
-     *             builder ({@code int}), followed by the characters in the
-     *             string builder ({@code char[]}).   The length of the
-     *             {@code char} array may be greater than the number of
-     *             characters currently stored in the string builder, in which
-     *             case extra characters are ignored.
-     */
-    // private void writeObject(java.io.ObjectOutputStream s)
-    //     throws java.io.IOException {
-    //     s.defaultWriteObject();
-    //     s.writeInt(count);
-    //     s.writeObject(value);
-    // }
-
-    /**
-     * readObject is called to restore the state of the StringBuffer from
-     * a stream.
-     */
-    // private void readObject(java.io.ObjectInputStream s)
-    //     throws java.io.IOException, ClassNotFoundException {
-    //     s.defaultReadObject();
-    //     count = s.readInt();
-    //     value = (char[]) s.readObject();
-    // }
-
-    // DIFFBLUE MODEL LIBRARY This should be inherited from AbstractStringBuilder
-    /**
-     * @diffblue.fullSupport
-     * @diffblue.untested
-     */
-    public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
-        toString().getChars(srcBegin, srcEnd, dst, dstBegin);
+    public java.util.stream.IntStream chars() {
+        return toString().chars();
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @see    #length()
-     *
-     * @diffblue.fullSupport
-     */
-    @Override
-    public void setLength(int newLength) {
-        if (newLength < 0)
-            throw new StringIndexOutOfBoundsException(newLength);
-        CProverString.setLength(this, newLength);
+    public java.util.stream.IntStream codePoints() {
+        return toString().codePoints();
     }
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @see    #length()
-     *
-     * @diffblue.fullSupport
-     */
-    @Override
-    public void setCharAt(int index, char ch) {
-        if ((index < 0) || (index >= this.length()))
-            throw new StringIndexOutOfBoundsException(index);
-        CProverString.setCharAt(this, index, ch);
+    // The operations of the string solver (handled internally by CBMC).
+
+    private char cproverCharAt(int index) {
+        return CProver.nondetChar();
+    }
+
+    private int cproverCodePointAt(int index) {
+        return CProver.nondetInt();
+    }
+
+    private int cproverCodePointBefore(int index) {
+        return CProver.nondetInt();
+    }
+
+    private int cproverCodePointCount(int beginIndex, int endIndex) {
+        return CProver.nondetInt();
+    }
+
+    private String cproverSubstring(int start, int end) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    private StringBuilder cproverAppendCodePoint(int codePoint) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    private StringBuilder cproverInsert(int offset, String str) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    private StringBuilder cproverDelete(int start, int end) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    private StringBuilder cproverDeleteCharAt(int index) {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    private void cproverSetCharAt(int index, char ch) {
+    }
+
+    private void cproverSetLength(int newLength) {
     }
 }
