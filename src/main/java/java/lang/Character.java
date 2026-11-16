@@ -7255,7 +7255,9 @@ class Character implements java.io.Serializable, Comparable<Character> {
 
     public static String cproverGetNameRestricted(int codePoint)
     {
-      CProver.assume(codePoint >= 65 && codePoint <= 90);
+      // DIFFBLUE MODEL LIBRARY: only the names of A to Z (assumed before, so
+      // that the paths of other code points were unreachable)
+      CProverRuntime.notModelledUnless(codePoint >= 65 && codePoint <= 90);
       return "LATIN CAPITAL LETTER " + ((char) codePoint);
     }
 

@@ -1159,7 +1159,9 @@ public final class Pattern
      */
     private static void cproverAssumeIsPlainString(String regex)
     {
-        CProver.assume(
+        // (assumed before, so that the paths of other regexes were
+        // unreachable; now a failed not-modelled property)
+        java.lang.CProverRuntime.notModelledUnless(
             regex.indexOf('[') == -1 &&
             regex.indexOf(']') == -1 &&
             regex.indexOf('{') == -1 &&

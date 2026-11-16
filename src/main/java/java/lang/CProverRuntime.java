@@ -21,6 +21,16 @@ public final class CProverRuntime {
     }
 
     /**
+     * Where {@code condition} is false, the models meet a case that they do
+     * not model: JBMC reports a failed "not-modelled" property (so that the
+     * case is not assumed away silently), and goes on assuming the
+     * condition. JBMC replaces this; here, an assumption.
+     */
+    public static void notModelledUnless(boolean condition) {
+        CProver.assume(condition);
+    }
+
+    /**
      * The version of the runtime where only one may run the program
      * (JBMC's --java-version), 0 otherwise. JBMC replaces this; here, 0.
      */

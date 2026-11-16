@@ -226,13 +226,13 @@ public final class Class<T> {
             // DIFFBLUE MODEL LIBRARY: in the original JDK getSimpleBinary
             // looks for "$1", instead we looked for '$' and assume the next
             // character will be '1'
-            CProver.assume(CProverString.charAt(name, index + 1) == '1');
+            CProverRuntime.notModelledUnless(CProverString.charAt(name, index + 1) == '1');
             // DIFFBLUE MODEL LIBRARY: $1 should be preceded by a class name
-            CProver.assume(index >= 1);
+            CProverRuntime.notModelledUnless(index >= 1);
             // DIFFBLUE MODEL LIBRARY: in the original JDK getSimpleName
             // removes the digits that follow
-            CProver.assume(name.length() > index + 2);
-            CProver.assume(!isAsciiDigit(CProverString.charAt(name, index + 2)));
+            CProverRuntime.notModelledUnless(name.length() > index + 2);
+            CProverRuntime.notModelledUnless(!isAsciiDigit(CProverString.charAt(name, index + 2)));
             return CProverString.substring(name, index + 2);
         }
     }
@@ -341,7 +341,9 @@ public final class Class<T> {
         // TODO: we should throw an exception but this does not seem to work well
         // at the moment, so we will assume it does not happen instead.
         // throw new IllegalArgumentException("Not primitive type : " + s);
-        CProver.assume(false);
+        // DIFFBLUE MODEL LIBRARY (assumed false before: now a failed
+        // not-modelled property)
+        CProverRuntime.notModelledUnless(false);
         return Class.forName("");
     }
 
