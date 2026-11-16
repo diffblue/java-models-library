@@ -1086,9 +1086,18 @@ public final class Double extends Number implements Comparable<Double> {
      * @since 1.8
      */
     public static double max(double a, double b) {
-        double result = CProver.nondetDouble();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
+        }
+        if ((a == 0.0d) && (b == 0.0d)
+            && (Double.doubleToRawLongBits(a)
+                == Double.doubleToRawLongBits(-0.0d))) {
+            return b;
+        }
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1102,9 +1111,18 @@ public final class Double extends Number implements Comparable<Double> {
      * @since 1.8
      */
     public static double min(double a, double b) {
-        double result = CProver.nondetDouble();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
+        }
+        if ((a == 0.0d) && (b == 0.0d)
+            && (Double.doubleToRawLongBits(b)
+                == Double.doubleToRawLongBits(-0.0d))) {
+            return b;
+        }
+        return (a <= b) ? a : b;
     }
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */

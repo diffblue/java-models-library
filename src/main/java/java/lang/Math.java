@@ -383,22 +383,18 @@ public final class Math {
         if (a == Double.POSITIVE_INFINITY || a == 0.0) {
             return a;
         }
+        // DIFFBLUE MODEL LIBRARY: a value whose square is within a relative
+        // 2^-50 of a, which holds for the correctly rounded root (the model
+        // assumed sqrt * sqrt == a, which no double satisfies for most a, so
+        // that every path after sqrt(2) was unreachable); for tiny or huge
+        // a, where the square underflows or overflows, any positive value
         double sqrt = CProver.nondetDouble();
-        CProver.assume(sqrt >= 0);
-        CProver.assume(sqrt * sqrt == a);
-
-        // To solve the satisfiability issue, we should adapt the constraints
-        // to something like:
-        //
-        // double reMultiplied = sqrt * sqrt;
-        // CProver.assume(reMultiplied > lower);
-        // CProver.assume(reMultiplied <= upper);
-        //
-        // Where lower and upper only differ by one bit in their
-        // representation, which should ensure that they are the double values
-        // that are the closest to reMultiplied.
-        // This implementation cannot be done yet because it would require
-        // Double.doubleToRawLongBits() to be supported.
+        CProver.assume(sqrt > 0 && sqrt < Double.POSITIVE_INFINITY);
+        if (a >= 0x1p-900 && a <= 0x1p1000) {
+            double square = sqrt * sqrt;
+            CProver.assume(square >= a - a * 0x1p-50
+                && square <= a + a * 0x1p-50);
+        }
         return sqrt;
     }
 
@@ -1384,10 +1380,10 @@ public final class Math {
      * @return  the larger of {@code a} and {@code b}.
      */
     public static int max(int a, int b) {
-        // return (a >= b) ? a : b;
-        int result = CProver.nondetInt();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1401,10 +1397,10 @@ public final class Math {
      * @return  the larger of {@code a} and {@code b}.
      */
     public static long max(long a, long b) {
-        // return (a >= b) ? a : b;
-        long result = CProver.nondetLong();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a >= b) ? a : b;
     }
 
     // Use raw bit-wise conversions on guaranteed non-NaN arguments.
@@ -1426,22 +1422,17 @@ public final class Math {
      * @return  the larger of {@code a} and {@code b}.
      */
     public static float max(float a, float b) {
-        // if (a != a)
-        //     return a;   // a is NaN
-        // if ((a == 0.0f) &&
-        //     (b == 0.0f) &&
-        //     (Float.floatToRawIntBits(a) == negativeZeroFloatBits)) {
-        //     // Raw conversion ok since NaN can't map to -0.0.
-        //     return b;
-        // }
-        // return (a >= b) ? a : b;
-        if (Float.isNaN(a) || Float.isNaN(b)) {
-            return Float.NaN;
-        } else {
-            float result = CProver.nondetFloat();
-            CProver.assume((result == a || result == b) && result >= a && result >= b);
-            return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
         }
+        if ((a == 0.0f) && (b == 0.0f)
+            && (Float.floatToRawIntBits(a) == Float.floatToRawIntBits(-0.0f))) {
+            return b;
+        }
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1459,22 +1450,18 @@ public final class Math {
      * @return  the larger of {@code a} and {@code b}.
      */
     public static double max(double a, double b) {
-        // if (a != a)
-        //     return a;   // a is NaN
-        // if ((a == 0.0d) &&
-        //     (b == 0.0d) &&
-        //     (Double.doubleToRawLongBits(a) == negativeZeroDoubleBits)) {
-        //     // Raw conversion ok since NaN can't map to -0.0.
-        //     return b;
-        // }
-        // return (a >= b) ? a : b;
-        if (Double.isNaN(a) || Double.isNaN(b)) {
-            return Double.NaN;
-        } else {
-            double result = CProver.nondetDouble();
-            CProver.assume((result == a || result == b) && result >= a && result >= b);
-            return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
         }
+        if ((a == 0.0d) && (b == 0.0d)
+            && (Double.doubleToRawLongBits(a)
+                == Double.doubleToRawLongBits(-0.0d))) {
+            return b;
+        }
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1488,10 +1475,10 @@ public final class Math {
      * @return  the smaller of {@code a} and {@code b}.
      */
     public static int min(int a, int b) {
-        // return (a <= b) ? a : b;
-        int result = CProver.nondetInt();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a <= b) ? a : b;
     }
 
     /**
@@ -1505,10 +1492,10 @@ public final class Math {
      * @return  the smaller of {@code a} and {@code b}.
      */
     public static long min(long a, long b) {
-        // return (a <= b) ? a : b;
-        long result = CProver.nondetLong();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a <= b) ? a : b;
     }
 
     /**
@@ -1526,22 +1513,17 @@ public final class Math {
      * @return  the smaller of {@code a} and {@code b}.
      */
     public static float min(float a, float b) {
-        // if (a != a)
-        //     return a;   // a is NaN
-        // if ((a == 0.0f) &&
-        //     (b == 0.0f) &&
-        //     (Float.floatToRawIntBits(b) == negativeZeroFloatBits)) {
-        //     // Raw conversion ok since NaN can't map to -0.0.
-        //     return b;
-        // }
-        // return (a <= b) ? a : b;
-        if (Float.isNaN(a) || Float.isNaN(b)) {
-            return Float.NaN;
-        } else {
-            float result = CProver.nondetFloat();
-            CProver.assume((result == a || result == b) && result <= a && result <= b);
-            return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
         }
+        if ((a == 0.0f) && (b == 0.0f)
+            && (Float.floatToRawIntBits(b) == Float.floatToRawIntBits(-0.0f))) {
+            return b;
+        }
+        return (a <= b) ? a : b;
     }
 
     /**
@@ -1559,22 +1541,18 @@ public final class Math {
      * @return  the smaller of {@code a} and {@code b}.
      */
     public static double min(double a, double b) {
-        // if (a != a)
-        //     return a;   // a is NaN
-        // if ((a == 0.0d) &&
-        //     (b == 0.0d) &&
-        //     (Double.doubleToRawLongBits(b) == negativeZeroDoubleBits)) {
-        //     // Raw conversion ok since NaN can't map to -0.0.
-        //     return b;
-        // }
-        // return (a <= b) ? a : b;
-        if (Double.isNaN(a) || Double.isNaN(b)) {
-            return Double.NaN;
-        } else {
-            double result = CProver.nondetDouble();
-            CProver.assume((result == a || result == b) && result <= a && result <= b);
-            return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
         }
+        if ((a == 0.0d) && (b == 0.0d)
+            && (Double.doubleToRawLongBits(b)
+                == Double.doubleToRawLongBits(-0.0d))) {
+            return b;
+        }
+        return (a <= b) ? a : b;
     }
 
     /**

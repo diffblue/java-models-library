@@ -1364,9 +1364,10 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @since 1.8
      */
     public static int max(int a, int b) {
-        int result = CProver.nondetInt();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1380,9 +1381,10 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @since 1.8
      */
     public static int min(int a, int b) {
-        int result = CProver.nondetInt();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a <= b) ? a : b;
     }
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */

@@ -1487,9 +1487,10 @@ public final class Long extends Number implements Comparable<Long> {
      * @since 1.8
      */
     public static long max(long a, long b) {
-        long result = CProver.nondetLong();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -1503,9 +1504,10 @@ public final class Long extends Number implements Comparable<Long> {
      * @since 1.8
      */
     public static long min(long a, long b) {
-        long result = CProver.nondetLong();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        return (a <= b) ? a : b;
     }
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */

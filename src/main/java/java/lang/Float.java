@@ -983,9 +983,17 @@ public final class Float extends Number implements Comparable<Float> {
      * @since 1.8
      */
     public static float max(float a, float b) {
-        float result = CProver.nondetFloat();
-        CProver.assume((result == a || result == b) && result >= a && result >= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
+        }
+        if ((a == 0.0f) && (b == 0.0f)
+            && (Float.floatToRawIntBits(a) == Float.floatToRawIntBits(-0.0f))) {
+            return b;
+        }
+        return (a >= b) ? a : b;
     }
 
     /**
@@ -999,9 +1007,17 @@ public final class Float extends Number implements Comparable<Float> {
      * @since 1.8
      */
     public static float min(float a, float b) {
-        float result = CProver.nondetFloat();
-        CProver.assume((result == a || result == b) && result <= a && result <= b);
-        return result;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model chose any result
+        // that is a or b and the larger or smaller: none for a NaN, and
+        // symex could not fold the choice)
+        if (a != a) {
+            return a;
+        }
+        if ((a == 0.0f) && (b == 0.0f)
+            && (Float.floatToRawIntBits(b) == Float.floatToRawIntBits(-0.0f))) {
+            return b;
+        }
+        return (a <= b) ? a : b;
     }
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
