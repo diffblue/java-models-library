@@ -495,7 +495,10 @@ public final class Float extends Number implements Comparable<Float> {
      * @since 1.8
      */
      public static boolean isFinite(float f) {
-        return FloatConsts.MIN_VALUE <= f && f <= FloatConsts.MAX_VALUE;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model compared with
+        // MIN_VALUE, the least positive value, so negative values were not
+        // finite)
+        return Math.abs(f) <= FloatConsts.MAX_VALUE;
     }
 
     /**

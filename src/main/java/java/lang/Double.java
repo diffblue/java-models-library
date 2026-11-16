@@ -590,7 +590,10 @@ public final class Double extends Number implements Comparable<Double> {
      * @since 1.8
      */
     public static boolean isFinite(double d) {
-        return DoubleConsts.MIN_VALUE <= d && d <= DoubleConsts.MAX_VALUE;
+        // DIFFBLUE MODEL LIBRARY: as the JDK (the model compared with
+        // MIN_VALUE, the least positive value, so negative values were not
+        // finite)
+        return Math.abs(d) <= DoubleConsts.MAX_VALUE;
     }
 
     /**

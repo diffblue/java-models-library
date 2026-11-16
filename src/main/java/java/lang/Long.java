@@ -338,8 +338,17 @@ public final class Long extends Number implements Comparable<Long> {
      */
     // DIFFBLUE MODEL LIBRARY: Handled internally by CBMC
     static String toUnsignedString0(long val, int shift) {
-        CProver.assume(0 <= val && val <= Integer.MAX_VALUE);
-        return Integer.toString((int)val, 1 << shift);
+        // DIFFBLUE MODEL LIBRARY: by the signed digits of the solver (the
+        // model assumed that val is from 0 to Integer.MAX_VALUE, which made
+        // every other path unreachable)
+        int radix = 1 << shift;
+        if (val >= 0) {
+            return CProverString.toString(val, radix);
+        }
+        // the digits of the value without its last one, then that one
+        int last = (int) (val & (radix - 1));
+        return CProverString.toString(val >>> shift, radix)
+            + CProverString.charAt("0123456789abcdefghijklmnopqrstuv", last);
     }
 
     /**
