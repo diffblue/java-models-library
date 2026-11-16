@@ -551,8 +551,9 @@ public final class Double extends Number implements Comparable<Double> {
      * @diffblue.noSupport
      */
     public static double parseDouble(String s) throws NumberFormatException {
-        CProver.notModelled();
-        return CProver.nondetDouble();
+        // DIFFBLUE MODEL LIBRARY (any double before, without the
+        // NumberFormatException of a string that is not a number)
+        return CProverFloatParse.parseDouble(s);
     }
 
     /**

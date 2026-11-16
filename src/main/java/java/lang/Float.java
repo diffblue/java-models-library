@@ -456,7 +456,9 @@ public final class Float extends Number implements Comparable<Float> {
      * @since 1.2
      */
     public static float parseFloat(String s) throws NumberFormatException {
-        return CProver.nondetFloat(); //The function is handled by cbmc internally
+        // DIFFBLUE MODEL LIBRARY (any float before, without the
+        // NumberFormatException of a string that is not a number)
+        return CProverFloatParse.parseFloat(s);
     }
 
     /**
