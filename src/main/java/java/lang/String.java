@@ -4277,8 +4277,96 @@ public final class String
             String arg6, String arg7, String arg8, String arg9, String call0,
             String call1, String call2, String call3, String call4,
             String call5, String call6, String call7, String call8,
-            String call9) {
+            String call9, String number0, String number1, String number2,
+            String number3, String number4, String number5, String number6,
+            String number7, String number8, String number9) {
         return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The numbers of a format string whose strings the models give for a
+     * BigInteger or a BigDecimal: four characters for each of the first ten
+     * %d, %o, %x, %e, %f and %g, the argument (from 1, 0 for none), the
+     * conversion in lower case, the precision plus 1 (0 for none, 0xffff
+     * beyond the range) and the flags. JBMC replaces this by the string
+     * solver's (any string here).
+     */
+    static String cproverFormatNumbers(String format) {
+        return CProver.nondetWithoutNull("");
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The string of the number {@code k} of {@code numbers} (see
+     * cproverFormatNumbers) of {@code args}: Formatter's string of the
+     * number of a BigInteger or a BigDecimal before its decoration, with
+     * its sign ("" for another argument, whose string the solver gives).
+     */
+    static String cproverFormatNumber(String numbers, int k, Object[] args) {
+        if (numbers.length() < 4 * k + 4) {
+            return "";
+        }
+        int position = CProverString.charAt(numbers, 4 * k) - 1;
+        char c = CProverString.charAt(numbers, 4 * k + 1);
+        int precision = CProverString.charAt(numbers, 4 * k + 2) - 1;
+        int flags = CProverString.charAt(numbers, 4 * k + 3);
+        // each argument in turn (see cproverFormatCall)
+        String result = "";
+        for (int i = 0; i < args.length; i++) {
+            if (i == position) {
+                result = cproverFormatNumberOf(args[i], c, precision, flags);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * DIFFBLUE MODEL LIBRARY
+     * The string of {@code obj} for the conversion {@code c} (see
+     * cproverFormatNumber), as Formatter.print(BigInteger) and
+     * print(BigDecimal) give it before its sign, zeros, separators, case
+     * and width, with a '-' for a negative value: for a BigInteger, the
+     * digits of its absolute value in the radix; for a BigDecimal, those of
+     * its rounded absolute value with a point (and for %e an exponent).
+     */
+    static String cproverFormatNumberOf(Object obj, char c, int precision,
+            int flags) {
+        if (obj instanceof java.math.BigInteger) {
+            if (!CProver.classIdentifier(obj).equals(
+                    "java.math.BigInteger")) {
+                // a subclass, whose toString Formatter calls (on abs())
+                return CProver.nondetWithoutNull("");
+            }
+            java.math.BigInteger v = (java.math.BigInteger) obj;
+            if (c == 'd') {
+                return v.toString();
+            }
+            if (c == 'o') {
+                return v.toString(8);
+            }
+            if (c == 'x') {
+                return v.toString(16);
+            }
+            return "";
+        }
+        if (obj instanceof java.math.BigDecimal) {
+            if (!CProver.classIdentifier(obj).equals(
+                    "java.math.BigDecimal")
+                    || precision >= 0xfffe) {
+                // a subclass, whose methods Formatter calls, or a precision
+                // beyond the range of int
+                return CProver.nondetWithoutNull("");
+            }
+            if (c == 'e' || c == 'f' || c == 'g') {
+                // (the flag # is bit 2 of Formatter's flags)
+                return java.math.CProverMath.formatDecimal(
+                    (java.math.BigDecimal) obj, c, precision,
+                    (flags & 4) != 0);
+            }
+            return "";
+        }
+        return "";
     }
 
     /**
@@ -4387,6 +4475,18 @@ public final class String
         String call7 = cproverFormatCall(calls, 7, args);
         String call8 = cproverFormatCall(calls, 8, args);
         String call9 = cproverFormatCall(calls, 9, args);
+        // The strings of the BigIntegers and BigDecimals.
+        String numbers = cproverFormatNumbers(format);
+        String number0 = cproverFormatNumber(numbers, 0, args);
+        String number1 = cproverFormatNumber(numbers, 1, args);
+        String number2 = cproverFormatNumber(numbers, 2, args);
+        String number3 = cproverFormatNumber(numbers, 3, args);
+        String number4 = cproverFormatNumber(numbers, 4, args);
+        String number5 = cproverFormatNumber(numbers, 5, args);
+        String number6 = cproverFormatNumber(numbers, 6, args);
+        String number7 = cproverFormatNumber(numbers, 7, args);
+        String number8 = cproverFormatNumber(numbers, 8, args);
+        String number9 = cproverFormatNumber(numbers, 9, args);
         // The first error of the format string with these arguments, in the
         // order of Java's Formatter.
         String error = cproverFormatError(locale, format, n, arg0, arg1,
@@ -4397,7 +4497,9 @@ public final class String
         // (What the arguments beyond the tenth give is not modelled.)
         return cproverFormatWith(locale, format, arg0, arg1, arg2, arg3, arg4,
                 arg5, arg6, arg7, arg8, arg9, call0, call1, call2, call3, call4,
-                call5, call6, call7, call8, call9);
+                call5, call6, call7, call8, call9, number0, number1, number2,
+                number3, number4, number5, number6, number7, number8,
+                number9);
     }
 
 
