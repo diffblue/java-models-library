@@ -4566,9 +4566,12 @@ public final class String
      * @diffblue.todo add this by using the original implementation
      */
     public static String valueOf(Object obj) {
-        // DIFFBLUE MODEL LIBRARY This is treated internally in CBMC
-        // return (obj == null) ? "null" : obj.toString();
-        return CProver.nondetWithoutNullForNotModelled();
+        // DIFFBLUE MODEL LIBRARY (any string before: JBMC does not replace
+        // this)
+        if (obj == null) {
+            return "null";
+        }
+        return obj.toString();
     }
 
     /**
