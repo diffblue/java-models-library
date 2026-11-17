@@ -25,7 +25,6 @@
 
 package java.lang;
 
-import org.cprover.CProver;
 import org.cprover.CProverString;
 
 /**
@@ -165,7 +164,10 @@ public final class Byte extends Number implements Comparable<Byte> {
      *                  contain a parsable {@code byte}.
      */
     public static byte parseByte(String s) throws NumberFormatException {
-        return CProver.nondetByte(); //The function is handled by cbmc internally
+        // DIFFBLUE MODEL LIBRARY
+        // (the model returned any value and never threw: nothing handles
+        // the method internally)
+        return parseByte(s, 10);
     }
 
     /**

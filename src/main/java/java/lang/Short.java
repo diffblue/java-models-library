@@ -25,7 +25,6 @@
 
 package java.lang;
 
-import org.cprover.CProver;
 import org.cprover.CProverString;
 
 /**
@@ -145,7 +144,10 @@ public final class Short extends Number implements Comparable<Short> {
      *          contain a parsable {@code short}.
      */
     public static short parseShort(String s) throws NumberFormatException {
-        return CProver.nondetShort(); //The function is handled by cbmc internally
+        // DIFFBLUE MODEL LIBRARY
+        // (the model returned any value and never threw: nothing handles
+        // the method internally)
+        return parseShort(s, 10);
     }
 
     /**
