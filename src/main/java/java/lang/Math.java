@@ -871,14 +871,13 @@ public final class Math {
      * @since 1.8
      */
     public static int addExact(int x, int y) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // int r = x + y;
-        // // HD 2-12 Overflow iff both arguments have the opposite sign of the result
-        // if (((x ^ r) & (y ^ r)) < 0) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        int r = x + y;
+        // HD 2-12 Overflow iff both arguments have the opposite sign of the result
+        if (((x ^ r) & (y ^ r)) < 0) {
+            throw new ArithmeticException("integer overflow");
+        }
+        return r;
     }
 
     /**
@@ -892,14 +891,13 @@ public final class Math {
      * @since 1.8
      */
     public static long addExact(long x, long y) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // long r = x + y;
-        // // HD 2-12 Overflow iff both arguments have the opposite sign of the result
-        // if (((x ^ r) & (y ^ r)) < 0) {
-        //     throw new ArithmeticException("long overflow");
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        long r = x + y;
+        // HD 2-12 Overflow iff both arguments have the opposite sign of the result
+        if (((x ^ r) & (y ^ r)) < 0) {
+            throw new ArithmeticException("long overflow");
+        }
+        return r;
     }
 
     /**
@@ -913,15 +911,14 @@ public final class Math {
      * @since 1.8
      */
     public static int subtractExact(int x, int y) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // int r = x - y;
-        // // HD 2-12 Overflow iff the arguments have different signs and
-        // // the sign of the result is different than the sign of x
-        // if (((x ^ y) & (x ^ r)) < 0) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        int r = x - y;
+        // HD 2-12 Overflow iff the arguments have different signs and
+        // the sign of the result is different than the sign of x
+        if (((x ^ y) & (x ^ r)) < 0) {
+            throw new ArithmeticException("integer overflow");
+        }
+        return r;
     }
 
     /**
@@ -935,15 +932,14 @@ public final class Math {
      * @since 1.8
      */
     public static long subtractExact(long x, long y) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // long r = x - y;
-        // // HD 2-12 Overflow iff the arguments have different signs and
-        // // the sign of the result is different than the sign of x
-        // if (((x ^ y) & (x ^ r)) < 0) {
-        //     throw new ArithmeticException("long overflow");
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        long r = x - y;
+        // HD 2-12 Overflow iff the arguments have different signs and
+        // the sign of the result is different than the sign of x
+        if (((x ^ y) & (x ^ r)) < 0) {
+            throw new ArithmeticException("long overflow");
+        }
+        return r;
     }
 
     /**
@@ -957,13 +953,12 @@ public final class Math {
      * @since 1.8
      */
     public static int multiplyExact(int x, int y) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // long r = (long)x * (long)y;
-        // if ((int)r != r) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        // return (int)r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        long r = (long)x * (long)y;
+        if ((int)r != r) {
+            throw new ArithmeticException("integer overflow");
+        }
+        return (int)r;
     }
 
     /**
@@ -977,21 +972,20 @@ public final class Math {
      * @since 1.8
      */
     public static long multiplyExact(long x, long y) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // long r = x * y;
-        // long ax = Math.abs(x);
-        // long ay = Math.abs(y);
-        // if (((ax | ay) >>> 31 != 0)) {
-        //     // Some bits greater than 2^31 that might cause overflow
-        //     // Check the result using the divide operator
-        //     // and check for the special case of Long.MIN_VALUE * -1
-        //    if (((y != 0) && (r / y != x)) ||
-        //        (x == Long.MIN_VALUE && y == -1)) {
-        //         throw new ArithmeticException("long overflow");
-        //     }
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        long r = x * y;
+        long ax = Math.abs(x);
+        long ay = Math.abs(y);
+        if (((ax | ay) >>> 31 != 0)) {
+            // Some bits greater than 2^31 that might cause overflow
+            // Check the result using the divide operator
+            // and check for the special case of Long.MIN_VALUE * -1
+           if (((y != 0) && (r / y != x)) ||
+               (x == Long.MIN_VALUE && y == -1)) {
+                throw new ArithmeticException("long overflow");
+            }
+        }
+        return r;
     }
 
     /**
@@ -1004,13 +998,12 @@ public final class Math {
      * @since 1.8
      */
     public static int incrementExact(int a) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // if (a == Integer.MAX_VALUE) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        //
-        // return a + 1;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Integer.MAX_VALUE) {
+            throw new ArithmeticException("integer overflow");
+        }
+
+        return a + 1;
     }
 
     /**
@@ -1023,13 +1016,12 @@ public final class Math {
      * @since 1.8
      */
     public static long incrementExact(long a) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // if (a == Long.MAX_VALUE) {
-        //     throw new ArithmeticException("long overflow");
-        // }
-        //
-        // return a + 1L;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Long.MAX_VALUE) {
+            throw new ArithmeticException("long overflow");
+        }
+
+        return a + 1L;
     }
 
     /**
@@ -1042,13 +1034,12 @@ public final class Math {
      * @since 1.8
      */
     public static int decrementExact(int a) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // if (a == Integer.MIN_VALUE) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        //
-        // return a - 1;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Integer.MIN_VALUE) {
+            throw new ArithmeticException("integer overflow");
+        }
+
+        return a - 1;
     }
 
     /**
@@ -1061,13 +1052,12 @@ public final class Math {
      * @since 1.8
      */
     public static long decrementExact(long a) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // if (a == Long.MIN_VALUE) {
-        //     throw new ArithmeticException("long overflow");
-        // }
-        //
-        // return a - 1L;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Long.MIN_VALUE) {
+            throw new ArithmeticException("long overflow");
+        }
+
+        return a - 1L;
     }
 
     /**
@@ -1080,13 +1070,12 @@ public final class Math {
      * @since 1.8
      */
     public static int negateExact(int a) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // if (a == Integer.MIN_VALUE) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        //
-        // return -a;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Integer.MIN_VALUE) {
+            throw new ArithmeticException("integer overflow");
+        }
+
+        return -a;
     }
 
     /**
@@ -1099,13 +1088,12 @@ public final class Math {
      * @since 1.8
      */
     public static long negateExact(long a) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // if (a == Long.MIN_VALUE) {
-        //     throw new ArithmeticException("long overflow");
-        // }
-        //
-        // return -a;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if (a == Long.MIN_VALUE) {
+            throw new ArithmeticException("long overflow");
+        }
+
+        return -a;
     }
 
     /**
@@ -1118,12 +1106,11 @@ public final class Math {
      * @since 1.8
      */
     public static int toIntExact(long value) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // if ((int)value != value) {
-        //     throw new ArithmeticException("integer overflow");
-        // }
-        // return (int)value;
+        // DIFFBLUE MODEL LIBRARY the JDK's code (the same in Java 8 to 25)
+        if ((int)value != value) {
+            throw new ArithmeticException("integer overflow");
+        }
+        return (int)value;
     }
 
     /**
@@ -1162,14 +1149,14 @@ public final class Math {
      * @since 1.8
      */
     public static int floorDiv(int x, int y) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // int r = x / y;
-        // // if the signs are different and modulo not zero, round down
-        // if ((x ^ y) < 0 && (r * y != x)) {
-        //     r--;
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code of Java 8 (later versions
+        // compute the same)
+        int r = x / y;
+        // if the signs are different and modulo not zero, round down
+        if ((x ^ y) < 0 && (r * y != x)) {
+            r--;
+        }
+        return r;
     }
 
     /**
@@ -1198,14 +1185,14 @@ public final class Math {
      * @since 1.8
      */
     public static long floorDiv(long x, long y) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // long r = x / y;
-        // // if the signs are different and modulo not zero, round down
-        // if ((x ^ y) < 0 && (r * y != x)) {
-        //     r--;
-        // }
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code of Java 8 (later versions
+        // compute the same)
+        long r = x / y;
+        // if the signs are different and modulo not zero, round down
+        if ((x ^ y) < 0 && (r * y != x)) {
+            r--;
+        }
+        return r;
     }
 
     /**
@@ -1253,10 +1240,10 @@ public final class Math {
      * @since 1.8
      */
     public static int floorMod(int x, int y) {
-        CProver.notModelled();
-        return CProver.nondetInt();
-        // int r = x - floorDiv(x, y) * y;
-        // return r;
+        // DIFFBLUE MODEL LIBRARY the JDK's code of Java 8 (later versions
+        // compute the same)
+        int r = x - floorDiv(x, y) * y;
+        return r;
     }
 
     /**
@@ -1282,9 +1269,105 @@ public final class Math {
      * @since 1.8
      */
     public static long floorMod(long x, long y) {
-        CProver.notModelled();
-        return CProver.nondetLong();
-        // return x - floorDiv(x, y) * y;
+        // DIFFBLUE MODEL LIBRARY the JDK's code of Java 8 (later versions
+        // compute the same)
+        return x - floorDiv(x, y) * y;
+    }
+
+    // DIFFBLUE MODEL LIBRARY
+    // The methods added in Java 9 and 15, with the JDK's code (of Java 24).
+
+    /**
+     * Returns the product of the arguments, throwing an exception if the
+     * result overflows a {@code long}.
+     *
+     * @since 9
+     */
+    public static long multiplyExact(long x, int y) {
+        return multiplyExact(x, (long)y);
+    }
+
+    /**
+     * Returns the exact mathematical product of the arguments.
+     *
+     * @since 9
+     */
+    public static long multiplyFull(int x, int y) {
+        return (long)x * (long)y;
+    }
+
+    /**
+     * Returns as a {@code long} the most significant 64 bits of the 128-bit
+     * product of two 64-bit factors.
+     *
+     * @since 9
+     */
+    public static long multiplyHigh(long x, long y) {
+        // Use technique from section 8-2 of Henry S. Warren, Jr.,
+        // Hacker's Delight (2nd ed.) (Addison Wesley, 2013), 173-174.
+        long x1 = x >> 32;
+        long x2 = x & 0xFFFFFFFFL;
+        long y1 = y >> 32;
+        long y2 = y & 0xFFFFFFFFL;
+
+        long z2 = x2 * y2;
+        long t = x1 * y2 + (z2 >>> 32);
+        long z1 = t & 0xFFFFFFFFL;
+        long z0 = t >> 32;
+        z1 += x2 * y1;
+
+        return x1 * y1 + z0 + (z1 >> 32);
+    }
+
+    /**
+     * Returns the largest {@code long} value that is less than or equal to
+     * the algebraic quotient.
+     *
+     * @since 9
+     */
+    public static long floorDiv(long x, int y) {
+        return floorDiv(x, (long)y);
+    }
+
+    /**
+     * Returns the floor modulus of the {@code long} and {@code int}
+     * arguments.
+     *
+     * @since 9
+     */
+    public static int floorMod(long x, int y) {
+        // Result cannot overflow the range of int.
+        return (int)floorMod(x, (long)y);
+    }
+
+    /**
+     * Returns the mathematical absolute value of an {@code int} value if it
+     * is exactly representable as an {@code int}, throwing {@code
+     * ArithmeticException} if the result overflows.
+     *
+     * @since 15
+     */
+    public static int absExact(int a) {
+        if (a == Integer.MIN_VALUE)
+            throw new ArithmeticException(
+                "Overflow to represent absolute value of Integer.MIN_VALUE");
+        else
+            return abs(a);
+    }
+
+    /**
+     * Returns the mathematical absolute value of an {@code long} value if it
+     * is exactly representable as an {@code long}, throwing {@code
+     * ArithmeticException} if the result overflows.
+     *
+     * @since 15
+     */
+    public static long absExact(long a) {
+        if (a == Long.MIN_VALUE)
+            throw new ArithmeticException(
+                "Overflow to represent absolute value of Long.MIN_VALUE");
+        else
+            return abs(a);
     }
 
     /**
