@@ -127,6 +127,10 @@ public final class Long extends Number implements Comparable<Long> {
      * @diffblue.fullSupport
      */
     public static String toString(long i, int radix) {
+        // DIFFBLUE MODEL LIBRARY a radix out of range is 10, as in the JDK
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX) {
+            radix = 10;
+        }
         return CProverString.toString(i, radix);
     }
 
