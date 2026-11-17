@@ -3721,6 +3721,86 @@ public final class String
     }
 
     /**
+     * Returns a string whose value is the concatenation of this string
+     * repeated {@code count} times.
+     *
+     * DIFFBLUE MODEL LIBRARY
+     * The checks and messages of the JDK (Java 11 to 25). A result of more
+     * than Integer.MAX_VALUE / 2 chars, where the JDK's check depends on the
+     * bytes of the string (one or two per char, as the JVM stores it), is not
+     * modelled.
+     *
+     * @since 11
+     */
+    public String repeat(int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("count is negative: " + count);
+        }
+        if (count == 1) {
+            return this;
+        }
+        final int len = length();
+        if (len == 0 || count == 0) {
+            return "";
+        }
+        CProverRuntime.notModelledUnless(Integer.MAX_VALUE / count / 2 >= len);
+        // (the result by doubling, in as many steps as count has bits)
+        String result = "";
+        String power = this;
+        int n = count;
+        while (true) {
+            if ((n & 1) != 0) {
+                result = result.concat(power);
+            }
+            n >>>= 1;
+            if (n == 0) {
+                break;
+            }
+            power = power.concat(power);
+        }
+        return result;
+    }
+
+    /**
+     * Returns {@code true} if the string is empty or contains only
+     * whitespace codepoints (Character.isWhitespace), otherwise {@code
+     * false}.
+     *
+     * DIFFBLUE MODEL LIBRARY (strip removes exactly these code points)
+     *
+     * @since 11
+     */
+    public boolean isBlank() {
+        return strip().isEmpty();
+    }
+
+    /**
+     * Returns a string whose value is this string, with all leading and
+     * trailing white space (Character.isWhitespace) removed.
+     *
+     * DIFFBLUE MODEL LIBRARY Handled internally by CBMC (as are
+     * stripLeading and stripTrailing, which the models do not declare)
+     *
+     * @since 11
+     */
+    public String strip() {
+        return CProver.nondetWithoutNullForNotModelled();
+    }
+
+    /**
+     * Formats using this string as the format string, and the supplied
+     * arguments.
+     *
+     * DIFFBLUE MODEL LIBRARY (new Formatter().format(this, args) formats with
+     * the default locale, as String.format does)
+     *
+     * @since 15
+     */
+    public String formatted(Object... args) {
+        return format(this, args);
+    }
+
+    /**
      * Converts this string to a new character array.
      *
      * @return  a newly allocated character array whose length is the length
