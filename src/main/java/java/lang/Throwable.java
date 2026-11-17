@@ -413,13 +413,25 @@ public class Throwable implements Serializable {
     // length of the array), 2 ArithmeticException, 3
     // NegativeArraySizeException (of the length), 4 ClassCastException, 5
     // NullPointerException.
+    // CProverChecks sets them, too, for the index checks of the string
+    // models (kinds 6 and later, see CProverChecks.lazyMessage), so that the
+    // message of the version, with up to three numbers, is only made where a
+    // program asks for it.
     int cproverJvmKind;
     int cproverJvmIndex;
     int cproverJvmLength;
+    int cproverJvmCount;
+    String cproverJvmString;
     private String cproverJvmMessage;
     private boolean cproverJvmMessageMade;
 
     private String cproverJvmMessage() {
+        // (the kinds of CProverChecks first: where symex merges exceptions of
+        // several of its kinds, it need not explore those of the JVM)
+        if (cproverJvmKind >= CProverChecks.JAVA8_INDEX) {
+            return CProverChecks.lazyMessage(cproverJvmKind, cproverJvmIndex,
+                cproverJvmCount, cproverJvmLength, cproverJvmString);
+        }
         switch (cproverJvmKind) {
         case 1:
             if (CProverRuntime.version() <= 10) {
@@ -439,7 +451,7 @@ public class Throwable implements Serializable {
             // with their class loaders)
             return CProver.nondetWithoutNull("");
         default:
-            // (from Java 14 a helpful message, by default from Java 15,
+            // (5, from Java 14 a helpful message, by default from Java 15,
             // which names the variables of the bytecode; a JVM option may
             // switch it off)
             if (CProverRuntime.version() <= 13 || CProver.nondetBoolean()) {

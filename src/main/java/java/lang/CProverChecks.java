@@ -22,70 +22,139 @@ final class CProverChecks {
         return CProverRuntime.version() <= 8;
     }
 
-    /** The message of String.checkIndex (Java 9 and later). */
-    static String indexMessage(int index, int length) {
+    // The kinds of the messages that Throwable.getMessage makes when it is
+    // first asked for (see Throwable.cproverJvmKind): building them where
+    // the exception is thrown made the string solver convert the numbers of
+    // every index check that symex could not decide (String.format of a
+    // constant took 30 s instead of 4 s).
+    static final int JAVA8_INDEX = 6;
+    static final int INDEX = 7;
+    static final int OFFSET = 8;
+    static final int START_END = 9;
+    static final int BEGIN_END = 10;
+    static final int OFFSET_COUNT = 11;
+    static final int RANGE = 12;
+    static final int FOR_INPUT_STRING = 13;
+    static final int RADIX_LOW = 14;
+    static final int RADIX_HIGH = 15;
+
+    /** Sets the kind and numbers of the message of {@code e}. */
+    private static <T extends Throwable> T lazy(T e, int kind, int a, int b,
+                                                int length) {
+        e.cproverJvmKind = kind;
+        e.cproverJvmIndex = a;
+        e.cproverJvmCount = b;
+        e.cproverJvmLength = length;
+        return e;
+    }
+
+    /**
+     * A StringIndexOutOfBoundsException with the message of {@code kind}
+     * (one of the constants above) of {@code a}, {@code b} and {@code
+     * length}, made when it is asked for.
+     */
+    static StringIndexOutOfBoundsException stringIndex(int kind, int a, int b,
+                                                       int length) {
+        return lazy(new StringIndexOutOfBoundsException(), kind, a, b, length);
+    }
+
+    /** An IndexOutOfBoundsException, as {@link #stringIndex}. */
+    static IndexOutOfBoundsException index(int kind, int a, int b,
+                                           int length) {
+        return lazy(new IndexOutOfBoundsException(), kind, a, b, length);
+    }
+
+    /**
+     * The message of {@code kind} (Throwable.getMessage), measured on Java 8
+     * to 25: String.checkIndex and checkOffset (with a space after the comma
+     * from Java 14), AbstractStringBuilder.checkRange (START_END),
+     * String.checkBoundsBeginEnd and checkBoundsOffCount up to Java 17, and
+     * those of jdk.internal.util.Preconditions from Java 18.
+     *
+     * Each kind has one concatenation, whose constant pieces the version
+     * chooses: where symex merges the versions (no --java-version), a
+     * concatenation per version made the string solver encode the
+     * conversions and concatenations of each (a substring check took 170 s
+     * instead of 10 s).
+     */
+    static String lazyMessage(int kind, int a, int b, int length,
+                              String string) {
         int v = CProverRuntime.version();
-        if (v <= 13) {
-            return "index " + index + ",length " + length;
+        String comma = v <= 13 ? "," : ", ";
+        boolean preconditions = v >= 18;
+        if (kind == FOR_INPUT_STRING) {
+            if (a != 10 && v >= 12) {
+                return "For input string: \"" + string + "\" under radix "
+                    + a;
+            }
+            return "For input string: \"" + string + "\"";
         }
-        if (v <= 17) {
-            return "index " + index + ", length " + length;
+        if (kind == RADIX_LOW) {
+            return "radix " + a + " less than Character.MIN_RADIX";
         }
-        return "Index " + index + " out of bounds for length " + length;
-    }
-
-    /** The message of String.checkOffset (Java 9 and later). */
-    static String offsetMessage(int offset, int length) {
-        int v = CProverRuntime.version();
-        if (v <= 13) {
-            return "offset " + offset + ",length " + length;
+        if (kind == RADIX_HIGH) {
+            return "radix " + a + " greater than Character.MAX_RADIX";
         }
-        if (v <= 17) {
-            return "offset " + offset + ", length " + length;
+        if (kind == JAVA8_INDEX) {
+            return "String index out of range: " + a;
         }
-        return rangeMessage(offset, length, length);
+        if (kind == INDEX) {
+            return (preconditions ? "Index " : "index ") + a
+                + (preconditions ? " out of bounds for length "
+                   : comma + "length ") + length;
+        }
+        if (kind == OFFSET) {
+            return (preconditions ? "Range [" : "offset ") + a
+                + (preconditions ? ", " + length + ") out of bounds for length "
+                   : comma + "length ") + length;
+        }
+        if (kind == OFFSET_COUNT) {
+            if (preconditions) {
+                return "Range [" + a + ", " + a + " + " + b
+                    + ") out of bounds for length " + length;
+            }
+            return "offset " + a + ", count " + b + ", length " + length;
+        }
+        boolean range = preconditions || kind == RANGE;
+        String first = range ? "Range ["
+            : kind == START_END ? "start " : "begin ";
+        return first + a + (range ? ", " : ", end ") + b
+            + (range ? ") out of bounds for length " : ", length ") + length;
     }
 
     /**
-     * The message of AbstractStringBuilder.checkRange and checkRangeSIOOBE
-     * (Java 9 to 17) and of Preconditions.checkFromToIndex (Java 18 and
-     * later).
+     * The checks of String.substring, subSequence, getChars and getBytes of
+     * the range {@code [begin, end)} of a string of {@code length} chars:
+     * Java 8 names one bound in the message (or the negative length of the
+     * range), Java 9 to 17 String.checkBoundsBeginEnd, Java 18 and later
+     * Preconditions.checkFromToIndex.
      */
-    static String startEndMessage(int start, int end, int length) {
-        if (CProverRuntime.version() <= 17) {
-            return "start " + start + ", end " + end + ", length " + length;
+    static void checkBoundsBeginEnd(int begin, int end, int length) {
+        if (java8()) {
+            if (begin < 0) {
+                throw new StringIndexOutOfBoundsException(begin);
+            }
+            if (end > length) {
+                throw new StringIndexOutOfBoundsException(end);
+            }
+            if (begin > end) {
+                throw new StringIndexOutOfBoundsException(end - begin);
+            }
+        } else if (outOfRange(begin, end, length)) {
+            throw stringIndex(BEGIN_END, begin, end, length);
         }
-        return rangeMessage(start, end, length);
     }
 
     /**
-     * The message of String.checkBoundsBeginEnd (Java 9 to 17) and of
-     * Preconditions.checkFromToIndex (Java 18 and later).
+     * String.checkBoundsOffCount (Java 9 to 17) and
+     * Preconditions.checkFromIndexSize with a
+     * StringIndexOutOfBoundsException (Java 18 and later): whether {@code
+     * count} elements from {@code offset} are within {@code length}.
      */
-    static String beginEndMessage(int begin, int end, int length) {
-        if (CProverRuntime.version() <= 17) {
-            return "begin " + begin + ", end " + end + ", length " + length;
+    static void checkBoundsOffCount(int offset, int count, int length) {
+        if (offset < 0 || count < 0 || offset > length - count) {
+            throw stringIndex(OFFSET_COUNT, offset, count, length);
         }
-        return rangeMessage(begin, end, length);
-    }
-
-    /**
-     * The message of String.checkBoundsOffCount (Java 9 to 17) and of
-     * Preconditions.checkFromIndexSize (Java 18 and later).
-     */
-    static String offsetCountMessage(int offset, int count, int length) {
-        if (CProverRuntime.version() <= 17) {
-            return "offset " + offset + ", count " + count + ", length "
-                + length;
-        }
-        return "Range [" + offset + ", " + offset + " + " + count
-            + ") out of bounds for length " + length;
-    }
-
-    /** The message of Preconditions.checkFromToIndex. */
-    static String rangeMessage(int from, int to, int length) {
-        return "Range [" + from + ", " + to + ") out of bounds for length "
-            + length;
     }
 
     /** Whether {@code [start, end)} is not a range of {@code length}. */
@@ -96,16 +165,14 @@ final class CProverChecks {
     /** String.checkIndex and AbstractStringBuilder's (Java 9 and later). */
     static void checkIndex(int index, int length) {
         if (index < 0 || index >= length) {
-            throw new StringIndexOutOfBoundsException(
-                indexMessage(index, length));
+            throw stringIndex(INDEX, index, 0, length);
         }
     }
 
     /** String.checkOffset (Java 9 and later). */
     static void checkOffset(int offset, int length) {
         if (offset < 0 || offset > length) {
-            throw new StringIndexOutOfBoundsException(
-                offsetMessage(offset, length));
+            throw stringIndex(OFFSET, offset, 0, length);
         }
     }
 
@@ -116,8 +183,7 @@ final class CProverChecks {
      */
     static void checkRangeSIOOBE(int start, int end, int length) {
         if (outOfRange(start, end, length)) {
-            throw new StringIndexOutOfBoundsException(
-                startEndMessage(start, end, length));
+            throw stringIndex(START_END, start, end, length);
         }
     }
 
@@ -128,8 +194,7 @@ final class CProverChecks {
      */
     static void checkRange(int start, int end, int length) {
         if (outOfRange(start, end, length)) {
-            throw new IndexOutOfBoundsException(
-                startEndMessage(start, end, length));
+            throw index(START_END, start, end, length);
         }
     }
 
@@ -186,25 +251,24 @@ final class CProverChecks {
 
     /**
      * NumberFormatException.forInputString: from Java 12 with the radix
-     * where it is not 10.
+     * where it is not 10 (the message is made when it is asked for).
      */
     static NumberFormatException forInputString(String s, int radix) {
-        String message = "For input string: \"" + s + "\"";
-        if (radix != 10 && CProverRuntime.version() >= 12) {
-            message = message + " under radix " + radix;
-        }
-        return new NumberFormatException(message);
+        NumberFormatException e = new NumberFormatException();
+        e.cproverJvmKind = FOR_INPUT_STRING;
+        e.cproverJvmIndex = radix;
+        e.cproverJvmString = s;
+        return e;
     }
 
     /** The checks of the radix of the parse methods. */
     static void checkRadix(int radix) {
-        if (radix < Character.MIN_RADIX) {
-            throw new NumberFormatException("radix " + radix
-                + " less than Character.MIN_RADIX");
-        }
-        if (radix > Character.MAX_RADIX) {
-            throw new NumberFormatException("radix " + radix
-                + " greater than Character.MAX_RADIX");
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX) {
+            NumberFormatException e = new NumberFormatException();
+            e.cproverJvmKind =
+                radix < Character.MIN_RADIX ? RADIX_LOW : RADIX_HIGH;
+            e.cproverJvmIndex = radix;
+            throw e;
         }
     }
 }

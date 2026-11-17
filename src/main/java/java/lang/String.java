@@ -179,9 +179,7 @@ public final class String
      * Intermediary function for modelling the constructor String(char value[]).
      */
     private static String CProverStringOfCharArray(char value[]) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
+        // (a null value throws, as value.length does in the JDK)
         return CProverString.ofCharArray(value, 0, value.length);
     }
 
@@ -211,15 +209,21 @@ public final class String
      * The code is copied from the original String(char value[], int offset, int count).
      */
     private static String CProverStringOfCharArray(char value[], int offset, int count) {
-        if (offset < 0) {
-            throw new StringIndexOutOfBoundsException(offset);
-        }
-        if (count < 0) {
-            throw new StringIndexOutOfBoundsException(count);
-        }
-        // Note: offset or count might be near -1>>>1.
-        if (offset > value.length - count) {
-            throw new StringIndexOutOfBoundsException(offset + count);
+        // DIFFBLUE MODEL LIBRARY the checks and messages of each version
+        // (Java 8 checks offset and count before it reads value.length)
+        if (CProverChecks.java8()) {
+            if (offset < 0) {
+                throw new StringIndexOutOfBoundsException(offset);
+            }
+            if (count < 0) {
+                throw new StringIndexOutOfBoundsException(count);
+            }
+            // Note: offset or count might be near -1>>>1.
+            if (offset > value.length - count) {
+                throw new StringIndexOutOfBoundsException(offset + count);
+            }
+        } else {
+            CProverChecks.checkBoundsOffCount(offset, count, value.length);
         }
         // DIFFBLUE MODEL LIBRARY Use CProverString function instead of array copy
         return CProverString.ofCharArray(value, offset, count);
@@ -370,8 +374,8 @@ public final class String
                 throw new StringIndexOutOfBoundsException(offset + count);
             }
         } else if (offset < 0 || count < 0 || offset > length - count) {
-            throw new StringIndexOutOfBoundsException(
-                CProverChecks.offsetCountMessage(offset, count, length));
+            throw CProverChecks.stringIndex(CProverChecks.OFFSET_COUNT, offset,
+                count, length);
         }
     }
 
@@ -883,15 +887,21 @@ public final class String
      */
     public char charAt(int index) {
         // DIFFBLUE MODEL LIBRARY
-        // Our implementation differs slightly from the original
-        // as we use the internal CProverString.charAt of CBMC,
-        // however the behavior is the same as the JDK version.
-        // if ((index < 0) || (index >= value.length)) {
-        //     throw new StringIndexOutOfBoundsException(index);
-        // }
-        // return value[index];
+        // The message of each version (measured on Java 8 to 25): Java 9 to
+        // 17 build that of Java 8 for a Latin-1 string (StringLatin1.charAt)
+        // and that of checkIndex for a UTF-16 one. Whether the JVM stores a
+        // string as Latin-1 is not modelled (the JVM option CompactStrings
+        // decides it, too), so for Java 9 to 17 either message is possible:
+        // an over-approximation for strings with a char above U+00FF.
         if ((index < 0) || (index >= length())) {
-            throw new StringIndexOutOfBoundsException(index);
+            // (one exception of either kind: two exceptions would make
+            // symex merge them, and their messages, at every catch)
+            int v = CProverRuntime.version();
+            boolean java8Message =
+                v <= 8 || (v <= 17 && CProver.nondetBoolean());
+            throw CProverChecks.stringIndex(
+                java8Message ? CProverChecks.JAVA8_INDEX : CProverChecks.INDEX,
+                index, 0, length());
         }
         return CProverString.charAt(this, index);
     }
@@ -922,8 +932,12 @@ public final class String
      * @diffblue.untested Tests only cover exception throwing
      */
     public int codePointAt(int index) {
+        // DIFFBLUE MODEL LIBRARY the message of each version
         if ((index < 0) || (index >= this.length())) {
-            throw new StringIndexOutOfBoundsException(index);
+            if (CProverChecks.java8()) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(index, length());
         }
         // return Character.codePointAtImpl(value, index, value.length);
         return CProverString.codePointAt(this, index);
@@ -954,9 +968,14 @@ public final class String
      * @diffblue.fullSupport
      */
     public int codePointBefore(int index) {
+        // DIFFBLUE MODEL LIBRARY the message of each version: Java 18 and
+        // later check index - 1
         int i = index - 1;
         if ((i < 0) || (i >= this.length())) {
-            throw new StringIndexOutOfBoundsException(index);
+            if (CProverRuntime.version() <= 17) {
+                throw new StringIndexOutOfBoundsException(index);
+            }
+            CProverChecks.checkIndex(i, length());
         }
         // return Character.codePointBeforeImpl(value, index, 0);
         return CProverString.codePointBefore(this, index);
@@ -988,8 +1007,14 @@ public final class String
      * @diffblue.untested Tests only cover exception throwing
      */
     public int codePointCount(int beginIndex, int endIndex) {
-        if (beginIndex < 0 || endIndex > this.length() || beginIndex > endIndex) {
-            throw new IndexOutOfBoundsException();
+        // DIFFBLUE MODEL LIBRARY no message up to Java 17, that of
+        // Preconditions.checkFromToIndex from 18
+        if (CProverChecks.outOfRange(beginIndex, endIndex, length())) {
+            if (CProverRuntime.version() <= 17) {
+                throw new IndexOutOfBoundsException();
+            }
+            throw CProverChecks.index(CProverChecks.RANGE, beginIndex,
+                endIndex, length());
         }
         // return Character.codePointCountImpl(value, beginIndex, endIndex - beginIndex);
         return CProverString.codePointCount(this, beginIndex, endIndex);
@@ -1087,21 +1112,25 @@ public final class String
      * @diffblue.untested
      */
     public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
-        if (srcBegin < 0) {
-            throw new StringIndexOutOfBoundsException(srcBegin);
-        }
-        // if (srcEnd > value.length) {
-        // DIFFBLUE MODEL LIBRARY we have no value member
-        if (srcEnd > length()) {
-            throw new StringIndexOutOfBoundsException(srcEnd);
-        }
-        if (srcBegin > srcEnd) {
-            throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
+        // DIFFBLUE MODEL LIBRARY
+        // The checks and messages of each version: after those of the
+        // source range, Java 8 has System.arraycopy check the destination
+        // (an ArrayIndexOutOfBoundsException without a message), Java 9 and
+        // later String.checkBoundsOffCount. Both dereference dst after the
+        // checks of the source range.
+        CProverChecks.checkBoundsBeginEnd(srcBegin, srcEnd, length());
+        int n = srcEnd - srcBegin;
+        int dstLength = dst.length;
+        if (dstBegin < 0 || dstBegin > dstLength - n) {
+            if (CProverChecks.java8()) {
+                throw new ArrayIndexOutOfBoundsException();
+            }
+            CProverChecks.checkBoundsOffCount(dstBegin, n, dstLength);
         }
         // System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
         // DIFFBLUE MODEL LIBRARY we inline System.arraycopy here so that we
         // can specialize it for characters.
-        for(int i = 0; i < srcEnd - srcBegin; i++) {
+        for(int i = 0; i < n; i++) {
             dst[dstBegin + i] = CProverString.charAt(this, srcBegin + i);
         }
     }
@@ -1153,26 +1182,27 @@ public final class String
      */
     @Deprecated
     public void getBytes(int srcBegin, int srcEnd, byte dst[], int dstBegin) {
-        CProver.notModelled();
-        // if (srcBegin < 0) {
-        //     throw new StringIndexOutOfBoundsException(srcBegin);
-        // }
-        // if (srcEnd > value.length) {
-        //     throw new StringIndexOutOfBoundsException(srcEnd);
-        // }
-        // if (srcBegin > srcEnd) {
-        //     throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
-        // }
+        // DIFFBLUE MODEL LIBRARY
+        // The checks and messages of each version: Java 8 stores the bytes
+        // one by one until an index of dst is out of bounds, Java 9 and later
+        // check the destination range first (String.checkBoundsOffCount).
+        CProverChecks.checkBoundsBeginEnd(srcBegin, srcEnd, length());
         // Objects.requireNonNull(dst);
-        //
-        // int j = dstBegin;
-        // int n = srcEnd;
-        // int i = srcBegin;
-        // char[] val = value;   /* avoid getfield opcode */
-        //
-        // while (i < n) {
-        //     dst[j++] = (byte)val[i++];
-        // }
+        if (dst == null) {
+            throw new NullPointerException();
+        }
+        if (CProverChecks.java8()) {
+            int j = dstBegin;
+            for (int i = srcBegin; i < srcEnd; i++) {
+                dst[j++] = (byte) CProverString.charAt(this, i);
+            }
+            return;
+        }
+        int n = srcEnd - srcBegin;
+        CProverChecks.checkBoundsOffCount(dstBegin, n, dst.length);
+        for (int i = 0; i < n; i++) {
+            dst[dstBegin + i] = (byte) CProverString.charAt(this, srcBegin + i);
+        }
     }
 
     /**
@@ -1361,9 +1391,7 @@ public final class String
      * @diffblue.noSupport
      */
     public boolean contentEquals(StringBuffer sb) {
-        // return contentEquals((CharSequence)sb);
-        CProver.notModelled();
-        return CProver.nondetBoolean();
+        return contentEquals((CharSequence)sb);
     }
 
     // DIFFBLUE MODEL LIBRARY Unused private method
@@ -1402,33 +1430,30 @@ public final class String
      * @diffblue.todo implement internally in CBMC
      */
     public boolean contentEquals(CharSequence cs) {
-        CProver.notModelled();
-        return CProver.nondetBoolean();
-        // // Argument is a StringBuffer, StringBuilder
-        // if (cs instanceof AbstractStringBuilder) {
-        //     if (cs instanceof StringBuffer) {
-        //         synchronized(cs) {
-        //            return nonSyncContentEquals((AbstractStringBuilder)cs);
-        //         }
-        //     } else {
-        //         return nonSyncContentEquals((AbstractStringBuilder)cs);
-        //     }
-        // }
-        // // Argument is a String
-        // if (cs.equals(this))
-        //     return true;
-        // // Argument is a generic CharSequence
-        // char v1[] = value;
-        // int n = v1.length;
-        // if (n != cs.length()) {
-        //     return false;
-        // }
-        // for (int i = 0; i < n; i++) {
-        //     if (v1[i] != cs.charAt(i)) {
-        //         return false;
-        //     }
-        // }
-        // return true;
+        // DIFFBLUE MODEL LIBRARY
+        // The JDK's code of each version, with the content of a string
+        // builder from its toString. Java 8 asks cs.equals(this) where
+        // Java 9 and later ask whether cs is a String. A null cs throws.
+        if (cs instanceof AbstractStringBuilder) {
+            return equals(cs.toString());
+        }
+        if (CProverChecks.java8()) {
+            if (cs.equals(this)) {
+                return true;
+            }
+        } else if (cs instanceof String) {
+            return equals(cs);
+        }
+        int n = cs.length();
+        if (n != length()) {
+            return false;
+        }
+        for (int i = 0; i < n; i++) {
+            if (CProverString.charAt(this, i) != cs.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -1655,24 +1680,24 @@ public final class String
      */
     public boolean regionMatches(int toffset, String other, int ooffset,
             int len) {
-        CProver.notModelled();
-        return CProver.nondetBoolean();
-        // char ta[] = value;
-        // int to = toffset;
-        // char pa[] = other.value;
-        // int po = ooffset;
-        // // Note: toffset, ooffset, or len might be near -1>>>1.
-        // if ((ooffset < 0) || (toffset < 0)
-        //         || (toffset > (long)value.length - len)
-        //         || (ooffset > (long)other.value.length - len)) {
-        //     return false;
-        // }
-        // while (len-- > 0) {
-        //     if (ta[to++] != pa[po++]) {
-        //         return false;
-        //     }
-        // }
-        // return true;
+        // DIFFBLUE MODEL LIBRARY
+        // The regions compared as substrings. A null other throws before
+        // the checks of the offsets up to Java 20 (which read other.value
+        // first), after them from Java 21.
+        if (CProverRuntime.version() <= 20) {
+            other.length();
+        }
+        // Note: toffset, ooffset, or len might be near -1>>>1.
+        if ((ooffset < 0) || (toffset < 0)
+                || (toffset > (long)length() - len)
+                || (ooffset > (long)other.length() - len)) {
+            return false;
+        }
+        if (len <= 0) {
+            return true;
+        }
+        return CProverString.substring(this, toffset, toffset + len).equals(
+            CProverString.substring(other, ooffset, ooffset + len));
     }
 
     /**
@@ -1729,45 +1754,30 @@ public final class String
      */
     public boolean regionMatches(boolean ignoreCase, int toffset,
             String other, int ooffset, int len) {
-        CProver.notModelled();
-        return CProver.nondetBoolean();
-        // char ta[] = value;
-        // int to = toffset;
-        // char pa[] = other.value;
-        // int po = ooffset;
-        // // Note: toffset, ooffset, or len might be near -1>>>1.
-        // if ((ooffset < 0) || (toffset < 0)
-        //         || (toffset > (long)value.length - len)
-        //         || (ooffset > (long)other.value.length - len)) {
-        //     return false;
-        // }
-        // while (len-- > 0) {
-        //     char c1 = ta[to++];
-        //     char c2 = pa[po++];
-        //     if (c1 == c2) {
-        //         continue;
-        //     }
-        //     if (ignoreCase) {
-        //         // If characters don't match but case may be ignored,
-        //         // try converting both characters to uppercase.
-        //         // If the results match, then the comparison scan should
-        //         // continue.
-        //         char u1 = Character.toUpperCase(c1);
-        //         char u2 = Character.toUpperCase(c2);
-        //         if (u1 == u2) {
-        //             continue;
-        //         }
-        //         // Unfortunately, conversion to uppercase does not work properly
-        //         // for the Georgian alphabet, which has strange rules about case
-        //         // conversion.  So we need to make one last check before
-        //         // exiting.
-        //         if (Character.toLowerCase(u1) == Character.toLowerCase(u2)) {
-        //             continue;
-        //         }
-        //     }
-        //     return false;
-        // }
-        // return true;
+        // DIFFBLUE MODEL LIBRARY
+        // The regions compared as substrings, by equalsIgnoreCase where
+        // case is ignored (which is regionMatches(true, 0, other, 0,
+        // length()) in the JDK). A null other throws first in Java 8 (which
+        // reads other.value first), after the checks of the offsets from
+        // Java 9.
+        if (CProverChecks.java8()) {
+            other.length();
+        }
+        if (!ignoreCase) {
+            return regionMatches(toffset, other, ooffset, len);
+        }
+        // Note: toffset, ooffset, or len might be near -1>>>1.
+        if ((ooffset < 0) || (toffset < 0)
+                || (toffset > (long)length() - len)
+                || (ooffset > (long)other.length() - len)) {
+            return false;
+        }
+        if (len <= 0) {
+            return true;
+        }
+        return CProverString.substring(this, toffset, toffset + len)
+            .equalsIgnoreCase(
+                CProverString.substring(other, ooffset, ooffset + len));
     }
 
     /**
@@ -2400,7 +2410,8 @@ public final class String
         // DIFFBLUE MODEL LIBRARY
         // Our implementation differs from the original
         // in that we use the internal CProverString.substring.
-        // However the behavior is the same as the JDK version.
+        // The checks and messages are those of each version: up to Java 13
+        // those of Java 8, from 14 those of substring(beginIndex, length()).
         // if (beginIndex < 0) {
         //     throw new StringIndexOutOfBoundsException(beginIndex);
         // }
@@ -2409,12 +2420,16 @@ public final class String
         //     throw new StringIndexOutOfBoundsException(subLen);
         // }
         // return (beginIndex == 0) ? this : new String(value, beginIndex, subLen);
-        if (beginIndex < 0) {
-            throw new StringIndexOutOfBoundsException(beginIndex);
-        }
-        int subLen = length() - beginIndex;
-        if (subLen < 0) {
-            throw new StringIndexOutOfBoundsException(subLen);
+        if (CProverRuntime.version() <= 13) {
+            if (beginIndex < 0) {
+                throw new StringIndexOutOfBoundsException(beginIndex);
+            }
+            int subLen = length() - beginIndex;
+            if (subLen < 0) {
+                throw new StringIndexOutOfBoundsException(subLen);
+            }
+        } else {
+            CProverChecks.checkBoundsBeginEnd(beginIndex, length(), length());
         }
         return CProverString.substring(this, beginIndex);
     }
@@ -2448,7 +2463,7 @@ public final class String
         // DIFFBLUE MODEL LIBRARY
         // Our implementation differs from the original
         // in that we use the internal CProverString.substring.
-        // However the behavior is the same as the JDK version.
+        // The checks and messages are those of each version.
         // if (beginIndex < 0) {
         //     throw new StringIndexOutOfBoundsException(beginIndex);
         // }
@@ -2461,22 +2476,8 @@ public final class String
         // }
         // return ((beginIndex == 0) && (endIndex == value.length)) ? this
         //         : new String(value, beginIndex, subLen);
-        if (beginIndex < 0) {
-            throw new StringIndexOutOfBoundsException(beginIndex);
-        }
-        if (endIndex > length()) {
-            throw new StringIndexOutOfBoundsException(endIndex);
-        }
-        int subLen = endIndex - beginIndex;
-        if (subLen < 0) {
-            throw new StringIndexOutOfBoundsException(subLen);
-        }
-        // DIFFBLUE MODEL LIBRARY Exception case imported from {@code String(char value[], int offset, int count)}
-        // Note: beginIndex or subLen might be near -1>>>1.
-        if (beginIndex > length() - subLen) {
-            throw new StringIndexOutOfBoundsException(beginIndex + subLen);
-        }
-        return CProverString.substring(this, beginIndex, beginIndex + subLen);
+        CProverChecks.checkBoundsBeginEnd(beginIndex, endIndex, length());
+        return CProverString.substring(this, beginIndex, endIndex);
     }
 
     /**
@@ -4345,9 +4346,7 @@ public final class String
      * @diffblue.todo implement this using the String([C) constructor
      */
     public static String valueOf(char data[]) {
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
-        // return new String(data);
+        return new String(data);
     }
 
     /**
@@ -4373,9 +4372,7 @@ public final class String
      * @diffblue.noSupport
      */
     public static String valueOf(char data[], int offset, int count) {
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
-        // return new String(data, offset, count);
+        return new String(data, offset, count);
     }
 
     /**
@@ -4394,9 +4391,7 @@ public final class String
      * @diffblue.noSupport
      */
     public static String copyValueOf(char data[], int offset, int count) {
-        CProver.notModelled();
-        return CProver.nondetWithNullForNotModelled();
-        // return new String(data, offset, count);
+        return new String(data, offset, count);
     }
 
     /**
@@ -4409,9 +4404,7 @@ public final class String
      * @diffblue.noSupport
      */
     public static String copyValueOf(char data[]) {
-        CProver.notModelled();
-        return CProver.nondetWithoutNullForNotModelled();
-        // return new String(data);
+        return new String(data);
     }
 
     /**

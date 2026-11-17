@@ -38,7 +38,12 @@ class StringIndexOutOfBoundsException extends IndexOutOfBoundsException {
     }
 
     public StringIndexOutOfBoundsException(int index) {
-        super("String index out of range: " + index);
+        // DIFFBLUE MODEL LIBRARY
+        // super("String index out of range: " + index);
+        // the message is made when it is asked for (CProverChecks.lazy)
+        super();
+        cproverJvmKind = CProverChecks.JAVA8_INDEX;
+        cproverJvmIndex = index;
     }
 
     // DIFFBLUE MODEL LIBRARY

@@ -402,15 +402,7 @@ public final class Integer extends Number implements Comparable<Integer> {
             throw CProverChecks.nullNumberString();
         }
 
-        if (radix < Character.MIN_RADIX) {
-            throw new NumberFormatException("radix " + radix +
-                                            " less than Character.MIN_RADIX");
-        }
-
-        if (radix > Character.MAX_RADIX) {
-            throw new NumberFormatException("radix " + radix +
-                                            " greater than Character.MAX_RADIX");
-        }
+        CProverChecks.checkRadix(radix);
 
         if(!CProverString.isValidInt(s, radix)) {
             throw CProverChecks.forInputString(s, radix);

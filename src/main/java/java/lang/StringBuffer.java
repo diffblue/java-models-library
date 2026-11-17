@@ -201,8 +201,8 @@ import org.cprover.CProverString;
             if (CProverRuntime.version() <= 17) {
                 throw new IndexOutOfBoundsException();
             }
-            throw new IndexOutOfBoundsException(CProverChecks.rangeMessage(
-                beginIndex, endIndex, length()));
+            throw CProverChecks.index(CProverChecks.RANGE, beginIndex,
+                endIndex, length());
         }
         return cproverCodePointCount(beginIndex, endIndex);
     }
