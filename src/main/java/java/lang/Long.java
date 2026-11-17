@@ -411,6 +411,40 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     /**
+     * Parses the {@link CharSequence} argument as a signed long in
+     * the specified {@code radix}, beginning at the specified {@code
+     * beginIndex} and extending to {@code endIndex - 1}.
+     *
+     * DIFFBLUE MODEL LIBRARY the JDK's code of each version (see
+     * CProverParseCharSequence)
+     *
+     * @since  9
+     */
+    public static long parseLong(CharSequence s, int beginIndex, int endIndex,
+                         int radix)
+                throws NumberFormatException {
+        return CProverParseCharSequence.parseLong(s, beginIndex, endIndex,
+            radix);
+    }
+
+    /**
+     * Parses the {@link CharSequence} argument as an unsigned long in
+     * the specified {@code radix}, beginning at the specified {@code
+     * beginIndex} and extending to {@code endIndex - 1}.
+     *
+     * DIFFBLUE MODEL LIBRARY the JDK's code of each version (see
+     * CProverParseCharSequence)
+     *
+     * @since  9
+     */
+    public static long parseUnsignedLong(CharSequence s, int beginIndex, int endIndex,
+                                 int radix)
+                throws NumberFormatException {
+        return CProverParseCharSequence.parseUnsignedLong(s, beginIndex, endIndex,
+            radix);
+    }
+
+    /**
      * Parses the string argument as a signed {@code long} in the
      * radix specified by the second argument. The characters in the
      * string must all be digits of the specified radix (as determined

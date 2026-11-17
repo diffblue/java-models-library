@@ -343,6 +343,40 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     /**
+     * Parses the {@link CharSequence} argument as a signed int in
+     * the specified {@code radix}, beginning at the specified {@code
+     * beginIndex} and extending to {@code endIndex - 1}.
+     *
+     * DIFFBLUE MODEL LIBRARY the JDK's code of each version (see
+     * CProverParseCharSequence)
+     *
+     * @since  9
+     */
+    public static int parseInt(CharSequence s, int beginIndex, int endIndex,
+                        int radix)
+                throws NumberFormatException {
+        return CProverParseCharSequence.parseInt(s, beginIndex, endIndex,
+            radix);
+    }
+
+    /**
+     * Parses the {@link CharSequence} argument as an unsigned int in
+     * the specified {@code radix}, beginning at the specified {@code
+     * beginIndex} and extending to {@code endIndex - 1}.
+     *
+     * DIFFBLUE MODEL LIBRARY the JDK's code of each version (see
+     * CProverParseCharSequence)
+     *
+     * @since  9
+     */
+    public static int parseUnsignedInt(CharSequence s, int beginIndex, int endIndex,
+                                int radix)
+                throws NumberFormatException {
+        return CProverParseCharSequence.parseUnsignedInt(s, beginIndex, endIndex,
+            radix);
+    }
+
+    /**
      * Parses the string argument as a signed integer in the radix
      * specified by the second argument. The characters in the string
      * must all be digits of the specified radix (as determined by
@@ -920,6 +954,10 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @see java.lang.Integer#parseInt(java.lang.String, int)
      */
     public static Integer decode(String nm) throws NumberFormatException {
+        // DIFFBLUE MODEL LIBRARY (first, as in the JDK: parseInt of "" had
+        // another message)
+        if (nm.length() == 0)
+            throw new NumberFormatException("Zero length string");
         if (!nm.startsWith("0") &&
             !nm.startsWith("#") && 
             !nm.startsWith("-0") && 
