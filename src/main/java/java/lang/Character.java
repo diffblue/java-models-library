@@ -4661,6 +4661,36 @@ class Character implements java.io.Serializable, Comparable<Character> {
     }
 
     /**
+     * Returns a {@code String} object representing the specified character
+     * (Unicode code point).
+     *
+     * DIFFBLUE MODEL LIBRARY (String.valueOfCodePoint of the JDK, which throws
+     * as toChars does)
+     *
+     * @since 11
+     */
+    public static String toString(int codePoint) {
+        return String.valueOf(toChars(codePoint));
+    }
+
+    /**
+     * Returns the code point value of the Unicode character specified by
+     * the given character name.
+     *
+     * DIFFBLUE MODEL LIBRARY
+     * The names of the Unicode characters (of the version of each JDK) are
+     * not modelled: the method fails the not-modelled property (without a
+     * model JBMC returned any value and never threw). A null name throws.
+     *
+     * @since 9
+     */
+    public static int codePointOf(String name) {
+        name = name.trim();
+        CProverRuntime.notModelledUnless(false);
+        return CProver.nondetInt();
+    }
+
+    /**
      * Determines whether the specified code point is a valid
      * <a href="http://www.unicode.org/glossary/#code_point">
      * Unicode code point value</a>.
@@ -5151,7 +5181,8 @@ class Character implements java.io.Serializable, Comparable<Character> {
             toSurrogates(codePoint, dst, dstIndex);
             return 2;
         } else {
-            throw new IllegalArgumentException();
+            // DIFFBLUE MODEL LIBRARY the message of each version
+            throw CProverChecks.invalidCodePoint(codePoint);
         }
     }
 
@@ -5179,7 +5210,8 @@ class Character implements java.io.Serializable, Comparable<Character> {
             toSurrogates(codePoint, result, 0);
             return result;
         } else {
-            throw new IllegalArgumentException();
+            // DIFFBLUE MODEL LIBRARY the message of each version
+            throw CProverChecks.invalidCodePoint(codePoint);
         }
     }
 
