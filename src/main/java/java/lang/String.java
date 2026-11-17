@@ -2643,9 +2643,16 @@ public final class String
      * @diffblue.noSupport
      */
     public boolean matches(String regex) {
-        CProver.notModelled();
-        return CProver.nondetBoolean();
         // return Pattern.matches(regex, this);
+        // DIFFBLUE MODEL LIBRARY a malformed regex throws (CProverRegex),
+        // then the solver matches
+        java.util.regex.CProverRegex.checkSyntax(regex, 0);
+        return cproverMatches(regex);
+    }
+
+    /** DIFFBLUE MODEL LIBRARY Handled internally by CBMC. */
+    private boolean cproverMatches(String regex) {
+        return CProver.nondetBoolean();
     }
 
     /**
@@ -2709,6 +2716,8 @@ public final class String
      * @diffblue.noSupport
      */
     public String replaceFirst(String regex, String replacement) {
+        // DIFFBLUE MODEL LIBRARY (a malformed regex throws)
+        java.util.regex.CProverRegex.checkSyntax(regex, 0);
         CProver.notModelled();
         return CProver.nondetWithNullForNotModelled();
         // return Pattern.compile(regex).matcher(this).replaceFirst(replacement);
@@ -2764,6 +2773,8 @@ public final class String
     public String replaceAll(String regex, String replacement)
     {
         // return Pattern.compile(regex).matcher(this).replaceAll(replacement);
+        // DIFFBLUE MODEL LIBRARY a malformed regex throws
+        java.util.regex.CProverRegex.checkSyntax(regex, 0);
         // DIFFBLUE MODELS LIBRARY: only for a regex and a replacement that are
         // plain strings (assumed before, so that the paths of the others were
         // unreachable; now a failed not-modelled property)
@@ -2911,6 +2922,9 @@ public final class String
      * than the unwind value.
      */
     public String[] split(String regex, int limit) {
+        // DIFFBLUE MODEL LIBRARY a malformed regex throws (the JDK's fast
+        // path takes the regexes of one char, which are valid)
+        java.util.regex.CProverRegex.checkSyntax(regex, 0);
         // /* fastpath if the regex is a
         //  (1)one-char String and this character is not one of the
         //     RegEx's meta characters ".$|()[{^?*+\\", or
@@ -3078,6 +3092,8 @@ public final class String
      * than the unwind value.
      */
     public String[] split(String regex) {
+        // DIFFBLUE MODEL LIBRARY a malformed regex throws
+        java.util.regex.CProverRegex.checkSyntax(regex, 0);
         // return split(regex, 0);
 
         // DIFFBLUE MODEL LIBRARY

@@ -1434,6 +1434,8 @@ public final class Pattern
      */
     private Pattern(String p, int f) {
         // DIFFBLUE MODEL LIBRARY
+        // A malformed regex throws (see CProverRegex).
+        CProverRegex.checkSyntax(p, f);
         // Store the pattern and flags; matching is delegated to
         // String.matches / the Matcher model, which JBMC intercepts (the
         // regex is translated to the SMT string theory or evaluated
