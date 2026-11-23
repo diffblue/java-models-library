@@ -34,10 +34,9 @@ public class Object {
     // lock needed for synchronization in JBMC
     // used by monitorenter, monitorexit, wait, and notify
     // Not present in the original Object class
-    public int cproverMonitorCount;
+    public int cproverMonitorCount = 0;
 
     public Object() {
-      cproverMonitorCount = 0;
     }
 
     /**

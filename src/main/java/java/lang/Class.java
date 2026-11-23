@@ -271,7 +271,9 @@ public final class Class<T> {
             // DIFFBLUE MODEL LIBRARY
             // removed for compatibility with Java 9 and newer
             // ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
-            ClassLoader.checkClassLoaderPermission(cl, null);
+            // removed for compatibility with Java 25, where this method no
+            // longer exists
+            // ClassLoader.checkClassLoaderPermission(cl, null);
         }
         return cl;
     }
